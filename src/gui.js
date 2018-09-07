@@ -18,29 +18,25 @@ var ChromatoneLibGUI = {};
     interactiveSection = $_("interactive");
     
   /**
-   * Chromatone lib stuff... TODO FIX IT IT DOES NOT WORK AS INTENDED!!1
+   * 
    */
   function createChromaticKeyboard(rows, columns) {
     var keyboard = chromaticKeyboardTemplate.cloneNode(true);
     var keyArea = keyboard.getElementsByClassName("keys")[0];
     
+    var rowIteration = 0;
     for (var row=0; row < rows; ++row) {
       var chromatic = 0;
       // the first shall never be a cross row (because of the cut out parts there)
-      var isCrossRow = row % 2 === rows % 2;
+      var isCrossRow = !!(row % 2);
       var rowEl = document.createElement("div");
-      // TODO refactor this mess now!
-      var rowIteration = Math.floor(rows / 2) - Math.floor(row / 2);
-      if (isCrossRow) {
-        --rowIteration;
-      }
-      // rows % 2
+      
       // e.g. class="row x i1" -> second iteration of the cross row
       if (isCrossRow) {
-        rowEl.className = "row i" + rowIteration + " x";
+        rowEl.className = "row i" + Math.floor(rowIteration) + " x";
         chromatic = 1;
       } else {
-        rowEl.className = "row i" + rowIteration;
+        rowEl.className = "row i" + Math.floor(rowIteration);
       }
       var rowColumnCount = isCrossRow ? columns - 1 : columns;
       for (var column = 0; column < rowColumnCount; ++column) {
@@ -51,7 +47,10 @@ var ChromatoneLibGUI = {};
         rowEl.appendChild(button);
         chromatic += 2;
       }
-      keyArea.appendChild(rowEl);
+      
+      keyArea.insertBefore(rowEl, keyArea.firstChild);
+      
+      rowIteration += 0.5;
     }
     
     var debug = false;
@@ -129,7 +128,7 @@ var ChromatoneLibGUI = {};
       }
     }
     
-    return createChromaticKeyboard(rows, Math.ceil(highestPosition / 2));
+    return createChromaticKeyboard(rows, Math.ceil(highestPosition / 2 + 1));
   }
 
   function addChord(chord, parent, keyboardTemplate) {
@@ -179,7 +178,10 @@ var ChromatoneLibGUI = {};
   }
   lib.addBreak = addBreak;
   
-  lib.addForm = function(submitFunction, section) {
+  /**
+   * presets .. array of arrays
+   */
+  lib.addForm = function(submitFunction, presets, section) {
     section = section || interactiveSection;
     var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0];
@@ -199,5 +201,21 @@ var ChromatoneLibGUI = {};
       resultSection.innerHTML = "";
       submitFunction(scale, chordDefs, resultSection);
     }, false);
+    
+    if (Array.isArray(presets) && presets.length > 0) {
+      var presetEl = formGroupEl.appendChild(document.createElement("select"));
+      formGroupEl.appendChild(presetEl);
+      for (var i=0; i<presets.length; ++i) {
+        var preset = presets[i];
+        var option = presetEl.appendChild(document.createElement("option"));
+        option.value = i;
+        option.innerHTML = preset[0] + " -> " + preset[1];
+      }
+      presetEl.addEventListener("click", function(event) {
+        var preset = presets[presetEl.value];
+        form.scale.value = preset[0];
+        form.chords.value = preset[1];
+      });
+    }
   };
 })(ChromatoneLibGUI, ChromatoneLibTheory);

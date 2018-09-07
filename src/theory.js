@@ -372,9 +372,10 @@ var ChromatoneLibTheory = {};
           notes.push(note);
         }
         
-         for (var i = 0; i < notes.length; ++i) {
+        // set the new chromatic roots after transposing, so they are not affected by it
+        for (var i = 0; i < notes.length; ++i) {
           notes[i].setChromaticRoot(newChromaticRoot);
-          }
+        }
         
         // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
       },
