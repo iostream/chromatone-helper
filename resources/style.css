@@ -1,0 +1,66 @@
+body {
+  background-color: #edfdf8;
+}
+section#chords {
+  background-color: #f3eada;
+  padding: 4pt;
+  margin: 0;
+}
+section#templates {
+  display: none;
+}
+.chord-group {
+  display: inline-block;
+  margin-bottom: 5pt;
+  margin: 5pt;
+}
+.chord-group .title {
+  font-size: 14pt;
+  margin: 0;
+  margin-left: 8pt;
+}
+.keyboard {
+  display: inline-block;
+  margin-right: 4pt;
+}
+.keyboard .row {
+  margin: 0pt;
+  margin-bottom:-2pt;
+  padding: 0pt;
+  height: 20pt;
+  font-size: 0;
+}
+.keyboard .row.x {
+  margin-left: 11pt;
+}
+.keyboard span { /* note */
+  display: inline-block;
+  width: 20pt;
+  height: 20pt;
+  color: #354b45;
+  background-color: beige; /* #00c0a3;*/
+  border: 1px solid #354b45;
+  border-radius: 50%;
+  font-size: 12pt;
+  vertical-align: top;
+  text-align: center;
+  margin-top: 2pt;
+}
+.keyboard span .note-text {
+  line-height: 19pt;
+}
+.keyboard span.selected {
+  background-color: #ffa17a;
+}
+.keyboard span.root {
+  border-color: #354b45;
+  background-color: yellow;
+  color: #354b45;
+}
+.keyboard {
+  margin-bottom: 8pt;
+}
+
+.keyboard .description {
+  style: inline-block;
+}

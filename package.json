@@ -1,0 +1,16 @@
+{
+  "name": "chromatone-helper",
+  "description": "Helps learning t oplay the musical intstrument Chromatone.",
+  "version": "1.0.0",
+  "author": "Tommy Helm",
+  "repository": {
+    "type": "git"
+  },
+  "main": "./chromatone-index.js",
+  "keywords": [
+    "Chromatone"
+  ],
+  "dependencies": {
+    "brain.js": "^1.2.0"
+  }
+}
