@@ -61,6 +61,7 @@
     <script src="src/fingering.js"></script>
     <script src="src/progression.js"></script>
     <script src="src/gui.js"></script>
+    <script src="resources/progressions.json"></script>
     <script>
       (function(g/*ui*/, t/*heory*/, f/*ingering*/, p/*rogression*/) {
         /** 
@@ -160,7 +161,7 @@
           var chords = p.createChordProgression(scale, chordDefs);
           // var k = g.createKeyboard(5, 14); 
           g.addChordGroup(chords, chordDefs, resultSection);
-        });
+        }, ChromatoneProgressions);
         
         g.addForm(function(scale, chordDefs, resultSection) {
           var chords = [];
