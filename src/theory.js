@@ -14,6 +14,51 @@ var ChromatoneLibTheory = {};
     0
   ];
   
+  function parseChordDefinition(chordDef) {
+    var _step = parseInt(chordDef.trim()) - 1;
+    var _inversion = 0;
+    
+    var index = chordDef.indexOf("i");
+    if (index !== -1 && chordDef.length >= index) {
+      _inversion = parseInt(chordDef.substring(index + 1));
+      if (isNaN(_inversion)) {
+        console.error("parseChordDefinition() - Could not parse inversion out of: " + chordDef);
+        _inversion = 0;
+      }
+    }
+    
+    if (isNaN(_step)) {
+      console.error("parseChordDefinition() - Could not parse step out of: " + chordDef);
+      _step = 0;
+    }
+    
+    return {
+      getStep: function() {
+        return _step;
+      },
+      getInversion: function() {
+        return _inversion;
+      },
+      setInversion: function(inversion) {
+        _inversion = inversion;
+      }
+    };
+  }
+  
+  lib.parseChordDefinitions = function(chordDefs) {
+    if (typeof chordDefs !== "string") {
+      console.error("parseChordDefinitions() - Only strings can be parsed");
+      return [];
+    }
+    
+    var chordDefObjects = [];
+    chordDefs.trim().split(" ").forEach(function(chordDef) {
+      chordDefObjects.push(parseChordDefinition(chordDef));
+    });
+    
+    return chordDefObjects;
+  };
+  
   /**
    * int interval    .. chromatic interval, 0 based
    * int root        .. absolute chromatic root position, 0 based (used for interval naming)
@@ -283,18 +328,20 @@ var ChromatoneLibTheory = {};
       },
       
       /**
-       * @param int step 0 based
+       * @param chordDef
        * @param int optional count of notes
        * @param int optional inversion (only 0..count-1 makes sense)
        */
-      createChord: function(step, count, inversion) {
+      createChord: function(chordDef, count) {
+        // TODO this is now kind of a mess here!
         count = count || 4;
-        inversion = inversion || 0;
+        var _inversion = 0;
+        var _step = chordDef.getStep();
         
         var chordScaleNotes = this.getNotes();
-        if (step > 0) {
+        if (_step > 0) {
           var tempScale = this.clone()
-          tempScale.shift(step);
+          tempScale.shift(_step);
           chordScaleNotes = tempScale.getNotes();
         }
         
@@ -309,10 +356,7 @@ var ChromatoneLibTheory = {};
         // first chord note becomes the root
         chordNotes[0].setRoot(true);
         
-        console.log("createChord() - ", chordNotes.map(function(note){ return note.toString() }).join(", "));
-
-        var _step = step;
-        var _inversion = 0;
+        // console.log("createChord() - ", chordNotes.map(function(note){ return note.toString() }).join(", "));
         
         var chord = {
           getNotes: function() {
@@ -350,28 +394,40 @@ var ChromatoneLibTheory = {};
         };
         
         // invert as needed
-        for (var i=0; i<inversion; ++i) {
+        for (var i=0; i<chordDef.getInversion(); ++i) {
           chord.invert();
         }
         
         return chord;
       },
-      shift: function(steps) {
-        if (steps < 1) {
+      shift: function(steps) {        
+        if (steps == 0) {
           return;
         }
         
         // also the root notes of all chords notes get shifted
-        var newChromaticRoot = notes[steps % notes.length].getPosition();
+        var newChromaticRoot;
 
         // do the shift
-        for (var i = 0; i < steps; ++i) {
-          var note = notes.shift();
-          // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorythms? I mean, maybe.... look it up man.
-          note.transpose(12);
-          notes.push(note);
+        if (steps > 0) {
+          //newChromaticRoot = notes[steps % notes.length].getPosition();
+          for (var i = 0; i < steps; ++i) {
+            var note = notes.shift();
+            // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorithms? I mean, maybe.... look it up man.
+            note.transpose(12);
+            notes.push(note);
+          }
+        } else {
+          // newChromaticRoot = notes[(notes.length + steps) % notes.length].getPosition();
+          for (var i = 0; i < Math.abs(steps); ++i) {
+            var note = notes.pop();
+            // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorithms? I mean, maybe.... look it up man.
+            note.transpose(-12);
+            notes.unshift(note);
+          }
         }
         
+        newChromaticRoot = notes[0].getPosition();
         // set the new chromatic roots after transposing, so they are not affected by it
         for (var i = 0; i < notes.length; ++i) {
           notes[i].setChromaticRoot(newChromaticRoot);
@@ -390,6 +446,13 @@ var ChromatoneLibTheory = {};
           newNotes.push(notes[i].clone());
         }
         return createScale(newNotes);
+      },
+      toString: function() {
+        var str = "";
+        for (var i=0; i<notes.length; ++i) {
+          str += (notes[i].toString() + " ");
+        }
+        return str.trim();
       }
     };
   }
