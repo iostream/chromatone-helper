@@ -7,18 +7,6 @@
   <body>
     <section id="templates">
       
-      <div class="chord keyboard">
-        <div class="row">
-          <span class="n_1+"></span><span class="n_2+"></span><span class="n_3+"></span><span class="n_b5+"></span><span class="n_b6+"></span><span class="n_b7+"></span><span class="n_8+"></span>
-        </div>
-        <div class="row x">
-          <span class="n_b2"></span><span class="n_b3"></span><span class="n_4"></span><span class="n_5"></span><span class="n_6"></span><span class="n_7"></span><span class="n_b9"></span>
-        </div>
-        <div class="row">
-          <span class="n_1"></span><span class="n_2"></span><span class="n_3"></span><span class="n_b5"></span><span class="n_b6"></span><span class="n_b7"></span><span class="n_8"></span>
-        </div>
-      </div>
-      
       <div class="chromatic keyboard"><!-- gets build using js -->
         <div class="keys"></div>
         <div class="description"></div>
@@ -28,23 +16,12 @@
         <h2 class="title"></h2>
       </div>
       
-      <div class="chord-basic">
-        <div class="row">
-          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <div class="row x">
-          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-        <div class="row">
-          <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-        </div>
-      </div>
-      
       <div class="interactive-form">
         <form class="form">
-          <input type="text" name="scale"></input>
+          <input type="button" value="<" name="shift_scale_left"></input><input type="text" name="scale"></input><input type="button" value=">" name="shift_scale_right"></input>
           <input type="text" name="chords"></input>
-          <input type="submit" name="submit"></input>
+          <select name="preset"></select>
+          <input type="submit" value="⛵" name="update"></input>
         </form>
         <div class="result">
         </div>
@@ -158,12 +135,32 @@
           g.addChordGroup("1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7", "1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7");
       
         g.addForm(function(scale, chordDefs, resultSection) {
-          var chords = p.createChordProgression(scale, chordDefs);
-          // var k = g.createKeyboard(5, 14); 
-          g.addChordGroup(chords, chordDefs, resultSection);
+          
+          var lastChordOfLastGroup;
+          chordDefs.split(",").forEach(function(chordDefsOfGroup) {
+            
+            var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
+            if (typeof lastChordOfLastGroup !== "undefined") {
+              // consider last chord, of last group, so they also lead well
+              chordDefObjectsOfGroup.unshift(lastChordOfLastGroup);
+            }
+            var chords = p.createChordProgression(scale, chordDefObjectsOfGroup);
+            
+            if (typeof lastChordOfLastGroup !== "undefined") {
+              // remove the chord, only needed for voice leading
+              chords.shift();
+            }
+            
+            // var k = g.createKeyboard(5, 14); 
+            g.addChordGroup(chords, null, resultSection);
+            g.addBreak(resultSection);
+            
+            lastChordOfLastGroup = chordDefObjectsOfGroup[chordDefObjectsOfGroup.length - 1];
+          });
+          
         }, ChromatoneProgressions);
         
-        g.addForm(function(scale, chordDefs, resultSection) {
+        /*g.addForm(function(scale, chordDefs, resultSection) {                
           var chords = [];
           // var k = g.createKeyboard(5, 14); 
           for (var i=0; i<chordDefs.length; ++i) {
@@ -172,11 +169,11 @@
             chords.push(chord);
           }
           
-          g.addChordGroup(chords, chordDefs, resultSection);
-        });
+          g.addChordGroup(chords, null, resultSection);
+        }, ChromatoneProgressions);
+        */
         
       })(ChromatoneLibGUI, ChromatoneLibTheory, ChromatoneLibFingering, ChromatoneLibProgression);
-         
     </script>
   </body>
 </html>

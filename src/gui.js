@@ -173,8 +173,9 @@ var ChromatoneLibGUI = {};
   }
   lib.addChordGroup = addChordGroup;
   
-  function addBreak() {
-      chordSection.appendChild(document.createElement("br"));
+  function addBreak(section) {
+    section = section || chordSection;
+    section.appendChild(document.createElement("br"));
   }
   lib.addBreak = addBreak;
   
@@ -187,35 +188,56 @@ var ChromatoneLibGUI = {};
     form = formGroupEl.getElementsByClassName("form")[0];
     resultSection = formGroupEl.getElementsByClassName("result")[0];
 
+    [form.preset, form.scale, form.chords].forEach(function(element) {
+      element.addEventListener("change", function() {
+        // via the setTimeout the form gets submitted after also the input's event listeners have done their work
+        setTimeout(function() { form.update.click(); });
+      });
+    });
+
+    function shiftScale(direction) {
+      var scale = tLib.createScale(form.scale.value);
+      if (scale.getNotes().length < 2) {
+        return;
+      }
+      scale.shift(direction);
+      form.scale.value = scale.toString();
+      form.update.click();
+    }
+
+    form.shift_scale_right.addEventListener("click", function(event) { shiftScale(1); });
+    form.shift_scale_left.addEventListener("click", function(event) { shiftScale(-1); });
+
     form.addEventListener("submit", function(event) {
       event.preventDefault();
       
       var scale = tLib.createScale(form.scale.value);
-      var chordDefs = form.chords.value.trim().split(" ");
+      var chordDefs = form.chords.value;
       
-      // make chordDefs 0 based!
-      chordDefs = chordDefs.map(function(def){
-        return parseInt(def) - 1;
-      });
+      if (scale.length == 0 || chordDefs.trim().length == 0) {
+        return;
+      }
       
+      // repaint all
       resultSection.innerHTML = "";
       submitFunction(scale, chordDefs, resultSection);
     }, false);
     
     if (Array.isArray(presets) && presets.length > 0) {
-      var presetEl = formGroupEl.appendChild(document.createElement("select"));
-      formGroupEl.appendChild(presetEl);
+      var presetEl = form.preset;
       for (var i=0; i<presets.length; ++i) {
         var preset = presets[i];
         var option = presetEl.appendChild(document.createElement("option"));
         option.value = i;
         option.innerHTML = preset[0] + " -> " + preset[1];
       }
-      presetEl.addEventListener("click", function(event) {
+      presetEl.addEventListener("change", function(event) {
         var preset = presets[presetEl.value];
         form.scale.value = preset[0];
         form.chords.value = preset[1];
       });
     }
+    
+    
   };
 })(ChromatoneLibGUI, ChromatoneLibTheory);

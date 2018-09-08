@@ -85,11 +85,12 @@ var ChromatoneLibProgression = {};
       var minDiff = calculateDiff(previousChord, scale.createChord(chordDef, chordLength));
       var bestInversion = 0, bestTransposed = 0, transposed = 0;
       for (var inversion = 1; inversion < chordLength; ++inversion) {
-        var chord = scale.createChord(chordDef, chordLength, inversion);
+        chordDef.setInversion(inversion);
+        var chord = scale.createChord(chordDef, chordLength);
         // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
         
         // TODO this is not working too well!
-        if (previousChord.getNotes()[0].getPosition() < chordDef) {
+        if (previousChord.getNotes()[0].getPosition() < chordDef.getStep()) {
         // if (chordDefs[i - 1] < chordDef) {
           transposed = -12;
           chord.transpose(transposed);
@@ -101,7 +102,8 @@ var ChromatoneLibProgression = {};
           bestTransposed = transposed;
         }
       }
-      var previousChord = scale.createChord(chordDefs[i], chordLength, bestInversion);
+      chordDefs[i].setInversion(bestInversion);
+      var previousChord = scale.createChord(chordDefs[i], chordLength);
       previousChord.transpose(bestTransposed);
       f.updateFingering(previousChord);
       progression.push(previousChord);

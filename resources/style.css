@@ -60,7 +60,9 @@ section#templates {
 .keyboard {
   margin-bottom: 8pt;
 }
-
 .keyboard .description {
   style: inline-block;
+}
+.interactive-form .result {
+  min-height: 420pt;
 }
