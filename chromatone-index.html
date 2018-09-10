@@ -27,10 +27,11 @@
         </div>
       </div>
     </section>
-    <section id="chords">
-    </section>
     
     <section id="interactive">
+    </section>
+    
+    <section id="chords">
     </section>
     
     <!-- <script src="node_modules/brain.js/browser.js"></script> did not work too well... -->
@@ -52,12 +53,14 @@
           chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
           chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
           chordSection = $_("chords");
+     
           
         var k = g.createKeyboard(3, 7);
           
           /**
            * Main...
            */
+    /*
           g.addChordGroup(
             [
               ["r1 3+ 5 6"],
@@ -133,7 +136,7 @@
           );
           
           g.addChordGroup("1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7", "1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7");
-      
+*/
           g.addForm(function(scale, chordDefs, resultSection) {
             
             var chordDefinitionGroups = [];
@@ -153,7 +156,7 @@
             chordDefinitionGroups.forEach(function(group) {
               var chordsOfGroup = [];
               group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-              g.addChordGroup(chordsOfGroup, null, resultSection);
+              g.addChordGroup(chordsOfGroup, null, resultSection, null, chords.length > 0 ? chords[0] : null);
               g.addBreak(resultSection);
             });
         }, ChromatoneProgressions);

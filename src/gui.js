@@ -99,6 +99,31 @@ var ChromatoneLibGUI = {};
             }
           }
         },
+        addDiff: function(notes) {
+          notes = tLib.parseNotes(notes);
+          // get all selected notes
+          var noteEls = keyboard.getElementsByClassName("selected");
+          // query their positions and wrap with them with an array
+          var noteArrays = [];
+          for (var i=0; i<noteEls.length; ++i) {
+            noteArrays.push([noteEls[i], parseInt(noteEls[i].className.substring(1))]);
+          }
+          // order them
+          noteArrays.sort(function(a, b) { return b[1] - a[1]; });
+          // add the diffs
+          for (var i=0; i<notes.length; ++i) {
+            var el = noteArrays.pop();
+            var diff = notes[i].getPosition() - el[1];
+            if (diff === 0) {
+              continue;
+            }
+            var text = diff / 2;
+            var diffEl = document.createElement("div");
+            diffEl.className = "diff";
+            diffEl.appendChild(document.createTextNode(text));
+            el[0].appendChild(diffEl);
+          }
+        },
         clone: function() {
           return construct(keyboard.cloneNode(true));
         }
@@ -133,8 +158,9 @@ var ChromatoneLibGUI = {};
 
   function addChord(chord, parent, keyboardTemplate) {
     parent = parent || chordSection;
+    keyboardTemplate = keyboardTemplate || null;
     var k; // <- keyboard
-    if (typeof(keyboardTemplate) !== "undefined") {
+    if (keyboardTemplate !== null) {
       k = keyboardTemplate.clone();
     } else {
       // var k = createChromaticKeyboard(3, 7);
@@ -147,11 +173,15 @@ var ChromatoneLibGUI = {};
     }
     k.add(chord, name);    
     parent.appendChild(k.getElement());
+    
+    return k;
   }
   lib.addChord = addChord;
 
-  function addChordGroup(chords, title, section, keyboardTemplate) {
-    section = section || chordSection; 
+  function addChordGroup(chords, title, section, keyboardTemplate, nextChordAfterGroup) {
+    section = section || chordSection;
+    nextChordAfterGroup = nextChordAfterGroup || null;
+
     var groupEl = section.appendChild(chordGroupTemplate.cloneNode(true)),
       titleEl = groupEl.getElementsByClassName("title")[0] || false;
     if (titleEl && title) {
@@ -168,7 +198,13 @@ var ChromatoneLibGUI = {};
     }
     
     for (var i = 0; i < chords.length; ++i) {
-      addChord(chords[i], groupEl, keyboardTemplate);
+      var keyboard = addChord(chords[i], groupEl, keyboardTemplate);
+      var nextChord = chords[(i + 1) % chords.length];
+      // last chord of group and nextChordAfterGroup was passed?
+      if (i === chords.length - 1 && nextChordAfterGroup !== null) {
+        nextChord = nextChordAfterGroup;
+      }
+      keyboard.addDiff(nextChord);
     }
   }
   lib.addChordGroup = addChordGroup;
