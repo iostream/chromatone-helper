@@ -144,7 +144,7 @@ var ChromatoneLibTheory = {};
       console.error("parseNote() - I have no mapping for major note: " + interval);
     }
     var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
-   
+    
     return {
       getChromaticInterval: function () {
         return _chromaticInterval - _chromaticRoot;

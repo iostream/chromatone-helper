@@ -134,30 +134,28 @@
           
           g.addChordGroup("1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7", "1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7");
       
-        g.addForm(function(scale, chordDefs, resultSection) {
-          
-          var lastChordOfLastGroup;
-          chordDefs.split(",").forEach(function(chordDefsOfGroup) {
+          g.addForm(function(scale, chordDefs, resultSection) {
             
-            var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
-            if (typeof lastChordOfLastGroup !== "undefined") {
-              // consider last chord, of last group, so they also lead well
-              chordDefObjectsOfGroup.unshift(lastChordOfLastGroup);
-            }
-            var chords = p.createChordProgression(scale, chordDefObjectsOfGroup);
+            var chordDefinitionGroups = [];
+            var chordDefinitions = [];
+            chordDefs.split(",").forEach(function(chordDefsOfGroup) {
+                // parse chord definitions in groups, so we can split the generated chords afterwards...
+                // the chord progression needs to be generated in one go!
+                var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
+                chordDefinitionGroups.push(chordDefObjectsOfGroup);
+                chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
+            });
             
-            if (typeof lastChordOfLastGroup !== "undefined") {
-              // remove the chord, only needed for voice leading
-              chords.shift();
-            }
+            // generate the chords in one go:
+            var chords = p.createChordProgression(scale, chordDefinitions);
             
-            // var k = g.createKeyboard(5, 14); 
-            g.addChordGroup(chords, null, resultSection);
-            g.addBreak(resultSection);
-            
-            lastChordOfLastGroup = chordDefObjectsOfGroup[chordDefObjectsOfGroup.length - 1];
-          });
-          
+            // but output the chords in groups (defined by comma):
+            chordDefinitionGroups.forEach(function(group) {
+              var chordsOfGroup = [];
+              group.forEach(function() { chordsOfGroup.push(chords.shift()); });
+              g.addChordGroup(chordsOfGroup, null, resultSection);
+              g.addBreak(resultSection);
+            });
         }, ChromatoneProgressions);
         
         /*g.addForm(function(scale, chordDefs, resultSection) {                
