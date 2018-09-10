@@ -52,7 +52,7 @@ var ChromatoneLibTheory = {};
     }
     
     var chordDefObjects = [];
-    chordDefs.trim().split(" ").forEach(function(chordDef) {
+    chordDefs.trim().split(/\s+/).forEach(function(chordDef) {
       chordDefObjects.push(parseChordDefinition(chordDef));
     });
     
@@ -252,8 +252,8 @@ var ChromatoneLibTheory = {};
     }
     
     if (typeof c === "string") {
-      if (c.indexOf(" ") != -1) {
-        var parts = (c.trim()).split(" ");
+      if (c.search(/\s+/) !== -1) {
+        var parts = (c.trim()).split(/\s+/);
         for (var i=0; i < parts.length; ++i) {
           parts[i] = createNote(parts[i]);
         }
