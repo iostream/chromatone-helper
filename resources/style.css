@@ -63,6 +63,12 @@ section#templates {
 .keyboard .description {
   style: inline-block;
 }
+.keyboard .diff {
+  font-size: 7px;
+  position: relative;
+  top: -26px;
+  right: 1px;
+}
 .interactive-form .result {
   min-height: 420pt;
 }
