@@ -10,9 +10,9 @@ section#templates {
   display: none;
 }
 .chord-group {
-  display: inline-block;
   margin-bottom: 5pt;
   margin: 5pt;
+  border-bottom: 1pt solid black;
 }
 .chord-group .title {
   font-size: 14pt;
@@ -68,7 +68,17 @@ section#templates {
   position: relative;
   top: -26px;
   right: 1px;
+  color: white;
+  font-weight: bold;
+  text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
 }
 .interactive-form .result {
   min-height: 420pt;
+}
+
+.interactive-form .voicing {
+  width: 70pt;
+}
+.interactive-form .voicing-preset {
+  width: 5pt;
 }

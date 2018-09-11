@@ -14,7 +14,21 @@ var ChromatoneLibTheory = {};
     0
   ];
   
+  // also static!
+  var defaultVoicing = [0, 2, /*4,*/ 6];
+  var WHITESPACE_REGEX = /\s+/;
+  
+  lib.parseVoicing = function (voicing) {
+    return voicing.trim().split(WHITESPACE_REGEX).map(function(n) { return parseInt(n); });
+  }
+  
   function parseChordDefinition(chordDef) {
+    // parse shall return the chord definition, when chord defs are passed
+    if (typeof(chordDef.getInversion) === "function") {
+      // TODO shouldn't these functions return copies?
+      return chordDef;
+    }
+    
     var _step = parseInt(chordDef.trim()) - 1;
     var _inversion = 0;
     
@@ -32,6 +46,7 @@ var ChromatoneLibTheory = {};
       _step = 0;
     }
     
+    _voicing = defaultVoicing;
     return {
       getStep: function() {
         return _step;
@@ -41,11 +56,22 @@ var ChromatoneLibTheory = {};
       },
       setInversion: function(inversion) {
         _inversion = inversion;
+      },
+      getVoicing: function() {
+        return _voicing;
+      },
+      setVoicing: function(voicing) {
+        _voicing = voicing;
       }
     };
   }
   
   lib.parseChordDefinitions = function(chordDefs) {
+    if (Array.isArray(chordDefs)) {
+      return chordDefs.map(function(chordDef) {
+        return parseChordDefinition(chordDef);
+      });
+    }
     if (typeof chordDefs !== "string") {
       console.error("parseChordDefinitions() - Only strings can be parsed");
       return [];
@@ -252,8 +278,8 @@ var ChromatoneLibTheory = {};
     }
     
     if (typeof c === "string") {
-      if (c.search(/\s+/) !== -1) {
-        var parts = (c.trim()).split(/\s+/);
+      if (c.search(WHITESPACE_REGEX) !== -1) {
+        var parts = (c.trim()).split(WHITESPACE_REGEX);
         for (var i=0; i < parts.length; ++i) {
           parts[i] = createNote(parts[i]);
         }
@@ -329,13 +355,10 @@ var ChromatoneLibTheory = {};
       
       /**
        * @param chordDef
-       * @param int optional count of notes
-       * @param int optional inversion (only 0..count-1 makes sense)
        */
-      createChord: function(chordDef, count) {
-        // TODO this is now kind of a mess here!
-        count = count || 4;
-        var _inversion = 0;
+      createChord: function(chordDef) {
+        // TODO this is now kind of a mess here!?
+        var _inversion = 0; // <- gets initialized by calling invert() later
         var _step = chordDef.getStep();
         
         var chordScaleNotes = this.getNotes();
@@ -345,16 +368,19 @@ var ChromatoneLibTheory = {};
           chordScaleNotes = tempScale.getNotes();
         }
         
+        var voicing = chordDef.getVoicing();
         var chordNotes = [];
-        for (var i = 0; i < count; ++i) {
-          // add cloned notes, so changing the chord's notes won't change the scale's notes
-          var note = chordScaleNotes[(i * 2) % chordScaleNotes.length].clone();
-          note.setRoot(false);
-          chordNotes.push(note);
+        if (voicing.length > 0) {
+          for (var i = 0; i < voicing.length; ++i) {
+            // add cloned notes, so changing the chord's notes won't change the scale's notes
+            var note = chordScaleNotes[voicing[i] % chordScaleNotes.length].clone();
+            // mark the root
+            if (voicing[i] === 0) {
+              note.setRoot(true);
+            }
+            chordNotes.push(note);
+          }
         }
-        
-        // first chord note becomes the root
-        chordNotes[0].setRoot(true);
         
         // console.log("createChord() - ", chordNotes.map(function(note){ return note.toString() }).join(", "));
         
