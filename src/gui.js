@@ -103,7 +103,7 @@ var ChromatoneLibGUI = {};
           notes = tLib.parseNotes(notes);
           // get all selected notes
           var noteEls = keyboard.getElementsByClassName("selected");
-          // query their positions and wrap with them with an array
+          // query their positions and wrap them each together with their position in an array
           var noteArrays = [];
           for (var i=0; i<noteEls.length; ++i) {
             noteArrays.push([noteEls[i], parseInt(noteEls[i].className.substring(1))]);
@@ -114,10 +114,13 @@ var ChromatoneLibGUI = {};
           for (var i=0; i<notes.length; ++i) {
             var el = noteArrays.pop();
             var diff = notes[i].getPosition() - el[1];
+            // do not mark no differences ... yet
             if (diff === 0) {
               continue;
             }
+            // use half notes, because smaller numbers are faster to comprehend
             var text = diff / 2;
+            // build and append dom element
             var diffEl = document.createElement("div");
             diffEl.className = "diff";
             diffEl.appendChild(document.createTextNode(text));
@@ -184,10 +187,12 @@ var ChromatoneLibGUI = {};
 
     var groupEl = section.appendChild(chordGroupTemplate.cloneNode(true)),
       titleEl = groupEl.getElementsByClassName("title")[0] || false;
+      
     if (titleEl && title) {
       titleEl.innerHTML = title;
     }
-      
+    
+    // TODO legacy code?
     if (!Array.isArray(chords)) {
       // make the array out of the string:
       var chordDefinitions = chords.trim().split(",");
@@ -196,10 +201,13 @@ var ChromatoneLibGUI = {};
         chords.push(tLib.parseNotes(chordDefinitions[i]));
       }
     }
-    
+
     for (var i = 0; i < chords.length; ++i) {
+      // add chord to the new keyboard
       var keyboard = addChord(chords[i], groupEl, keyboardTemplate);
       var nextChord = chords[(i + 1) % chords.length];
+      
+      // mark differences between voicings/notes, won't work all the time, because it's very simple:
       // last chord of group and nextChordAfterGroup was passed?
       if (i === chords.length - 1 && nextChordAfterGroup !== null) {
         nextChord = nextChordAfterGroup;
@@ -215,16 +223,34 @@ var ChromatoneLibGUI = {};
   }
   lib.addBreak = addBreak;
   
+  function initPresets(presets, presetSelectElement, elements) {
+    if (Array.isArray(presets) && presets.length > 0) {
+      var presetEl = presetSelectElement;
+      for (var i=0; i<presets.length; ++i) {
+        var preset = presets[i];
+        var option = presetEl.appendChild(document.createElement("option"));
+        option.value = i;
+        option.innerHTML = preset.join(" -> ");
+      }
+      presetEl.addEventListener("change", function(event) {
+        var preset = presets[presetEl.value];
+        for (var i=0; i < elements.length; ++i) {
+          elements[i].value = preset[i];
+        }
+      });
+    }
+  }
+  
   /**
    * presets .. array of arrays
    */
-  lib.addForm = function(submitFunction, presets, section) {
+  lib.addForm = function(submitFunction, presets, voicingPresets, section) {
     section = section || interactiveSection;
     var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0];
     resultSection = formGroupEl.getElementsByClassName("result")[0];
 
-    [form.preset, form.scale, form.chords].forEach(function(element) {
+    [form.preset, form.voicing_preset, form.scale, form.chords, form.voicing].forEach(function(element) {
       element.addEventListener("change", function() {
         // via the setTimeout the form gets submitted after also the input's event listeners have done their work
         setTimeout(function() { form.update.click(); });
@@ -249,31 +275,18 @@ var ChromatoneLibGUI = {};
       
       var scale = tLib.createScale(form.scale.value);
       var chordDefs = form.chords.value;
+      var voicing = tLib.parseVoicing(form.voicing.value);
       
-      if (scale.length == 0 || chordDefs.trim().length == 0) {
+      if (scale.length == 0 || chordDefs.trim().length == 0 || voicing.length === 0) {
         return;
       }
       
       // repaint all
       resultSection.innerHTML = "";
-      submitFunction(scale, chordDefs, resultSection);
+      submitFunction(scale, chordDefs, voicing, resultSection);
     }, false);
     
-    if (Array.isArray(presets) && presets.length > 0) {
-      var presetEl = form.preset;
-      for (var i=0; i<presets.length; ++i) {
-        var preset = presets[i];
-        var option = presetEl.appendChild(document.createElement("option"));
-        option.value = i;
-        option.innerHTML = preset[0] + " -> " + preset[1];
-      }
-      presetEl.addEventListener("change", function(event) {
-        var preset = presets[presetEl.value];
-        form.scale.value = preset[0];
-        form.chords.value = preset[1];
-      });
-    }
-    
-    
+    initPresets(presets, form.preset, [form.scale, form.chords]);
+    initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
   };
 })(ChromatoneLibGUI, ChromatoneLibTheory);

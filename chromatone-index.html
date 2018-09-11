@@ -6,20 +6,23 @@
   </head>
   <body>
     <section id="templates">
-      
-      <div class="chromatic keyboard"><!-- gets build using js -->
+
+      <!-- the major parts are generated-->
+      <div class="chromatic keyboard">
         <div class="keys"></div>
         <div class="description"></div>
       </div>
       
       <div class="chord-group">
-        <h2 class="title"></h2>
+        <h2 class="title"></h2> 
       </div>
       
       <div class="interactive-form">
         <form class="form">
-          <input type="button" value="<" name="shift_scale_left"></input><input type="text" name="scale"></input><input type="button" value=">" name="shift_scale_right"></input>
-          <input type="text" name="chords"></input>
+          <input type="button" value="<" name="shift_scale_left"></input><input type="text" name="scale" placeholder="scale"></input><input type="button" value=">" name="shift_scale_right"></input>
+          <input type="text" name="chords" placeholder="chords"></input>
+          <input type="text" name="voicing" placeholder="voicing" class="voicing" value="0 2 4 6"></input><select name="voicing_preset" class="voicing-preset">
+          </select>
           <select name="preset"></select>
           <input type="submit" value="⛵" name="update"></input>
         </form>
@@ -137,7 +140,8 @@
           
           g.addChordGroup("1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7", "1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7");
 */
-          g.addForm(function(scale, chordDefs, resultSection) {
+          // TODO move this code into an own file s/ layer:
+          g.addForm(function(scale, chordDefs, voicing, resultSection) {
             
             var chordDefinitionGroups = [];
             var chordDefinitions = [];
@@ -145,6 +149,7 @@
                 // parse chord definitions in groups, so we can split the generated chords afterwards...
                 // the chord progression needs to be generated in one go!
                 var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
+                chordDefObjectsOfGroup.forEach(function (chordDef) { chordDef.setVoicing(voicing); });
                 chordDefinitionGroups.push(chordDefObjectsOfGroup);
                 chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
             });
@@ -157,9 +162,8 @@
               var chordsOfGroup = [];
               group.forEach(function() { chordsOfGroup.push(chords.shift()); });
               g.addChordGroup(chordsOfGroup, null, resultSection, null, chords.length > 0 ? chords[0] : null);
-              g.addBreak(resultSection);
             });
-        }, ChromatoneProgressions);
+        }, ChromatoneProgressions, ChromatoneVoicings);
         
         /*g.addForm(function(scale, chordDefs, resultSection) {                
           var chords = [];
