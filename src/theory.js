@@ -29,6 +29,8 @@ var ChromatoneLibTheory = {};
       return chordDef;
     }
     
+    var _chordDef = "" + chordDef;
+    var _scale; // <- optional
     var _step = parseInt(chordDef.trim()) - 1;
     var _inversion = 0;
     
@@ -48,6 +50,9 @@ var ChromatoneLibTheory = {};
     
     _voicing = defaultVoicing;
     return {
+      toString: function() {
+        return _chordDef;
+      },
       getStep: function() {
         return _step;
       },
@@ -62,6 +67,12 @@ var ChromatoneLibTheory = {};
       },
       setVoicing: function(voicing) {
         _voicing = voicing;
+      },
+      getScale: function() {
+        return _scale;
+      },
+      setScale: function(scale) {
+        _scale = scale;
       }
     };
   }
@@ -278,8 +289,12 @@ var ChromatoneLibTheory = {};
     }
     
     if (typeof c === "string") {
+      c = c.trim();
+      if (c === "") {
+        return [];
+      }
       if (c.search(WHITESPACE_REGEX) !== -1) {
-        var parts = (c.trim()).split(WHITESPACE_REGEX);
+        var parts = c.split(WHITESPACE_REGEX);
         for (var i=0; i < parts.length; ++i) {
           parts[i] = createNote(parts[i]);
         }
@@ -357,12 +372,17 @@ var ChromatoneLibTheory = {};
        * @param chordDef
        */
       createChord: function(chordDef) {
+        // TODO can we do this better?
+        if (typeof(chordDef.getScale()) !== "undefined" && chordDef.getScale() !== this) {
+          return chordDef.getScale().createChord(chordDef);
+        }
+        
         // TODO this is now kind of a mess here!?
         var _inversion = 0; // <- gets initialized by calling invert() later
         var _step = chordDef.getStep();
         
         var chordScaleNotes = this.getNotes();
-        if (_step > 0) {
+        if (_step > 0) {  
           var tempScale = this.clone()
           tempScale.shift(_step);
           chordScaleNotes = tempScale.getNotes();
@@ -388,6 +408,17 @@ var ChromatoneLibTheory = {};
           getNotes: function() {
             return chordNotes;
           },
+          findHighestNote: function() {
+            return chordNotes.reduce(
+              function(highestNote, note) {
+                if (highestNote === null || note.getPosition() > highestNote.getPosition()) {
+                  highestNote = note;
+                }
+                return highestNote;
+              },
+              null
+            );
+          },
           invert: function() {
             var notes = this.getNotes();
             
@@ -398,7 +429,10 @@ var ChromatoneLibTheory = {};
             
             // lowest note becomes the highest note
             var lowestNote = notes.shift();
-            lowestNote.transpose(12);
+            var highestNote = notes[notes.length - 1];
+            while (lowestNote.getPosition() < highestNote.getPosition()) {
+              lowestNote.transpose(12);
+            }
             notes.push(lowestNote);
             
             // new lowest note interval is the new chromatic root for all notes
@@ -466,7 +500,7 @@ var ChromatoneLibTheory = {};
           notes[i].transpose(semitones);
         }
       },
-      clone: function () {
+      clone: function() {
         var newNotes = [];
         for (var i=0; i<notes.length; ++i)  {
           newNotes.push(notes[i].clone());
