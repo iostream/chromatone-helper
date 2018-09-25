@@ -223,70 +223,162 @@ var ChromatoneLibGUI = {};
   }
   lib.addBreak = addBreak;
   
-  function initPresets(presets, presetSelectElement, elements) {
-    if (Array.isArray(presets) && presets.length > 0) {
-      var presetEl = presetSelectElement;
+  function initPresets(presets, presetSelectElementOrElements, elements) {
+    var presetSelectElements = presetSelectElementOrElements;
+    if (!Array.isArray(presetSelectElements)) {
+      presetSelectElements = [presetSelectElements];
+    }
+    
+    presetSelectElements.forEach(function(presetEl) {
       for (var i=0; i<presets.length; ++i) {
         var preset = presets[i];
         var option = presetEl.appendChild(document.createElement("option"));
         option.value = i;
-        option.innerHTML = preset.join(" -> ");
+        option.innerHTML = preset
+          .map(function(v){
+            return Array.isArray(v) ? v.join(", ") : v;
+          })  
+          .join(" -> ");
       }
       presetEl.addEventListener("change", function(event) {
         var preset = presets[presetEl.value];
         for (var i=0; i < elements.length; ++i) {
-          elements[i].value = preset[i];
+          var elementOrElements = elements[i];
+          if (typeof elementOrElements.length !== "undefined") {
+            if (!Array.isArray(preset[i])) {
+              console.error("initPresets () - Preset not set up right!");
+              continue;
+            }
+            // TODO This is the place where elements need to be deleted/created if the scale count gonna be dynamic (currently there are only 2 scales)
+            var index = 0;
+            preset[i].forEach(function(presetValue) {
+              if (typeof elementOrElements[index] === "undefined") {
+                console.error("It's not possible to load so many scales yet: " + (index + 1));
+              } else {
+                elementOrElements[index].value = presetValue;
+              }
+              ++index;
+            });
+            
+          } else {
+            elementOrElements.value = preset[i];
+          }
         }
       });
-    }
+    });  
   }
   
   /**
+   * TODO This is very messy now!
+   * 
    * presets .. array of arrays
    */
-  lib.addForm = function(submitFunction, presets, voicingPresets, section) {
+  lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, section) {
     section = section || interactiveSection;
     var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
-    form = formGroupEl.getElementsByClassName("form")[0];
-    resultSection = formGroupEl.getElementsByClassName("result")[0];
-
-    [form.preset, form.voicing_preset, form.scale, form.chords, form.voicing].forEach(function(element) {
+      form = formGroupEl.getElementsByClassName("form")[0],
+      resultSection = formGroupEl.getElementsByClassName("result")[0],
+      scaleElement = formGroupEl.getElementsByClassName("scale_container")[0],
+      scalesElement = formGroupEl.getElementsByClassName("scales")[0],
+      chordsElement = formGroupEl.getElementsByClassName("chords")[0];
+    
+    function submitForm() { form.update.click(); }
+    
+    [form.preset, form.voicing_preset, form.chords, form.voicing].forEach(function(element) {
       element.addEventListener("change", function() {
         // via the setTimeout the form gets submitted after also the input's event listeners have done their work
-        setTimeout(function() { form.update.click(); });
+        setTimeout(function() { submitForm(); });
       });
     });
 
-    function shiftScale(direction) {
-      var scale = tLib.createScale(form.scale.value);
+    function shiftScale(direction, element) {
+      var scale = tLib.createScale(element.value);
       if (scale.getNotes().length < 2) {
         return;
       }
       scale.shift(direction);
-      form.scale.value = scale.toString();
+      element.value = scale.toString();
       form.update.click();
     }
 
-    form.shift_scale_right.addEventListener("click", function(event) { shiftScale(1); });
-    form.shift_scale_left.addEventListener("click", function(event) { shiftScale(-1); });
+    function createScaleContainer(rootElement) {
+      rootElement = rootElement || scaleElement.cloneNode(true);
+      var scaleContainer = {root: rootElement};
+      scaleContainer.input = scaleContainer.root.getElementsByClassName("scale")[0];
+      scaleContainer.preset = scaleContainer.root.getElementsByClassName("preset")[0];
+      return scaleContainer;
+    }
+    
+    var scaleContainers = [];
+
+    /**
+     * TODO better would be: addScale() and removeScale(), these are also the
+     *      two functions to use this in the GUI (and it will also be triggered by nedded scales by referencing them in
+     *      chord definitions)
+     * 
+     * paintScales initializes scaleContainers and rebuilds all the scale related form input elements etc.
+     * (this is brute force and silly but is also more powerful than anything optimized) 
+     * 
+     * int scaleCount
+     */
+    function paintScales(scaleCount) {
+      if (scaleCount < 1) {
+        console.error("repaintScales() - at least one scaleCount is required, not: " + scaleCount);
+        return;
+      }
+      // create and add all scales:
+      scaleContainers = [createScaleContainer(scaleElement)];
+      for (var i=1; i<scaleCount; ++i) {
+        var c = createScaleContainer();
+        scaleContainers.push(c);
+        // form.insertBefore(c.root, scaleContainers[i - 1].root.nextSibling);
+        scalesElement.appendChild(c.root);
+      }
+      
+      scaleContainers.forEach(function(c) {
+        // shift scales through all their modes by "<" and ">" buttons
+        c.root.querySelectorAll('input[type="button"]').forEach(function(button) {
+          if (button.value == "<") {
+            button.addEventListener("click", function() { shiftScale(-1, c.input); });
+          } else {
+            button.addEventListener("click", function() { shiftScale(1, c.input); });
+          }
+        });
+        // each scale comes with handy presets for jump starting everything
+        initPresets(scalePresets, c.preset, [c.input]);
+        // update result after changing a scale
+        c.input.addEventListener("change", submitForm);
+      });
+
+    }
+
+    paintScales(2);
 
     form.addEventListener("submit", function(event) {
       event.preventDefault();
       
-      var scale = tLib.createScale(form.scale.value);
+      var scales = [];
+      scaleContainers.forEach(function(c) {
+        var scale = tLib.createScale(c.input.value)
+        if (scale.getNotes().length > 0) {
+          scales.push(scale);
+        }
+      });
+      
       var chordDefs = form.chords.value;
       var voicing = tLib.parseVoicing(form.voicing.value);
       
-      if (scale.length == 0 || chordDefs.trim().length == 0 || voicing.length === 0) {
+      // validate inputs aka only submit valid data
+      if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0 || voicing.length === 0) {
         return;
       }
       
       // repaint all
       resultSection.innerHTML = "";
-      submitFunction(scale, chordDefs, voicing, resultSection);
+      submitFunction(scales, chordDefs, voicing, resultSection);
     }, false);
     
-    initPresets(presets, form.preset, [form.scale, form.chords]);
+    initPresets(presets, form.preset, [form.getElementsByClassName("scale"), form.chords]);
     initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
   };
 })(ChromatoneLibGUI, ChromatoneLibTheory);

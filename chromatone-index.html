@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
   <head>
+    <title>&U+1F9D9; &#51;&#8419; Chromatone-Helper 🧙 by iostream 2018</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="resources/style.css">
   </head>
@@ -19,12 +20,20 @@
       
       <div class="interactive-form">
         <form class="form">
-          <input type="button" value="<" name="shift_scale_left"></input><input type="text" name="scale" placeholder="scale"></input><input type="button" value=">" name="shift_scale_right"></input>
-          <input type="text" name="chords" placeholder="chords"></input>
-          <input type="text" name="voicing" placeholder="voicing" class="voicing" value="0 2 4 6"></input><select name="voicing_preset" class="voicing-preset">
+          <span class="scales">
+            <span class="scale_container">
+              <input type="button" value="<" name="shift_scale_left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right"><select name="scale_preset" class="preset"></select>
+            </span>
+          </span>
+          <input type="text" name="chords" placeholder="chords">
+          <span class="chords">
+            <span class="chord">
+              <input type="text" name="voicing" placeholder="voicing" class="voicing" value="0 2 4 6"><select name="voicing_preset" class="voicing-preset">
+            </span>
+          </span>
           </select>
-          <select name="preset"></select>
-          <input type="submit" value="⛵" name="update"></input>
+          <select class="preset" name="preset"></select>
+          <input type="submit" value="⛵" name="update">
         </form>
         <div class="result">
         </div>
@@ -33,7 +42,7 @@
     
     <section id="interactive">
     </section>
-    
+    🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡
     <section id="chords">
     </section>
     
@@ -140,22 +149,32 @@
           
           g.addChordGroup("1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7", "1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7");
 */
-          // TODO move this code into an own file s/ layer:
-          g.addForm(function(scale, chordDefs, voicing, resultSection) {
-            
+          var REGEX_COUNT_SCALE = /\*/g;
+          // TODO move this code into an own file / layer:
+          g.addForm(function(scales, chordDefs, voicing, resultSection) {            
             var chordDefinitionGroups = [];
             var chordDefinitions = [];
             chordDefs.split(",").forEach(function(chordDefsOfGroup) {
-                // parse chord definitions in groups, so we can split the generated chords afterwards...
-                // the chord progression needs to be generated in one go!
-                var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
-                chordDefObjectsOfGroup.forEach(function (chordDef) { chordDef.setVoicing(voicing); });
-                chordDefinitionGroups.push(chordDefObjectsOfGroup);
-                chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
+              // parse chord definitions in groups, so we can split the generated chords afterwards...
+              // the chord progression needs to be generated in one go!
+              var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
+              chordDefObjectsOfGroup.forEach(function (chordDef) {
+                chordDef.setVoicing(voicing);
+                var scaleIndex = (chordDef.toString().match(REGEX_COUNT_SCALE) || []).length;
+                if (scaleIndex >= scales.length) {
+                  console.error("InteractiveForm: scale index " + scaleIndex + " is not available. There are only " + scales.length + " scales available.");
+                  // use the first scale instead
+                  scaleIndex = 0;
+                }
+                chordDef.setScale(scales[scaleIndex]);
+              });
+              chordDefinitionGroups.push(chordDefObjectsOfGroup);
+              chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
             });
             
             // generate the chords in one go:
-            var chords = p.createChordProgression(scale, chordDefinitions);
+            // TODO smells, that the scale not even is needed any more, because all chords have their own scale reference?
+            var chords = p.createChordProgression(scales[0], chordDefinitions);
             
             // but output the chords in groups (defined by comma):
             chordDefinitionGroups.forEach(function(group) {
@@ -163,7 +182,10 @@
               group.forEach(function() { chordsOfGroup.push(chords.shift()); });
               g.addChordGroup(chordsOfGroup, null, resultSection, null, chords.length > 0 ? chords[0] : null);
             });
-        }, ChromatoneProgressions, ChromatoneVoicings);
+        }, ChromatoneProgressions, ChromatoneVoicings, ChromatoneScales);
+        
+        // TODO load first preset at startup
+        
         
         /*g.addForm(function(scale, chordDefs, resultSection) {                
           var chords = [];

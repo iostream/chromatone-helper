@@ -3,6 +3,10 @@ var ChromatoneLibProgression = {};
   console.log("    \"    \"  \"  ChromatoneLibProgression  !");
   
   /**
+   * Idea: add direction bias parameter (up, down, stay close), then remember lowest negative diff and lowest positive diff; if the absolute values of the diffs are the same, choose the biased one,
+   *       maybe compare using a handicap for the biased side and make the handycap maybe even configurable
+   *       
+   * 
    * return int diff
    */
   function calculateDiff(chord1, chord2) {

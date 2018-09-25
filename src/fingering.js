@@ -15,7 +15,7 @@ var ChromatoneLibFingering = {};
       return;
     }      
     
-    // second note is up, if it would be one the same row like the note before
+    // second note is up, if it would be on the same row like the note before
     var isUp = notesArray[0].getChromaticInterval() % 2 === notesArray[1].getChromaticInterval() % 2;
     notesArray[1].setUp(isUp);
     

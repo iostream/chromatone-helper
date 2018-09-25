@@ -72,13 +72,24 @@ section#templates {
   font-weight: bold;
   text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
 }
+.interactive-form .scales {
+  float: left;
+}
+.interactive-form .scale {
+  width: 100pt;
+}
 .interactive-form .result {
   min-height: 420pt;
 }
-
 .interactive-form .voicing {
   width: 70pt;
 }
 .interactive-form .voicing-preset {
   width: 5pt;
+}
+.interactive-form .scale_container {
+  display:inline-block;
+}
+.preset {
+  width: 50pt;
 }
