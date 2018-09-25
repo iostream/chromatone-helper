@@ -404,6 +404,8 @@ var ChromatoneLibTheory = {};
         
         // console.log("createChord() - ", chordNotes.map(function(note){ return note.toString() }).join(", "));
         
+        var _name = chordDef.toString();
+        
         var chord = {
           getNotes: function() {
             return chordNotes;
@@ -449,7 +451,7 @@ var ChromatoneLibTheory = {};
             }
           },
           getName: function() {
-            return (_step + 1) + (_inversion > 0 ? (" " + _inversion): "");
+            return _name + (_inversion > 0 ? (" " + _inversion): "");
           }
         };
         
