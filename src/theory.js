@@ -9,17 +9,20 @@ var ChromatoneLibTheory = {};
     0, 2, 4, 5, 7, 9, 11,
   //  -- the "exotic" ones:
   //  -- 8  9  A  B  C  D  E 
-    0, 2, 4, 5, 7, 9, 11,
+    0+12, 2+12, 4+12, 5+12, 7+12, 9+12, 11+12,
   // -- F
-    0
+    0+12+12
   ];
   
   // also static!
   var defaultVoicing = [0, 2, /*4,*/ 6];
   var WHITESPACE_REGEX = /\s+/;
   
+  /**
+   * Voicings are written using 1 based indexes, internally voicings are 0 based
+   */
   lib.parseVoicing = function (voicing) {
-    return voicing.trim().split(WHITESPACE_REGEX).map(function(n) { return parseInt(n); });
+    return voicing.trim().split(WHITESPACE_REGEX).map(function(n) { return parseInt(n) - 1; });
   }
   
   function parseChordDefinition(chordDef) {
@@ -28,20 +31,48 @@ var ChromatoneLibTheory = {};
       // TODO shouldn't these functions return copies?
       return chordDef;
     }
-    
+
+    function parseIntParameters(key, defaultValue, description) {
+      var parameterValues = [];
+      var defaultValues = [defaultValue];
+      
+      var searchIndex = 0;
+      while (chordDef.length > searchIndex) {
+        var index = chordDef.indexOf(key, searchIndex);
+        if (index === -1) {
+          // stop, there is nothing to see here
+          if (parameterValues.length === 0) {
+            return defaultValues;
+          }
+          return parameterValues;
+        }
+        var parameterValue = parseInt(chordDef.substring(index + 1));
+        if (isNaN(parameterValue)) {
+          console.error("parseChordDefinition.parseIntParameter() - Could not parse " + description + " out of: " + chordDef);
+          return defaultValues;
+        }
+        parameterValues.push(parameterValue);
+        searchIndex = index + 1;
+      }
+      
+      if (parameterValues.length === 0) {
+        return defaultValues;
+      }
+
+      return parameterValues;
+    }
+
     var _chordDef = "" + chordDef;
     var _scale; // <- optional
     var _step = parseInt(chordDef.trim()) - 1;
-    var _inversion = 0;
-    
-    var index = chordDef.indexOf("i");
-    if (index !== -1 && chordDef.length >= index) {
-      _inversion = parseInt(chordDef.substring(index + 1));
-      if (isNaN(_inversion)) {
-        console.error("parseChordDefinition() - Could not parse inversion out of: " + chordDef);
-        _inversion = 0;
-      }
-    }
+    // any parameter can be used multiple times and the result just gets
+    // reduced to one value, basically allows for easier input and also hopefully reading
+    function sum(a, b) { return a + b; };
+    var _inversion = parseIntParameters("i", 0, "inversion").reduce(sum, 0);
+    var _transposition = parseIntParameters("t", 0, "transposition").reduce(sum, 0);
+
+    // parse transposition (for basic nondiatonic harmony)
+    index = chordDef.indexOf("");
     
     if (isNaN(_step)) {
       console.error("parseChordDefinition() - Could not parse step out of: " + chordDef);
@@ -61,6 +92,9 @@ var ChromatoneLibTheory = {};
       },
       setInversion: function(inversion) {
         _inversion = inversion;
+      },
+      getTransposition: function() {
+        return _transposition;
       },
       getVoicing: function() {
         return _voicing;
@@ -107,6 +141,11 @@ var ChromatoneLibTheory = {};
   function findIntervalName(interval, intervalNameMap) {
     if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval] === "string") {
       return intervalNameMap[interval];
+    }
+    
+    if (interval < 0) {
+      console.warn("findIntervalName() - negative interval: " + interval);
+      interval += 12;
     }
     
     // fallback
@@ -328,7 +367,7 @@ var ChromatoneLibTheory = {};
   lib.parseNotes = parseNotes;
 
   /**
-   * TODO Never tested, should be not finished
+   * TODO Never tested nor used, should be unfinished
    * Returns array of arrays by splitting by comma.
    *
    * output examples:
@@ -393,10 +432,16 @@ var ChromatoneLibTheory = {};
         if (voicing.length > 0) {
           for (var i = 0; i < voicing.length; ++i) {
             // add cloned notes, so changing the chord's notes won't change the scale's notes
-            var note = chordScaleNotes[voicing[i] % chordScaleNotes.length].clone();
+            var noteIndex = voicing[i] % chordScaleNotes.length;
+            var noteTransposition = Math.floor(voicing[i] / chordScaleNotes.length) * 12;
+            var note = chordScaleNotes[noteIndex].clone();
             // mark the root
             if (voicing[i] === 0) {
               note.setRoot(true);
+            }
+            if (noteTransposition !== 0) {
+              note.transpose(noteTransposition);
+              note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
             }
             chordNotes.push(note);
           }
@@ -410,6 +455,13 @@ var ChromatoneLibTheory = {};
           getNotes: function() {
             return chordNotes;
           },
+          // TODO I dont like how the find methods are implemented
+          getHighestNote: function() {
+            return this.findHighestNote();
+          },
+          getLowestNote: function() {
+            return this.findLowestNote();
+          },
           findHighestNote: function() {
             return chordNotes.reduce(
               function(highestNote, note) {
@@ -417,6 +469,17 @@ var ChromatoneLibTheory = {};
                   highestNote = note;
                 }
                 return highestNote;
+              },
+              null
+            );
+          },
+          findLowestNote: function() {
+            return chordNotes.reduce(
+              function(lowestNote, note) {
+                if (lowestNote === null || note.getPosition() < lowestNote.getPosition()) {
+                  lowestNote = note;
+                }
+                return lowestNote;
               },
               null
             );
@@ -432,7 +495,7 @@ var ChromatoneLibTheory = {};
             // lowest note becomes the highest note
             var lowestNote = notes.shift();
             var highestNote = notes[notes.length - 1];
-            while (lowestNote.getPosition() < highestNote.getPosition()) {
+            while (lowestNote.getPosition() <= highestNote.getPosition()) {
               lowestNote.transpose(12);
             }
             notes.push(lowestNote);
@@ -446,6 +509,9 @@ var ChromatoneLibTheory = {};
             _inversion = (_inversion + 1) % notes.length;
           },
           transpose: function(semitones) {
+            if (semitones == 0) {
+              return;
+            }
             for (var i=0; i<chordNotes.length; ++i) {
               chordNotes[i].transpose(semitones);
             }
@@ -455,10 +521,15 @@ var ChromatoneLibTheory = {};
           }
         };
         
-        // invert as needed
+        // execute stuff the chord definition tells...
+        
+        // inversion
         for (var i=0; i<chordDef.getInversion(); ++i) {
           chord.invert();
         }
+        
+        // transposition
+        chord.transpose(chordDef.getTransposition());
         
         return chord;
       },

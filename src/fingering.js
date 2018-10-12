@@ -22,7 +22,7 @@ var ChromatoneLibFingering = {};
     if (notesArray.length < 3) {
       return;
     }
-    
+      
     if (isUp) {
       // third note would also stay up if it is on the same row like the note before
       isUp = notesArray[1].getChromaticInterval() % 2 === notesArray[2].getChromaticInterval() % 2;
