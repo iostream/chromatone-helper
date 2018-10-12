@@ -113,6 +113,10 @@ var ChromatoneLibGUI = {};
           // add the diffs
           for (var i=0; i<notes.length; ++i) {
             var el = noteArrays.pop();
+            if (!el) {
+              console.error("addDiff() - Missing note on keyboard for note " + notes[i].toString());
+              continue;
+            }
             var diff = notes[i].getPosition() - el[1];
             // do not mark no differences ... yet
             if (diff === 0) {
@@ -354,6 +358,12 @@ var ChromatoneLibGUI = {};
 
     paintScales(2);
 
+    var generateMidi = false;
+    form.generate_midi.addEventListener("click", function(event) {
+      generateMidi = true;
+      submitForm();
+    });
+
     form.addEventListener("submit", function(event) {
       event.preventDefault();
       
@@ -373,9 +383,14 @@ var ChromatoneLibGUI = {};
         return;
       }
       
+      var options = {
+        generateMidi: generateMidi
+      };
+      generateMidi = false;
+      
       // repaint all
       resultSection.innerHTML = "";
-      submitFunction(scales, chordDefs, voicing, resultSection);
+      submitFunction(scales, chordDefs, voicing, options, resultSection);
     }, false);
     
     initPresets(presets, form.preset, [form.getElementsByClassName("scale"), form.chords]);

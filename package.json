@@ -8,9 +8,12 @@
   },
   "main": "./chromatone-index.js",
   "keywords": [
-    "Chromatone"
+    "Chromatone",
+    "music theory",
+    "music composing",
+    "instrument learning"
   ],
   "dependencies": {
-    "brain.js": "^1.2.0"
+    "midi-writer-js": "^1.5.1"
   }
 }

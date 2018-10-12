@@ -26,52 +26,36 @@ var ChromatoneLibProgression = {};
   }
   
   /**
-   * Lowest note of progression gets the position 0
+   * Lowest note of progression gets the position 0.
    * 
-   * return array progression altered input
+   * return array progression of chords = altered input
    */
-  function fix(progression) {
-    if (progression.length < 2) {
-      return progression;
+  function fix(chords) {
+    if (chords.length < 2) {
+      return chords;
     }
     
-    // find lowest note (that's overkill, by now, because the notes are ordered)
-    var lowestPosition = Number.MAX_SAFE_INTEGER;
-    for (var i=0; i<progression.length; ++i) {
-      var notes = progression[i].getNotes();
-      for (var j=0; j<notes.length; ++j) {
-        var note = notes[j];
-        if (note.getPosition() < lowestPosition) {
-          lowestPosition = note.getPosition();
-        }      
-      }    
-    }
+    // find lowest note position
+    var lowestPosition = chords[0].getLowestNote().getPosition();
+    chords.forEach(function(chord) {
+      var lowestPosition2 = chord.getLowestNote().getPosition();
+      if (lowestPosition2 < lowestPosition) {
+        lowestPosition = lowestPosition2;
+      }
+    });
     
     // already fixed
     if (lowestPosition == 0) {
-      return progression;
+      return chords;
     }
     
     // transpose the progression, so it's fixed
-    for (var i=0; i<progression.length; ++i) {
-      var chord = progression[i];
-      chord.transpose(-lowestPosition);
+    for (var i=0; i<chords.length; ++i) {
+      chords[i].transpose(-lowestPosition);
     }
     
-    return progression;
+    return chords;
   }
-  
-  /**
-   * At the beginning this is kinda unused....... do I need this??
-   */
-  lib.createChordProgressionDefinition = function(scale, chordDefinitions) {
-    var _scale = tLib.parseScale(scale);
-    var _chordDefs = tLib.parseChordDefinitions(chordDefinitions);
-    return {
-      getScale: function() { return _scale; },
-      getChordDefinitions: function() { return _chordDefs; }
-    };    
-  };
   
   /**
    * scale[]      .. note objects
@@ -89,7 +73,6 @@ var ChromatoneLibProgression = {};
     var progression = [];
     var transposeAll = 0;
     
-    // first very simple: first chord is always in root position
     var previousChord = scale.createChord(chordDefs[0]);
     f.updateFingering(previousChord);
     progression.push(previousChord);
@@ -125,6 +108,73 @@ var ChromatoneLibProgression = {};
     }
     return fix(progression);
   };
+    
+  /**
+   * @see https://stackoverflow.com/questions/23451726/saving-binary-data-as-file-using-javascript-from-a-browser
+   */
+  var saveByteArray = (function () {
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style = "display: none";
+    return function (data, name) {
+      //var blob = new Blob([data]/*, {type: "octet/stream"}*/),
+      var blob = new Blob([data], {type: "audio/midi"}),
+        url = window.URL.createObjectURL(blob);
+      a.href = url;
+      a.download = name;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    };
+  }());
+  
+  /**
+   * @see https://stackoverflow.com/questions/23451726/saving-binary-data-as-file-using-javascript-from-a-browser
+   */
+  var saveDataUri = (function () {
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    // a.style = "display: none";
+    a.text = "MIDI";
+    return function (dataUri, name) {
+      a.href = dataUri;
+      a.download = name;
+      a.click();
+    };
+  }());
+  
+  /**
+   * TODO move function somewhere else!
+   * 
+   * @see https://github.com/grimmdude/MidiWriterJS
+   * 
+   * @return string
+   */
+  lib.createMidi = function(chords) {
+    var basePitch = 60;
+    
+    var MidiWriter = require("MidiWriter");
+    
+    // Start with a new track
+    var track = new MidiWriter.Track();
+
+    // Define an instrument (optional):
+    track.addEvent(new MidiWriter.ProgramChangeEvent({instrument : 1}));
+
+    // Generate a data URI
+    var write = new MidiWriter.Writer([track]);
+    console.log(write.dataUri());
+    
+    var time = 0;
+    chords.forEach(function(chord) {
+      var pitches = chord.getNotes().map(function(note) {
+        return note.getPosition() + basePitch;
+      });
+      var notes = new MidiWriter.NoteEvent({pitch: pitches, duration: '1', velocity: 90});
+      track.addEvent(notes);
+    });
+    
+    saveDataUri(write.dataUri(), "test.mid");
+  }
   
 })(ChromatoneLibProgression, ChromatoneLibTheory, ChromatoneLibFingering);
  
