@@ -1,0 +1,80 @@
+var g = require("./src/gui/base.js"),
+ t = require("./src/theory/base.js"),
+ f = require("./src/fingering.js"),
+ p = require("./src/progression.js"),
+ midi = require("./src/midi.js"),
+ presets = require("./resources/presets.js");
+
+/** 
+ * Basic lib stuff...
+ */
+function $_(id) { return document.getElementById(id); }
+
+/**
+ * References to DOM elements...
+ */
+var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
+  chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
+  chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
+  chordSection = $_("chords");
+
+var k = g.createKeyboard(3, 7);
+var REGEX_COUNT_SCALE = /\*/g;
+
+// TODO move this code into an own file / layer:
+g.addForm(function(scales, chordDefs, voicing, options, resultSection) {            
+  var chordDefinitionGroups = [];
+  var chordDefinitions = [];
+  
+  // TODO does this even make sense??? (I am on linux, so this should be fine???)
+  chordDefs = chordDefs.replace("\n", " ");
+  
+  chordDefs.split(",").forEach(function(chordDefsOfGroup) {
+    // parse chord definitions in groups, so we can split the generated chords afterwards...
+    // the chord progression needs to be generated in one go!
+    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
+    chordDefObjectsOfGroup.forEach(function (chordDef) {
+      chordDef.setVoicing(voicing);
+      var scaleIndex = (chordDef.toString().match(REGEX_COUNT_SCALE) || []).length;
+      if (scaleIndex >= scales.length) {
+        console.error("InteractiveForm: scale index " + scaleIndex + " is not available. There are only " + scales.length + " scales available.");
+        // use the first scale instead
+        scaleIndex = 0;
+      }
+      chordDef.setScale(scales[scaleIndex]);
+    });
+    chordDefinitionGroups.push(chordDefObjectsOfGroup);
+    chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
+  });
+  
+  // generate the chords in one go:
+  // TODO smells, that the scale not even is needed any more, because all chords have their own scale reference?
+  var chords = p.createChordProgression(scales[0], chordDefinitions);
+  
+  if (options.generateMidi) {
+    midi.downloadMidi(chords, scales);
+  }
+  
+  // but output the chords in groups (defined by comma):
+  chordDefinitionGroups.forEach(function(group) {
+    var chordsOfGroup = [];
+    group.forEach(function() { chordsOfGroup.push(chords.shift()); });
+    g.addChordGroup(chordsOfGroup, null, resultSection, null, chords.length > 0 ? chords[0] : null);
+  });
+}, presets.progressions, presets.voicings, presets.scales);
+
+// TODO load first preset at startup
+
+/*g.addForm(function(scale, chordDefs, resultSection) {                
+  var chords = [];
+  // var k = g.createKeyboard(5, 14); 
+  for (var i=0; i<chordDefs.length; ++i) {
+    var chord = scale.createChord(chordDefs[i]);
+    f.updateFingering(chord);
+    chords.push(chord);
+  }
+  
+  g.addChordGroup(chords, null, resultSection);
+}, presets.progressions);
+*/
+
