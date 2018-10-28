@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>&U+1F9D9; &#51;&#8419; Chromatone-Helper 🧙 by iostream 2018</title>
+    <title>Chromatone Helper 🧙 by iostream 2018</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="resources/style.css">
   </head>
@@ -20,21 +20,28 @@
       
       <div class="interactive-form">
         <form class="form">
+          <textarea name="chords" placeholder="chords"></textarea>
+          <span class="chords">
+            <span class="chord">
+              <!-- <input type="text" name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"><select name="voicing_preset" class="voicing-preset"></select> -->
+              <textarea name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"></textarea><select name="voicing_preset" class="voicing-preset"></select>
+            </span>
+          </span>
+          </select>
+          
+          <select class="preset" name="preset"></select>
+
           <span class="scales">
+            <input type="button" value="+" name="add_scale">
+            <input type="button" value="-" name="pop_scale">
             <span class="scale_container">
               <input type="button" value="<" name="shift_scale_left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right"><select name="scale_preset" class="preset"></select>
             </span>
           </span>
-          <input type="text" name="chords" placeholder="chords">
-          <span class="chords">
-            <span class="chord">
-              <input type="text" name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"><select name="voicing_preset" class="voicing-preset">
-            </span>
-          </span>
-          </select>
-          <select class="preset" name="preset"></select>
+          
           <input style="display:none" type="submit" value="⛵" name="update">
           <input type="button" value="💾" name="generate_midi">
+          
         </form>
         <div class="result">
         </div>
@@ -47,172 +54,8 @@
     <section id="chords">
     </section>
     
-    <!-- <script src="node_modules/brain.js/browser.js"></script> did not work too well... -->
-    <script src="src/theory.js"></script>
-    <script src="src/fingering.js"></script>
-    <script src="src/progression.js"></script>
-    <script src="src/gui.js"></script>
-    <script src="resources/progressions.json"></script>
+    <!-- see main.js -->
+    <script src="bundle.js"></script>
     
-    <!-- external library for creating midi -->
-    <script src="node_modules/midi-writer-js/build/browser/index.min.js"></script>
-
-    <script>
-      (function(g/*ui*/, t/*heory*/, f/*ingering*/, p/*rogression*/) {
-        /** 
-         * Basic lib stuff...
-         */
-        function $_(id) { return document.getElementById(id); }
-        /**
-         * References to DOM elements...
-         */
-        var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
-          chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
-          chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
-          chordSection = $_("chords");
-     
-          
-        var k = g.createKeyboard(3, 7);
-          
-          /**
-           * Main...
-           */
-    /*
-          g.addChordGroup(
-            [
-              ["r1 3+ 5 6"],
-              ["1 b3 4 rb6"],
-              ["1 2 r4 6"],
-              ["1 rb3 5 b7"]
-            ],
-            "1 3 5 6",
-            chordSection,
-            k
-          );
-          
-           g.addChordGroup(
-            [
-              ["r1", "3+", "5" , "7"],
-              [1   , "b3", "5" , "rb6"],
-              [1   , "3+", "r4" , "6" ],
-              [1   , "rb2" , "4" , "b6" ]
-            ],
-            "1 3 5 7",
-            chordSection,
-            k
-          );
-          
-          g.addChordGroup(
-            [
-              ["r1",   "3+", "5"  , "b7"],
-              [  1 ,  "b3" , "b5+", "rb6"],
-              [  1 ,  "b3" , "r4" , "6" ],
-              [  1 ,   "r2" , "2+" , "b5+"  , "6" ] // not sure, what the best fingering is, hence two 2s
-            ],
-            "1 3 5 b7",
-            chordSection,
-            k
-          );
-           
-          g.addBreak();
-           
-          g.addChordGroup(
-            [
-              ["r1", "b3", "5" , "b6"],
-              [1   , "3+", "4" , "r6"],
-              [1   , "b2", "r4", "b6" ],
-              [1   , "r3+" , "5", "7" ]
-            ],
-            "1 b3 5 b6",
-            chordSection,
-            k
-          );
-          
-          g.addChordGroup(
-            [
-              ["r1", "b3", "5" ,  "6"],
-              [1   , "3+", "b5+", "r6"],
-              [1   , "2" , "r4" , "b6" ],
-              [1   , "rb3","b5+" , "b7" ]
-            ],
-            "1 b3 5 6",
-            chordSection,
-            k
-          );
-          
-          g.addChordGroup(
-            [
-              ["r1", "b3", "5" , "b7"],
-              [1   , "3+", "5" , "r6"],
-              [1   , "b3", "r4" , "b6" ],
-              [1   , "r2+" , "4" , "6" ]
-            ],
-            "1 b3 5 b7",
-            chordSection,
-            k
-          );
-          
-          g.addChordGroup("1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7", "1 2 3 4 5 b6 6 7, 1 2 b3 4 5 b6 6 7");
-*/
-
-
-          var REGEX_COUNT_SCALE = /\*/g;
-          // TODO move this code into an own file / layer:
-          g.addForm(function(scales, chordDefs, voicing, options, resultSection) {            
-            var chordDefinitionGroups = [];
-            var chordDefinitions = [];
-            chordDefs.split(",").forEach(function(chordDefsOfGroup) {
-              // parse chord definitions in groups, so we can split the generated chords afterwards...
-              // the chord progression needs to be generated in one go!
-              var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
-              chordDefObjectsOfGroup.forEach(function (chordDef) {
-                chordDef.setVoicing(voicing);
-                var scaleIndex = (chordDef.toString().match(REGEX_COUNT_SCALE) || []).length;
-                if (scaleIndex >= scales.length) {
-                  console.error("InteractiveForm: scale index " + scaleIndex + " is not available. There are only " + scales.length + " scales available.");
-                  // use the first scale instead
-                  scaleIndex = 0;
-                }
-                chordDef.setScale(scales[scaleIndex]);
-              });
-              chordDefinitionGroups.push(chordDefObjectsOfGroup);
-              chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
-            });
-            
-            // generate the chords in one go:
-            // TODO smells, that the scale not even is needed any more, because all chords have their own scale reference?
-            var chords = p.createChordProgression(scales[0], chordDefinitions);
-            
-            if (options.generateMidi) {
-              p.createMidi(chords);
-            }
-            
-            // but output the chords in groups (defined by comma):
-            chordDefinitionGroups.forEach(function(group) {
-              var chordsOfGroup = [];
-              group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-              g.addChordGroup(chordsOfGroup, null, resultSection, null, chords.length > 0 ? chords[0] : null);
-            });
-            
-        }, ChromatoneProgressions, ChromatoneVoicings, ChromatoneScales);
-        
-        // TODO load first preset at startup
-        
-        
-        /*g.addForm(function(scale, chordDefs, resultSection) {                
-          var chords = [];
-          // var k = g.createKeyboard(5, 14); 
-          for (var i=0; i<chordDefs.length; ++i) {
-            var chord = scale.createChord(chordDefs[i]);
-            f.updateFingering(chord);
-            chords.push(chord);
-          }
-          
-          g.addChordGroup(chords, null, resultSection);
-        }, ChromatoneProgressions);
-        */
-        
-      })(ChromatoneLibGUI, ChromatoneLibTheory, ChromatoneLibFingering, ChromatoneLibProgression);
-    </script>
   </body>
 </html>

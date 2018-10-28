@@ -1,6 +1,9 @@
 body {
   background-color: #edfdf8;
 }
+.form textarea {
+  height: 50pt;
+}
 section#chords {
   background-color: #f3eada;
   padding: 4pt;
@@ -71,6 +74,11 @@ section#templates {
   color: white;
   font-weight: bold;
   text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+}
+.interactive-form .form {
+  position: sticky;
+  top: 0;
+  width: 100%;
 }
 .interactive-form .scales {
   float: left;

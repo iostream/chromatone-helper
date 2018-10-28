@@ -1,7 +1,8 @@
-var ChromatoneProgressions = [
-// [ scales, chords ]
+module.exports.progressions = [
+// [ scales, chords, optional voicing ]
   [["1 2 b3 4 5 6 b7", "1 2 b3 4 b5 5 6"], "6 2 4 5 1, 1* 2 4* 5 1*, 1"],
   [["1 2 3 #4 5 6 7"], "2 5 1 6 4 5 1"],
+  [["1 b2 b3 4 b5 b6 b7", "1 2 3 4 5 6 b7"], "2 5 1 6, 4 5 1* 4, 5 1* 4  5, 1* 4"],
   [["1 b2 #3 b5 b6 6 b7"], "1 6 2 4 5 1"],
   [["1 b2 b3 3 4 5 b6"], "1 6 2 4 5 1"],
   [["1 2 3 4 5 6 7"], "2i2 5 1, 2 5 1"],
@@ -10,14 +11,15 @@ var ChromatoneProgressions = [
   [["1 3 4 5 6"], "1 2 3 4 5, 4 3 2 1"]
 ];
 
-var ChromatoneVoicings = [
+module.exports.voicings = [
   ["1 3 5 7"],
   ["1 2 5 7"],
   ["1 4 5 7"],
-  ["1 4 7 9"]
+  ["1 4 7 9"],
+  ["1 3 7 10 14"]
 ];
 
-var ChromatoneScales = [
+module.exports.scales = [
   ["1 2 3 4 5 6 7"],
   ["1 2 3 4 5 b6 6 7"],
   ["1 3   4 5 6"],
