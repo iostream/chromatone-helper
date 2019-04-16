@@ -1,6 +1,7 @@
 #!/bin/sh
 
 # creates one file version for usage on mobile, bundle.js has to be updated before
+# best is to use this script by calling: npm run build
 
 indexFileName="chromatone-combined-index.html"
 

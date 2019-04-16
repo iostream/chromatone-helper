@@ -23,7 +23,6 @@
   "dependencies": {
     "browserify": "^16.2.3",
     "form-serialize": "^0.7.2",
-    "jsmidgen": "^0.1.5",
     "midi-writer-js": "^1.5.1"
   },
   "devDependencies": {

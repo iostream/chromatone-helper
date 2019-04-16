@@ -24,7 +24,7 @@ function calculateDiff(chord1, chord2) {
   for (var i=0; i<notes1.length; ++i) {
     diff += (notes1[i].getPosition() - notes2[i].getPosition());
   }
-  // TODO not sure yet, if this will work out too well
+
   return Math.abs(diff);
 }
 
