@@ -63,8 +63,6 @@ g.addForm(function(scales, chordDefs, voicing, options, resultSection) {
   });
 }, presets.progressions, presets.voicings, presets.scales);
 
-// TODO load first preset at startup
-
 /*g.addForm(function(scale, chordDefs, resultSection) {                
   var chords = [];
   // var k = g.createKeyboard(5, 14); 

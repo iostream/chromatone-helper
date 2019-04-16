@@ -386,6 +386,10 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
       return;
     }
     
+    var serialize = require('form-serialize');
+    var str = serialize(form, { hash: true });
+    console.log("serialized form", str);
+    
     var options = {
       generateMidi: generateMidi
     };

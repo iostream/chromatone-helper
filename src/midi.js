@@ -17,9 +17,9 @@ var downloadDataUri = (function () {
 }());
 
 function buildScalesDescription(scales) {
-  return scales.map(function(scale) {
-    return scale.toString();
-  }).join(", ");
+  return scales.map(function(scale, i) {
+    return "*".repeat(i) + ": " + scale.toString();
+  }).join("\n");
 }
 
 /**
@@ -43,10 +43,9 @@ lib.downloadMidi = function(chords, scales) {
   
   chords.forEach(function(chord) {
     var pitches = [];
-    var notes = chord.getNotes().map(function(note) {
+    chord.getNotes().forEach(function(note) {
       var pitch = note.getPosition() + basePitch;
       pitches.push(pitch);
-      return new MidiWriter.NoteEvent({pitch: pitch, duration: '1'});
     });
     
     // all values are 1-100 (not like in MIDI)
@@ -54,58 +53,8 @@ lib.downloadMidi = function(chords, scales) {
     var maxVelocity = 90;
      
     track.addMarker(chord.getName());
-    track.addEvent(notes, function(event, index) {
-        // vary the velocity a bit, because this sounds much better!
-        return {
-          velocity: minVelocity + (Math.random() * (maxVelocity - minVelocity))
-        };
-      }
-    );
-  });
-  
-  var write = new MidiWriter.Writer([track]);
-  downloadDataUri(write.dataUri(), "test.mid");
-}
-
-lib.downloadMidi = function(chords, scales) {
-  var basePitch = 60;
-  
-  var Midi = require('jsmidgen');
-
-  var file = new Midi.File();
-  var track = new Midi.Track();
-  file.addTrack(track);
-
-  track.addNote(0, 'c4', 64);
-  track.addNote(0, 'd4', 64);
-  
-
-  // track.setTempo(162);
-  // track.addTrackName(buildScalesDescription(scales));
-
-  // do not define an instrument, because program change events moslty suck within DAWs after importing the MIDI file
-  // track.addEvent(new MidiWriter.ProgramChangeEvent({instrument : 1}));
-  
-  chords.forEach(function(chord) {
-    var pitches = [];
-    var notes = chord.getNotes().map(function(note) {
-      var pitch = note.getPosition() + basePitch;
-      pitches.push(pitch);
-      return new MidiWriter.NoteEvent({pitch: pitch, duration: '1'});
-    });
+    track.addEvent(new MidiWriter.NoteEvent({pitch: pitches, duration: '1'}));
     
-    // all values are 1-100 (not like in MIDI)
-    var minVelocity = 70;
-    var maxVelocity = 90;
-     
-    track.addMarker(chord.getName());
-    track.addEvent(notes, function(event, index) {
-        // vary the velocity a bit, because this sounds much better!
-        return {
-          velocity: minVelocity + (Math.random() * (maxVelocity - minVelocity))
-        };
-      }
-    );
   });
   
   var write = new MidiWriter.Writer([track]);

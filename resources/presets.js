@@ -23,6 +23,7 @@ module.exports.scales = [
   ["1 2 3 4 5 6 7"],
   ["1 2 3 4 5 b6 6 7"],
   ["1 3   4 5 6"],
+  ["1 #2 3 5 #5 7"], // augmented scale
   ["1 b2 b3 4 5 b6"], // "by me"
   ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
 ];

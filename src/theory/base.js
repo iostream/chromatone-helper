@@ -110,7 +110,9 @@ function parseChordDefinition(chordDef, voicings) {
   var _inversion = parseIntParameters("i", 0, "inversion").reduce(sum, 0);
   var _transposition = parseIntParameters("t", 0, "transposition").reduce(sum, 0);
   
-  var _voicings = parseStringParameters("V", 0, "voicings").reduce(function(a, b) {});
+  var _voicings = parseStringParameters("V", 0, "voicings").reduce(function(a, b) {
+    console.log("now should reduce: ", a, b);
+  });
   
   if (isNaN(_step)) {
     console.error("parseChordDefinition() - Could not parse step out of: " + chordDef);
@@ -317,6 +319,7 @@ function parseNote(noteDefinition, parsedInterval) {
     return parseNote("1e");
   }
   
+  // TODO make this these checks more efficient
   var _marks = [note.indexOf("e") !== -1];
   var _isRoot = note.indexOf("r") !== -1;
   var _isUp = note.indexOf("+") !== -1;
