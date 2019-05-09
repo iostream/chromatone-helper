@@ -29,11 +29,10 @@ function createChromaticKeyboard(rows, columns) {
   
   var rowIteration = 0;
   for (var row=0; row < rows; ++row) {
-    var chromatic = 0;
     // the first shall never be a cross row (because of the cut out parts there)
     var isCrossRow = !!(row % 2);
     var rowEl = document.createElement("div");
-    
+    var chromatic = 0;
     // e.g. class="row x i1" -> second iteration of cross rows
     if (isCrossRow) {
       rowEl.className = "row i" + Math.floor(rowIteration) + " x";
@@ -382,13 +381,14 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     var voicings = tLib.parseVoicings(form.voicing.value);
     
     // validate inputs aka only submit valid data
-    if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0 || !Array.isArray(voicings.defaultVoicing)) {
+    if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
       return;
     }
     
+    // TODO str: use it or remove it!
     var serialize = require('form-serialize');
     var str = serialize(form, { hash: true });
-    console.log("serialized form", str);
+    // console.log("serialized form", str);
     
     var options = {
       generateMidi: generateMidi
@@ -397,7 +397,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     
     // repaint all
     resultSection.innerHTML = "";
-    submitFunction(scales, chordDefs, voicings.defaultVoicing, options, resultSection);
+    submitFunction(scales, chordDefs, voicings, options, resultSection);
   }, false);
   
   initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords]);

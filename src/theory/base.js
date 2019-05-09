@@ -2,7 +2,11 @@ var lib = {};
 module.exports = lib;
 
 console.log("Welcome to the Chromatone Helper            !");
-  
+
+var voicingLib = require("./voicing.js");
+lib.parseVoicings = voicingLib.parseVoicings;
+lib.isVoicing = voicingLib.isVoicing;
+
 // -- diatonic (~0-24) to chromatic notes (0-11) mapping of major scale
 // TODO enable bigger intervals
 var majorNotes = [
@@ -14,19 +18,22 @@ var majorNotes = [
   0+12+12
 ];
 
-// also static!
-var defaultVoicing = [0, 2, /*4,*/ 6];
 var WHITESPACE_REGEX = /\s+/;
-var LINES_REGEX = /[^\r\n]+/g;
 
 function parseChordDefinition(chordDef, voicings) {
-  voicings = voicings || {};
+  voicings = voicings || {defaultVoicing: ""};
+  var defaultVoicing = voicings.defaultVoicing;
   // parse shall return the chord definition, when chord defs are passed
   if (typeof(chordDef.getInversion) === "function") {
-    // TODO shouldn't these functions return copies?
+    // TODO FIXME shouldn't these functions return copies?
     return chordDef;
   }
 
+  /**
+   * returns an array of integers values used within the chord definition being parsed which have the given key.
+   * 
+   * Example chord definition with an int parameter: 1
+   */
   function parseIntParameters(key, defaultValue, description) {
     var parameterValues = [];
     var defaultValues = [defaultValue];
@@ -58,8 +65,6 @@ function parseChordDefinition(chordDef, voicings) {
   }
   
   /**
-   * TODO the methods looks so duplicated to parseIntParameters, DRY it!
-   * 
    * Some rules:
    * - All string parameters must be at the end of the string.
    * - keys must be in higher case
@@ -72,7 +77,6 @@ function parseChordDefinition(chordDef, voicings) {
    */
   function parseStringParameters(key, defaultValue, description) {
     var parameterValues = [];
-    var defaultValues = [defaultValue];
     
     var searchIndex = 0;
     while (chordDef.length > searchIndex) {
@@ -80,7 +84,7 @@ function parseChordDefinition(chordDef, voicings) {
       if (searchIndex === -1) {
         // stop, there is nothing to see here
         if (parameterValues.length === 0) {
-          return defaultValues;
+          return [defaultValue];
         }
         return parameterValues;
       }
@@ -99,6 +103,8 @@ function parseChordDefinition(chordDef, voicings) {
         parameterValues.push(value);
       }
     }
+    
+    return parameterValues;
   }
 
   var _chordDef = "" + chordDef;
@@ -110,16 +116,50 @@ function parseChordDefinition(chordDef, voicings) {
   var _inversion = parseIntParameters("i", 0, "inversion").reduce(sum, 0);
   var _transposition = parseIntParameters("t", 0, "transposition").reduce(sum, 0);
   
-  var _voicings = parseStringParameters("V", 0, "voicings").reduce(function(a, b) {
-    console.log("now should reduce: ", a, b);
-  });
+  function mergeVoices(combinedVoicing, voicing) {
+    var voice;
+    for (var i in voicing) {
+      if (!voicing.hasOwnProperty(i)) {
+        continue;
+      }
+      voice = voicing[i];
+      combinedVoicing[voice] = voice;
+    }
+  }
   
+  var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
+    // map voicing references to actual voicings
+    .map(function(voicingReference) {
+      if (lib.isVoicing(voicingReference)) {
+        return voicingReference;
+      }
+      if (Array.isArray(voicingReference)) {
+        return voicingReference;
+      }
+      if(voicings[voicingReference]) {
+        return voicings[voicingReference];
+      }
+      console.warn("Unknown voicing reference \"" + voicingReference + "\" used in chord definition \"" + chordDef  + "\"");
+      return defaultVoicing;
+    })
+    // if more than one voicing was used, they need to be merged
+    // TODO does this already work as expected?
+    .reduce(function(a, b) {
+      var combinedVoicing = {};
+      mergeVoices(combinedVoicing, a);
+      mergeVoices(combinedVoicing, b);
+      return combinedVoicing;
+    });  
+
+  if (!_voicing) {
+    _voicing = defaultVoicing;
+  }
+
   if (isNaN(_step)) {
     console.error("parseChordDefinition() - Could not parse step out of: " + chordDef);
     _step = 0;
   }
   
-  _voicing = defaultVoicing;
   return {
     toString: function() {
       return _chordDef;
@@ -151,10 +191,11 @@ function parseChordDefinition(chordDef, voicings) {
   };
 }
 
-lib.parseChordDefinitions = function(chordDefs) {
+lib.parseChordDefinitions = function(chordDefs, voicings) {
+  var defaultVoicing = voicings.defaultVoicing;
   if (Array.isArray(chordDefs)) {
     return chordDefs.map(function(chordDef) {
-      return parseChordDefinition(chordDef);
+      return parseChordDefinition(chordDef, voicings);
     });
   }
   if (typeof chordDefs !== "string") {
@@ -164,99 +205,11 @@ lib.parseChordDefinitions = function(chordDefs) {
   
   var chordDefObjects = [];
   chordDefs.trim().split(/\s+/).forEach(function(chordDef) {
-    chordDefObjects.push(parseChordDefinition(chordDef));
+    chordDefObjects.push(parseChordDefinition(chordDef, voicings));
   });
   
   return chordDefObjects;
 };
-
-/**
- * returns voicing (array of 0 based ints)
- */
-function resolveVoicingReference(voicingReference, voicings) {
-  // resolve voicing reference
-  var voicing = voicings[voicingReference];
-  if (typeof voicing === "undefined") {
-    // TODO what is best to do here?
-    console.error("parseVoicing() - Undeclared voicing reference used: " + voicingReference);
-    return [];
-  }
-  
-  // already resolved?
-  if (Array.isArray(voicing)) {
-    return voicing;
-  }
-  
-  // resolve
-  voicings[voicingReference] = lib.parseVoicing(voicing, voicings);
-  
-  return voicings[voicingReference];
-}
-
-/**
- * voiceString .. can be a voice, e.g. 3 or a non-numeric reference to one to many voices, e.g. a 
- */
-function parseVoices(voiceString, voicings) {
-  // try to parse voice 
-  var voices = [];
-  var parsedVoice = parseInt(voiceString);
-  if (!isNaN(parsedVoice)) {
-    // make 0 based, hence -1
-    return [parsedVoice - 1];
-  }
-  // resolve references
-  return resolveVoicingReference(voiceString, voicings);
-}
-
-/**
- * Voicings are written using 1 based indexes, internally voicings are 0 based
- */
-lib.parseVoicing = function (voicingString, voicings) {
-  // TODO reuse parseChordDefinitions?
-  var voicing = [];
-  // for each voice or voicing reference
-  voicingString.trim().split(WHITESPACE_REGEX).forEach(function(voiceOrVoicingReference) {
-    voicing = voicing.concat(parseVoices(voiceOrVoicingReference, voicings));
-  });
-  return voicing;
-}
-
-/**
- * voicingsString .. multiline string
- */
-lib.parseVoicings = function(voicingsString) {
-  var voicings = {defaultVoicing: defaultVoicing},
-    // split by lines
-    voicingDefinitions = voicingsString.match(LINES_REGEX) || [];
-  
-  // first just initialize voicings with the unparsed strings, parsing and resolving references follows later,
-  // because first all definitions are required to be known
-  voicingDefinitions.forEach(function(definition){
-    var split = definition.trim().split(":");
-    if (split.length > 2) {
-      console.error("parseVoicings() - Ignoring voicing definition: " + definition);
-      return;
-    }
-    if (split.length == 1) {
-      // the last voicing which has no name, becomes the default voicing
-      voicings.defaultVoicing = split[0].trim();
-      return;
-    }
-    voicings[split[0].trim()] = split[1].trim();
-  });
-  
-  // parse and resolve references
-  for (var key in voicings) {
-    if (!voicings.hasOwnProperty(key)) {
-      continue;
-    }
-    if (!Array.isArray(voicings[key])) {
-      voicings[key] = lib.parseVoicing(voicings[key], voicings);
-    }
-  }
-  
-  return voicings;
-}
 
 /**
  * TODO Make lookups in intervalNameMap and fallback also work for higher than contained intervals, e.g. if b3 is contained, also b11 should also work
@@ -550,6 +503,7 @@ function createScale(definition) {
       // TODO this is now kind of a mess here!?
       var _inversion = 0; // <- gets initialized by calling invert() later
       var _step = chordDef.getStep();
+      var _voicing = chordDef.getVoicing();
       
       var chordScaleNotes = this.getNotes();
       if (_step > 0) {  
@@ -558,33 +512,45 @@ function createScale(definition) {
         chordScaleNotes = tempScale.getNotes();
       }
       
-      var voicing = chordDef.getVoicing();
-      var chordNotes = [];
-      if (voicing.length > 0) {
-        for (var i = 0; i < voicing.length; ++i) {
+      function createNotesByVoices(voices, scaleNotes) {
+        var notes = [];
+        for (var i = 0; i < voices.length; ++i) {
           // add cloned notes, so changing the chord's notes won't change the scale's notes
-          var noteIndex = voicing[i] % chordScaleNotes.length;
-          var noteTransposition = Math.floor(voicing[i] / chordScaleNotes.length) * 12;
-          var note = chordScaleNotes[noteIndex].clone();
+          var noteIndex = voices[i] % scaleNotes.length;
+          var noteTransposition = Math.floor(voices[i] / scaleNotes.length) * 12;
+          var note = scaleNotes[noteIndex].clone();
           // mark the root
-          if (voicing[i] % chordScaleNotes.length === 0) {
+          if (voices[i] % scaleNotes.length === 0) {
             note.setRoot(true);
           }
           if (noteTransposition !== 0) {
             note.transpose(noteTransposition);
             note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
           }
-          chordNotes.push(note);
+          notes.push(note);
         }
+        return notes;
       }
       
-      // console.log("createChord() - ", chordNotes.map(function(note){ return note.toString() }).join(", "));
+      var _chordNotes = createNotesByVoices(_voicing.getVoices1(), chordScaleNotes);
+      
+      // console.log("createChord() - ", _chordNotes.map(function(note){ return note.toString() }).join(", "));
       
       var _name = chordDef.toString();
       
       var chord = {
         getNotes: function() {
-          return chordNotes;
+          // voices2 are added after inversion...
+          var notes = _chordNotes.slice(0);
+          var voices2 = _voicing.getVoices2();
+          
+          for (var i in voices2) {
+            if (!voices2.hasOwnProperty(i)) {
+              continue;
+            }
+            // TODO add .... but exactly how ....?
+          }
+          return notes;
         },
         // TODO I dont like how the find methods are implemented
         getHighestNote: function() {
@@ -594,7 +560,7 @@ function createScale(definition) {
           return this.findLowestNote();
         },
         findHighestNote: function() {
-          return chordNotes.reduce(
+          return this.getNotes().reduce(
             function(highestNote, note) {
               if (highestNote === null || note.getPosition() > highestNote.getPosition()) {
                 highestNote = note;
@@ -605,7 +571,7 @@ function createScale(definition) {
           );
         },
         findLowestNote: function() {
-          return chordNotes.reduce(
+          return this.getNotes().reduce(
             function(lowestNote, note) {
               if (lowestNote === null || note.getPosition() < lowestNote.getPosition()) {
                 lowestNote = note;
@@ -616,7 +582,7 @@ function createScale(definition) {
           );
         },
         invert: function() {
-          var notes = this.getNotes();
+          var notes = _chordNotes;
           
           if (notes.length < 2) {
             // this would result in the same "chord"
@@ -643,8 +609,8 @@ function createScale(definition) {
           if (semitones == 0) {
             return;
           }
-          for (var i=0; i<chordNotes.length; ++i) {
-            chordNotes[i].transpose(semitones);
+          for (var i=0; i<_chordNotes.length; ++i) {
+            _chordNotes[i].transpose(semitones);
           }
         },
         getName: function() {
