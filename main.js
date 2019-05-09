@@ -22,19 +22,18 @@ var k = g.createKeyboard(3, 7);
 var REGEX_COUNT_SCALE = /\*/g;
 
 // TODO move this code into an own file / layer:
-g.addForm(function(scales, chordDefs, voicing, options, resultSection) {            
+g.addForm(function(scales, chordDefs, voicings, options, resultSection) {            
   var chordDefinitionGroups = [];
   var chordDefinitions = [];
   
-  // TODO does this even make sense??? (I am on linux, so this should be fine???)
+  // TODO does this even make sense??? (I am on Linux, so this should be fine???)
   chordDefs = chordDefs.replace("\n", " ");
   
+  // parse chord definitions in groups, so we can split the generated chords afterwards...
   chordDefs.split(",").forEach(function(chordDefsOfGroup) {
-    // parse chord definitions in groups, so we can split the generated chords afterwards...
     // the chord progression needs to be generated in one go!
-    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup);
+    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup, voicings)
     chordDefObjectsOfGroup.forEach(function (chordDef) {
-      chordDef.setVoicing(voicing);
       var scaleIndex = (chordDef.toString().match(REGEX_COUNT_SCALE) || []).length;
       if (scaleIndex >= scales.length) {
         console.error("InteractiveForm: scale index " + scaleIndex + " is not available. There are only " + scales.length + " scales available.");
