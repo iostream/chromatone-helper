@@ -22,10 +22,16 @@ module.exports.voicings = [
 ];
 
 module.exports.scales = [
-  ["1 2 3 4 5 6 7"],
+// 7 note scales
+  ["1 2 3  4 5 6  7"], // major
+  ["1 2 3  4 5 b6 7"], // harmonic major
+  ["1 2 b3 4 5 6  7"], // melodic minor 
+  ["1 2 b3 4 5 b6 7"], // harmonic minor
+// 8 note scales
   ["1 2 3 4 5 b6 6 7"],
+  ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
+// 5/6 note scales
   ["1 3   4 5 6"],
   ["1 #2 3 5 #5 7"], // augmented scale
-  ["1 b2 b3 4 5 b6"], // "by me"
-  ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
+  ["1 b2 b3 4 5 b6"] // "by me"
 ];
