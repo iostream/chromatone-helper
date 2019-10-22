@@ -258,7 +258,7 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
         if (typeof elementOrElements === "function") {
           elementOrElements = elementOrElements();
         }
-        if (typeof elementOrElements.length !== "undefined") {
+        if (Array.isArray(elementOrElements)) {
           if (!Array.isArray(preset[i])) {
             console.error("initPresets () - Preset not set up right!");
             continue;
@@ -269,18 +269,26 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
             if (typeof elementOrElements[index] === "undefined") {
               console.error("It's not possible to load so many scales yet: " + (index + 1));
             } else {
-              elementOrElements[index].value = presetValue;
+              applyPresetValue(elementOrElements[index], presetValue);
             }
             ++index;
           });
           
         } else {
-          elementOrElements.value = preset[i];
+          applyPresetValue(elementOrElements, preset[i]);
         }
       }
       presetEl.form.update.click();
     });
   });  
+}
+
+function applyPresetValue(element, presetValue) {
+  if (typeof(presetValue) === "undefined") {
+    element.value = "";
+    return;
+  }
+  element.value = presetValue;
 }
 
 /**
@@ -402,6 +410,6 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     submitFunction(scales, chordDefs, voicings, options, resultSection);
   }, false);
   
-  initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords]);
+  initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
 };
