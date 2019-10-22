@@ -231,7 +231,7 @@ lib.addBreak = addBreak;
 
 /**
  * presets[]                        .. the presets to be initialized
- * presetSelectElementOrElements|[] .. select element or elements to switch between
+ * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
  * elements[]                       .. the elements, the preset values get assigned to when a preset is selected
  */
 function initPresets(presets, presetSelectElementOrElements, elements) {
@@ -386,13 +386,15 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     }
     
     // TODO str: use it or remove it!
-    var serialize = require('form-serialize');
-    var str = serialize(form, { hash: true });
+    // var serialize = require('form-serialize');
+    // var str = serialize(form, { hash: true });
     // console.log("serialized form", str);
     
     var options = {
       generateMidi: generateMidi
     };
+    
+    // reset flag
     generateMidi = false;
     
     // repaint all
