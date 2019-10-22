@@ -1,6 +1,8 @@
 User Reference
 ==============
 
+[Try me out!](https://iostream.github.io/chromatone-helper/ "Chromatone Helper by iostream")
+
 Voicings
 --------
 
