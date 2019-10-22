@@ -1,7 +1,7 @@
 User Reference
 ==============
 
-[Try me out!](https://iostream.github.io/chromatone-helper/ "Chromatone Helper by iostream")
+[Chromatone Helper](https://iostream.github.io/chromatone-helper/ "Chromatone Helper by iostream")
 
 Voicings
 --------
@@ -14,6 +14,10 @@ Development
 
 How to develop
 --------------
+
+For initial setup, run: `npm install`.
+
+For development, run:
 
 ```
 npm run watch
