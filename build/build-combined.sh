@@ -5,15 +5,15 @@
 
 indexFileName="chromatone-combined-index.html"
 
-mkdir -p build/chromatone
+cd dist
 
-rm -fr build/chromatone/*
+mkdir -p chromatone
 
-cp chromatone-index.html build/chromatone
-cp bundle.js build/chromatone
-cp -r resources build/chromatone
+rm -fr chromatone/*
 
-cd build
+cp ../chromatone-index.html chromatone
+cp ../bundle.js chromatone
+cp -r ../resources chromatone
 
 cd chromatone
 cp chromatone-index.html "$indexFileName"
@@ -34,4 +34,3 @@ replaceStyleFile() {
 
 replaceStyleFile "$indexFileName" "resources/style.css"
 replaceScriptFile "$indexFileName" "bundle.js"
-
