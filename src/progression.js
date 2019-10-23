@@ -84,7 +84,7 @@ lib.createChordProgression = function(scale, chordDefs) {
     // get best diff of all the inversions (inversion=0 is in root position)
     var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
     var bestInversion = 0, bestTransposed = 0, transposed = 0;
-    var voicingLength = chordDef.getVoicing().length;
+    var voicingLength = chordDef.getVoicing().getVoices1().length;
     for (var inversion = 1; inversion < voicingLength; ++inversion) {
       chordDef.setInversion(inversion);
       var chord = scale.createChord(chordDef);

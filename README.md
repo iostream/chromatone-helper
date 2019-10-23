@@ -52,7 +52,6 @@ Feature wishes
    * render chord specifications next to the chord visualisation and enable modifications of the chord definition via just clicking on the visualisations or symbols next to them (e.g. transpose via `+`,`-`)
 
 - Automatic Inversions
-   * **BUG** Make them work again (last refactoring is not done yet).
    * better/always working automatic chord transition inversion optimization
    * allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
 
