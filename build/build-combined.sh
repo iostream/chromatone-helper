@@ -33,4 +33,5 @@ replaceStyleFile() {
 }
 
 replaceStyleFile "$indexFileName" "resources/style.css"
+replaceStyleFile "$indexFileName" "resources/zebra.css"
 replaceScriptFile "$indexFileName" "bundle.js"

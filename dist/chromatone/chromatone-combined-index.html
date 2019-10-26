@@ -111,7 +111,40 @@ section#templates {
   width: 50pt;
 }
 </style>
-    <link rel="stylesheet" href="resources/zebra.css">
+<style>
+.zebra.keyboard {
+  display: inline-block;
+  margin-right: 15pt;
+}
+
+.zebra.keyboard .row span {
+  display: inline-block;
+  width: 8pt;
+  height: 30pt;
+  background-color: white;
+  outline: solid black 0.5px;
+}
+/* TODO maybe delete me, if really not used: */
+.zebra.keyboard .row span.half {
+  width: 2.5pt;
+}
+.zebra.keyboard .row span.d {
+  position: relative;
+  top: -8pt;
+  height: 22pt;
+  background-color: black;
+  width: 5pt;
+  margin-left: -2.5pt;
+  margin-right: -2.5pt;
+}
+.zebra.keyboard .row span.selected {
+  background-color: orange;
+}
+
+.zebra.keyboard .row span.selected.root {
+  background-color: yellow;
+}
+</style>
   </head>
   <body>
     <section id="templates">
