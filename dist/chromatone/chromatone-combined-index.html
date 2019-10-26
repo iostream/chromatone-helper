@@ -28,21 +28,21 @@ section#templates {
   margin: 0;
   margin-left: 8pt;
 }
-.keyboard {
+.chromatic.keyboard {
   display: inline-block;
   margin-right: 4pt;
 }
-.keyboard .row {
+.chromatic.keyboard .row {
   margin: 0pt;
   margin-bottom:-2pt;
   padding: 0pt;
   height: 20pt;
   font-size: 0;
 }
-.keyboard .row.x {
+.chromatic.keyboard .row.x {
   margin-left: 11pt;
 }
-.keyboard span { /* note */
+.chromatic.keyboard span { /* note */
   display: inline-block;
   width: 20pt;
   height: 20pt;
@@ -55,24 +55,24 @@ section#templates {
   text-align: center;
   margin-top: 2pt;
 }
-.keyboard span .note-text {
+.chromatic.keyboard span .note-text {
   line-height: 19pt;
 }
-.keyboard span.selected {
+.chromatic.keyboard span.selected {
   background-color: #ffa17a;
 }
-.keyboard span.root {
+.chromatic.keyboard span.root {
   border-color: #354b45;
   background-color: yellow;
   color: #354b45;
 }
-.keyboard {
+.chromatic.keyboard {
   margin-bottom: 8pt;
 }
-.keyboard .description {
+.chromatic.keyboard .description {
   style: inline-block;
 }
-.keyboard .diff {
+.chromatic.keyboard .diff {
   font-size: 7px;
   position: relative;
   top: -26px;
@@ -92,6 +92,9 @@ section#templates {
 .interactive-form .scale {
   width: 100pt;
 }
+.interactive-form input[name="zebra_root"] {
+  width: 15pt;
+}
 .interactive-form .result {
   min-height: 420pt;
 }
@@ -108,6 +111,7 @@ section#templates {
   width: 50pt;
 }
 </style>
+    <link rel="stylesheet" href="resources/zebra.css">
   </head>
   <body>
     <section id="templates">
@@ -118,12 +122,17 @@ section#templates {
         <div class="description"></div>
       </div>
       
+      <div class="zebra keyboard">
+        <div class="keys"></div>
+        <div class="description"></div>
+      </div>
+      
       <div class="chord-group">
         <h2 class="title"></h2> 
       </div>
       
       <div class="interactive-form">
-        <form class="form">
+        <form name="interactive" class="form">
           <textarea name="chords" placeholder="chords"></textarea>
           <span class="chords">
             <span class="chord">
@@ -132,6 +141,8 @@ section#templates {
             </span>
           </span>
           </select>
+          
+          <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="Chromatic root for zebra keyboard mode.">
           
           <select class="preset" name="preset"></select>
 
@@ -142,7 +153,6 @@ section#templates {
               <input type="button" value="<" name="shift_scale_left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right"><select name="scale_preset" class="preset"></select>
             </span>
           </span>
-          
           <input style="display:none" type="submit" value="⛵" name="update">
           <input type="button" value="💾" name="generate_midi">
           
@@ -167,19 +177,6 @@ var g = require("./src/gui/base.js"),
  p = require("./src/progression.js"),
  midi = require("./src/midi.js"),
  presets = require("./resources/presets.js");
-
-/** 
- * Basic lib stuff...
- */
-function $_(id) { return document.getElementById(id); }
-
-/**
- * References to DOM elements...
- */
-var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
-  chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
-  chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
-  chordSection = $_("chords");
 
 var k = g.createKeyboard(3, 7);
 var REGEX_COUNT_SCALE = /\*/g;
@@ -221,9 +218,26 @@ g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
   chordDefinitionGroups.forEach(function(group) {
     var chordsOfGroup = [];
     group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-    g.addChordGroup(chordsOfGroup, null, resultSection, null, chords.length > 0 ? chords[0] : null);
+    g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
   });
 }, presets.progressions, presets.voicings, presets.scales);
+
+
+// for testing....
+function $_(id) { return document.getElementById(id); }
+var chordSection = $_("chords");
+var zebra = require("./src/gui/zebra.js");
+
+(function() {
+  var scale = t.createScale("1 2 3 4 5 6 7");
+  var notes = scale.clone().getNotes();
+  scale.getNotes().forEach(function(rootNote) {
+    var k = zebra.createZebraKeyboard(14, scale.getNotes()[6].getPosition() + 1, rootNote.getPosition());
+    chordSection.appendChild(k.getElement());
+    k.add(scale);
+    scale.shift();
+  });
+})();
 
 /*g.addForm(function(scale, chordDefs, resultSection) {                
   var chords = [];
@@ -237,9 +251,10 @@ g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
   g.addChordGroup(chords, null, resultSection);
 }, presets.progressions);
 */
+      
+      
 
-
-},{"./resources/presets.js":9,"./src/fingering.js":10,"./src/gui/base.js":11,"./src/midi.js":12,"./src/progression.js":13,"./src/theory/base.js":14}],2:[function(require,module,exports){
+},{"./resources/presets.js":10,"./src/fingering.js":11,"./src/gui/base.js":12,"./src/gui/zebra.js":13,"./src/midi.js":14,"./src/progression.js":15,"./src/theory/base.js":16}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -2171,7 +2186,269 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":2,"ieee754":4}],4:[function(require,module,exports){
+},{"base64-js":2,"ieee754":5}],4:[function(require,module,exports){
+// get successful control from form and assemble into object
+// http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2
+
+// types which indicate a submit action and are not successful controls
+// these will be ignored
+var k_r_submitter = /^(?:submit|button|image|reset|file)$/i;
+
+// node names which could be successful controls
+var k_r_success_contrls = /^(?:input|select|textarea|keygen)/i;
+
+// Matches bracket notation.
+var brackets = /(\[[^\[\]]*\])/g;
+
+// serializes form fields
+// @param form MUST be an HTMLForm element
+// @param options is an optional argument to configure the serialization. Default output
+// with no options specified is a url encoded string
+//    - hash: [true | false] Configure the output type. If true, the output will
+//    be a js object.
+//    - serializer: [function] Optional serializer function to override the default one.
+//    The function takes 3 arguments (result, key, value) and should return new result
+//    hash and url encoded str serializers are provided with this module
+//    - disabled: [true | false]. If true serialize disabled fields.
+//    - empty: [true | false]. If true serialize empty fields
+function serialize(form, options) {
+    if (typeof options != 'object') {
+        options = { hash: !!options };
+    }
+    else if (options.hash === undefined) {
+        options.hash = true;
+    }
+
+    var result = (options.hash) ? {} : '';
+    var serializer = options.serializer || ((options.hash) ? hash_serializer : str_serialize);
+
+    var elements = form && form.elements ? form.elements : [];
+
+    //Object store each radio and set if it's empty or not
+    var radio_store = Object.create(null);
+
+    for (var i=0 ; i<elements.length ; ++i) {
+        var element = elements[i];
+
+        // ingore disabled fields
+        if ((!options.disabled && element.disabled) || !element.name) {
+            continue;
+        }
+        // ignore anyhting that is not considered a success field
+        if (!k_r_success_contrls.test(element.nodeName) ||
+            k_r_submitter.test(element.type)) {
+            continue;
+        }
+
+        var key = element.name;
+        var val = element.value;
+
+        // we can't just use element.value for checkboxes cause some browsers lie to us
+        // they say "on" for value when the box isn't checked
+        if ((element.type === 'checkbox' || element.type === 'radio') && !element.checked) {
+            val = undefined;
+        }
+
+        // If we want empty elements
+        if (options.empty) {
+            // for checkbox
+            if (element.type === 'checkbox' && !element.checked) {
+                val = '';
+            }
+
+            // for radio
+            if (element.type === 'radio') {
+                if (!radio_store[element.name] && !element.checked) {
+                    radio_store[element.name] = false;
+                }
+                else if (element.checked) {
+                    radio_store[element.name] = true;
+                }
+            }
+
+            // if options empty is true, continue only if its radio
+            if (val == undefined && element.type == 'radio') {
+                continue;
+            }
+        }
+        else {
+            // value-less fields are ignored unless options.empty is true
+            if (!val) {
+                continue;
+            }
+        }
+
+        // multi select boxes
+        if (element.type === 'select-multiple') {
+            val = [];
+
+            var selectOptions = element.options;
+            var isSelectedOptions = false;
+            for (var j=0 ; j<selectOptions.length ; ++j) {
+                var option = selectOptions[j];
+                var allowedEmpty = options.empty && !option.value;
+                var hasValue = (option.value || allowedEmpty);
+                if (option.selected && hasValue) {
+                    isSelectedOptions = true;
+
+                    // If using a hash serializer be sure to add the
+                    // correct notation for an array in the multi-select
+                    // context. Here the name attribute on the select element
+                    // might be missing the trailing bracket pair. Both names
+                    // "foo" and "foo[]" should be arrays.
+                    if (options.hash && key.slice(key.length - 2) !== '[]') {
+                        result = serializer(result, key + '[]', option.value);
+                    }
+                    else {
+                        result = serializer(result, key, option.value);
+                    }
+                }
+            }
+
+            // Serialize if no selected options and options.empty is true
+            if (!isSelectedOptions && options.empty) {
+                result = serializer(result, key, '');
+            }
+
+            continue;
+        }
+
+        result = serializer(result, key, val);
+    }
+
+    // Check for all empty radio buttons and serialize them with key=""
+    if (options.empty) {
+        for (var key in radio_store) {
+            if (!radio_store[key]) {
+                result = serializer(result, key, '');
+            }
+        }
+    }
+
+    return result;
+}
+
+function parse_keys(string) {
+    var keys = [];
+    var prefix = /^([^\[\]]*)/;
+    var children = new RegExp(brackets);
+    var match = prefix.exec(string);
+
+    if (match[1]) {
+        keys.push(match[1]);
+    }
+
+    while ((match = children.exec(string)) !== null) {
+        keys.push(match[1]);
+    }
+
+    return keys;
+}
+
+function hash_assign(result, keys, value) {
+    if (keys.length === 0) {
+        result = value;
+        return result;
+    }
+
+    var key = keys.shift();
+    var between = key.match(/^\[(.+?)\]$/);
+
+    if (key === '[]') {
+        result = result || [];
+
+        if (Array.isArray(result)) {
+            result.push(hash_assign(null, keys, value));
+        }
+        else {
+            // This might be the result of bad name attributes like "[][foo]",
+            // in this case the original `result` object will already be
+            // assigned to an object literal. Rather than coerce the object to
+            // an array, or cause an exception the attribute "_values" is
+            // assigned as an array.
+            result._values = result._values || [];
+            result._values.push(hash_assign(null, keys, value));
+        }
+
+        return result;
+    }
+
+    // Key is an attribute name and can be assigned directly.
+    if (!between) {
+        result[key] = hash_assign(result[key], keys, value);
+    }
+    else {
+        var string = between[1];
+        // +var converts the variable into a number
+        // better than parseInt because it doesn't truncate away trailing
+        // letters and actually fails if whole thing is not a number
+        var index = +string;
+
+        // If the characters between the brackets is not a number it is an
+        // attribute name and can be assigned directly.
+        if (isNaN(index)) {
+            result = result || {};
+            result[string] = hash_assign(result[string], keys, value);
+        }
+        else {
+            result = result || [];
+            result[index] = hash_assign(result[index], keys, value);
+        }
+    }
+
+    return result;
+}
+
+// Object/hash encoding serializer.
+function hash_serializer(result, key, value) {
+    var matches = key.match(brackets);
+
+    // Has brackets? Use the recursive assignment function to walk the keys,
+    // construct any missing objects in the result tree and make the assignment
+    // at the end of the chain.
+    if (matches) {
+        var keys = parse_keys(key);
+        hash_assign(result, keys, value);
+    }
+    else {
+        // Non bracket notation can make assignments directly.
+        var existing = result[key];
+
+        // If the value has been assigned already (for instance when a radio and
+        // a checkbox have the same name attribute) convert the previous value
+        // into an array before pushing into it.
+        //
+        // NOTE: If this requirement were removed all hash creation and
+        // assignment could go through `hash_assign`.
+        if (existing) {
+            if (!Array.isArray(existing)) {
+                result[key] = [ existing ];
+            }
+
+            result[key].push(value);
+        }
+        else {
+            result[key] = value;
+        }
+    }
+
+    return result;
+}
+
+// urlform encoding serializer
+function str_serialize(result, key, value) {
+    // encode newlines as \r\n cause the html spec says so
+    value = value.replace(/(\r)?\n/g, '\r\n');
+    value = encodeURIComponent(value);
+
+    // spaces should be '+' rather than '%20'.
+    value = value.replace(/%20/g, '+');
+    return result + (result ? '&' : '') + encodeURIComponent(key) + '=' + value;
+}
+
+module.exports = serialize;
+
+},{}],5:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -2257,7 +2534,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 (function (process,Buffer){
 'use strict';
 
@@ -3292,11 +3569,11 @@ exports.Writer = Writer;
 
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":7,"buffer":3,"tonal-midi":8}],6:[function(require,module,exports){
+},{"_process":8,"buffer":3,"tonal-midi":9}],7:[function(require,module,exports){
 !function(t,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports):"function"==typeof define&&define.amd?define(["exports"],n):n(t.NoteParser=t.NoteParser||{})}(this,function(t){"use strict";function n(t,n){return Array(n+1).join(t)}function r(t){return"number"==typeof t}function e(t){return"string"==typeof t}function u(t){return void 0!==t}function c(t,n){return Math.pow(2,(t-69)/12)*(n||440)}function o(){return b}function i(t,n,r){if("string"!=typeof t)return null;var e=b.exec(t);if(!e||!n&&e[4])return null;var u={letter:e[1].toUpperCase(),acc:e[2].replace(/x/g,"##")};u.pc=u.letter+u.acc,u.step=(u.letter.charCodeAt(0)+3)%7,u.alt="b"===u.acc[0]?-u.acc.length:u.acc.length;var o=A[u.step]+u.alt;return u.chroma=o<0?12+o:o%12,e[3]&&(u.oct=+e[3],u.midi=o+12*(u.oct+1),u.freq=c(u.midi,r)),n&&(u.tonicOf=e[4]),u}function f(t){return r(t)?t<0?n("b",-t):n("#",t):""}function a(t){return r(t)?""+t:""}function l(t,n,r){return null===t||void 0===t?null:t.step?l(t.step,t.alt,t.oct):t<0||t>6?null:C.charAt(t)+f(n)+a(r)}function p(t){if((r(t)||e(t))&&t>=0&&t<128)return+t;var n=i(t);return n&&u(n.midi)?n.midi:null}function s(t,n){var r=p(t);return null===r?null:c(r,n)}function d(t){return(i(t)||{}).letter}function m(t){return(i(t)||{}).acc}function h(t){return(i(t)||{}).pc}function v(t){return(i(t)||{}).step}function g(t){return(i(t)||{}).alt}function x(t){return(i(t)||{}).chroma}function y(t){return(i(t)||{}).oct}var b=/^([a-gA-G])(#{1,}|b{1,}|x{1,}|)(-?\d*)\s*(.*)\s*$/,A=[0,2,4,5,7,9,11],C="CDEFGAB";t.regex=o,t.parse=i,t.build=l,t.midi=p,t.freq=s,t.letter=d,t.acc=m,t.pc=h,t.step=v,t.alt=g,t.chroma=x,t.oct=y});
 
 
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -3482,7 +3759,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],8:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -3552,7 +3829,7 @@ function note (num, sharps) {
 exports.toMidi = toMidi;
 exports.note = note;
 
-},{"note-parser":6}],9:[function(require,module,exports){
+},{"note-parser":7}],10:[function(require,module,exports){
 module.exports.progressions = [
 // [ scales, chords, optional voicing ]
   [["1 2 b3 4 5 6 b7", "1 2 b3 4 b5 5 6"], "6 2 4 5 1, 1* 2 4* 5 1*, 1"],
@@ -3591,7 +3868,7 @@ module.exports.scales = [
   ["1 b2 b3 4 5 b6"] // "by me"
 ];
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -3642,11 +3919,12 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":14}],11:[function(require,module,exports){
+},{"./theory/base.js":16}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var tLib = require("../theory/base.js");
+var zebra = require("./zebra.js");
 
 console.log("    \"    \"  \"  ChromatoneLibGUI       !");
 
@@ -3727,6 +4005,11 @@ function createChromaticKeyboard(rows, columns) {
           var noteEl = keyboard.querySelector(query);
           if (noteEl === null || typeof noteEl === "undefined") {
             console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query); 
+            
+            if(!document.body.contains(keyboard)) {
+              console.info("Keyboard was not attached!");
+            }
+            
             continue;
           } 
           // add label
@@ -3788,39 +4071,16 @@ function createChromaticKeyboard(rows, columns) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-/**
- * GUI related stuff...
- */
-
-function createSizeOptimizedChromaticKeyboard(notes, rows) {
-  rows = rows || 4;
-  notes = tLib.parseNotes(notes);
-  if (notes.length < 2) {
-    // TODO ääääähhhmmmmm
-    return createChromaticKeyboard(3, 7);
-  }
-  // find highest note (also in the overkill version)
-  var highestPosition = notes[0].getPosition();
-  for (var i=1; i<notes.length; ++i) {
-    if (notes[i].getPosition() > highestPosition) {
-      highestPosition = notes[i].getPosition();
-    }
+function addChord(chord, parent, zebraRoot) {
+  parent = parent || chordSection;
+  var k; // <- keyboard
+  // currently only integer root notes work for zebra root notes:
+  if (!isNaN(zebraRoot)) {
+    k = zebra.createZebraKeyboard(chord.getHighestNote().getPosition() + 1, zebraRoot, chord.getFixedOffset());
+  } else {
+    k = createChromaticKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
   }
   
-  return createChromaticKeyboard(rows, Math.ceil(highestPosition / 2 + 1));
-}
-
-function addChord(chord, parent, keyboardTemplate) {
-  parent = parent || chordSection;
-  keyboardTemplate = keyboardTemplate || null;
-  var k; // <- keyboard
-  if (keyboardTemplate !== null) {
-    k = keyboardTemplate.clone();
-  } else {
-    // var k = createChromaticKeyboard(3, 7);
-    var k = createSizeOptimizedChromaticKeyboard(chord);
-    // k = createChromaticKeyboard(5, 14); 
-  }
   var name;
   if (typeof chord.getName !== "undefined") {
     name = chord.getName();
@@ -3832,7 +4092,7 @@ function addChord(chord, parent, keyboardTemplate) {
 }
 lib.addChord = addChord;
 
-function addChordGroup(chords, title, section, keyboardTemplate, nextChordAfterGroup) {
+function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
   section = section || chordSection;
   nextChordAfterGroup = nextChordAfterGroup || null;
 
@@ -3855,7 +4115,7 @@ function addChordGroup(chords, title, section, keyboardTemplate, nextChordAfterG
 
   for (var i = 0; i < chords.length; ++i) {
     // add chord to the new keyboard
-    var keyboard = addChord(chords[i], groupEl, keyboardTemplate);
+    var keyboard = addChord(chords[i], groupEl, zebraRoot);
     var nextChord = chords[(i + 1) % chords.length];
     
     // mark differences between voicings/notes, won't work all the time, because it's very simple:
@@ -3954,7 +4214,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   
   function submitForm() { form.update.click(); }
   
-  [form.chords, form.voicing].forEach(function(element) {
+  [form.chords, form.voicing, form.zebra_root].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -3971,19 +4231,20 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     form.update.click();
   }
 
-  function createScaleContainer(rootElement) {
+  function createScaleContainer(index, rootElement) {
     rootElement = rootElement || scaleElementTemplate.cloneNode(true);
     rootElement.style = '';
     var scaleContainer = {root: rootElement};
     scaleContainer.input = scaleContainer.root.getElementsByClassName("scale")[0];
     scaleContainer.preset = scaleContainer.root.getElementsByClassName("preset")[0];
+    scaleContainer.input.name += ("[" + index + "]");
     return scaleContainer;
   }
   
   var scaleContainers = [];
 
   function addScaleGUI() {
-    var c = createScaleContainer();
+    var c = createScaleContainer(scaleContainers.length);
     scaleContainers.push(c);
     scalesElement.appendChild(c.root);
     
@@ -4010,8 +4271,8 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   addScaleGUI();
   addScaleGUI();
 
-  form.add_scale.addEventListener("click", addScaleGUI);
-  form.pop_scale.addEventListener("click", popScaleGUI);
+  form.add_scale.addEventListener("click", function() {addScaleGUI(); updateSerializedFormOfLocation(); });
+  form.pop_scale.addEventListener("click", function() {popScaleGUI(); updateSerializedFormOfLocation(); });
 
   var generateMidi = false; // <- flag which triggers midi generation after the next form submit
   form.generate_midi.addEventListener("click", function(event) {
@@ -4038,28 +4299,169 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
       return;
     }
     
-    // TODO str: use it or remove it!
-    // var serialize = require('form-serialize');
-    // var str = serialize(form, { hash: true });
-    // console.log("serialized form", str);
-    
+    var zebraRoot = parseInt(form.zebra_root.value);
     var options = {
+      zebraRoot: zebraRoot,
       generateMidi: generateMidi
     };
-    
+
     // reset flag
     generateMidi = false;
+    
+    // XXX update the serialized form before it actually got applied, so generated midi file can use it
+    updateSerializedFormOfLocation();
     
     // repaint all
     resultSection.innerHTML = "";
     submitFunction(scales, chordDefs, voicings, options, resultSection);
   }, false);
   
+  function updateSerializedFormOfLocation() {
+    var serialize = require('form-serialize');
+    var serializedFormData = serialize(form);
+    // using URL, so this won't work in IE 11 :
+    var url = new URL("#" + serializedFormData, document.location.href);
+    document.location.href = url;
+  }
+  
   initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
-  initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
+  initPresets(voicingPresets, form.voicing_preset, [form.voicing]);  
+
+  document.addEventListener('DOMContentLoaded', function(event) {
+    // initialize form by hash parameters
+    var parameters = new URL("?" + document.location.hash.substring(1), document.location.href).searchParams;
+    
+    // add as many scale GUIs as needed
+    while (parameters.has("scale[" + scaleContainers.length + "]")) {
+      addScaleGUI();
+    }
+
+    // initialize the form and submit it
+    parameters.forEach(function(value, key) {
+      form[key].value = value;
+    });
+    submitForm();
+  });
 };
 
-},{"../theory/base.js":14}],12:[function(require,module,exports){
+},{"../theory/base.js":16,"./zebra.js":13,"form-serialize":4}],13:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var tLib = require("../theory/base.js");
+
+
+var zebraKeyboardTemplate = document.getElementById("templates").getElementsByClassName("zebra")[0];
+
+/**
+ * Should only be used with "fixed chords", so the lowest chromatic position always is 0.
+ * 
+ * @param int columns chromatic, so e.g. 12 is one octave
+ * @param int chromaticRoot chromatic root note, 0 based, C = 0, C# = 1, etc.
+ * @param int chromaticLowestNote chromatic value of the lowest note of the keyboard
+ */
+lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) {
+console.log("chromaticLowestNote", chromaticRootOffset);
+  function isDisplacedButton(chromatic) {
+   // var relativePosition = (chromaticLowestNote + chromatic + chromaticRoot) % 12;
+    var relativePosition = (chromatic + chromaticRoot - chromaticRootOffset) % 12;
+    while (relativePosition < 0) {
+      relativePosition += 12;
+    }
+    return relativePosition === 1 || relativePosition === 3 || relativePosition === 6 
+      || relativePosition === 8 || relativePosition === 10;
+  }
+  
+  function createButton(chromatic) {
+    var button = document.createElement("span");
+    // c<chromaticPosition>
+    button.className = "c" + chromatic;
+    if (isDisplacedButton(chromatic)) {
+      button.className += " d";
+    }
+    return button;
+  }
+  /*function createHalfButton(chromatic) {
+    var button = createButton(chromatic);
+    button.className += " half";
+    return button;
+  }*/
+  
+  var keyboard = zebraKeyboardTemplate.cloneNode(true);
+  var keyArea = keyboard.getElementsByClassName("keys")[0];
+  var rowEl = document.createElement("div");
+  var chromatic = 0;
+  rowEl.className = "row";
+  
+  // if the first button is displaced, then add one half button before, so it looks cleaner
+  //if (isDisplacedButton(chromatic)) {
+  //  rowEl.appendChild(createHalfButton(chromatic - 1));
+  //}
+  for (var column = 0; column < columns; ++column) {
+    rowEl.appendChild(createButton(chromatic));
+    chromatic += 1;
+  }
+  // if the last button is displaced, then add one half button after it, so it looks cleaner
+  //if (isDisplacedButton(chromatic - 1)) {
+  //  rowEl.appendChild(createHalfButton(chromatic));
+  //}
+  
+  keyArea.insertBefore(rowEl, keyArea.firstChild);
+  
+  var debug = false;
+  function construct(keyboard) {
+    return {
+      getElement: function() {
+        return keyboard;
+      },
+      add: function(notes, description) {
+        var notes = tLib.parseNotes(notes);
+        if (debug) {
+          console.log("ZebraKeyboard - Adding notes: ", notes.map(function(note){ return note.toString(); }));
+        }
+        
+        // add each
+        for (var i=0; i<notes.length; ++i) {
+          var note = notes[i];
+          var absoluteChromatic = note.getPosition();
+
+          // find buttons to light
+          var query = "span.c" + absoluteChromatic;
+          var noteEl = keyboard.querySelector(query);
+          if (noteEl === null || typeof noteEl === "undefined") {
+            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query); 
+            continue;
+          } 
+          // add label
+          // noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
+          noteEl.classList.add("selected");
+          // mark root
+          if (note.isRoot()) {
+            noteEl.classList.add("root");
+          }
+        }
+        
+        // add description
+        if (typeof description !== "undefined") {
+          var descriptionEl = keyboard.getElementsByClassName("description");
+          if (descriptionEl.length > 0) {
+            descriptionEl[0].innerHTML = description;
+          }
+        }
+      },
+      addDiff: function(notes) {
+        // currently noop
+      },
+      clone: function() {
+        return construct(keyboard.cloneNode(true));
+      }
+    };
+  }
+  
+  return construct(keyboard);
+}
+
+},{"../theory/base.js":16}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4098,7 +4500,7 @@ lib.downloadMidi = function(chords, scales) {
   var track = new MidiWriter.Track();
 
   track.setTempo(162);
-  track.addTrackName(buildScalesDescription(scales));
+  track.addTrackName(buildScalesDescription(scales) + "\nGenerated via: " + document.location.href);
 
   // do not define an instrument, because program change events moslty suck within DAWs after importing the MIDI file
   // track.addEvent(new MidiWriter.ProgramChangeEvent({instrument : 1}));
@@ -4120,10 +4522,10 @@ lib.downloadMidi = function(chords, scales) {
   });
   
   var write = new MidiWriter.Writer([track]);
-  downloadDataUri(write.dataUri(), "test.mid");
+  downloadDataUri(write.dataUri(), "chromatone-helper.mid");
 }
 
-},{"midi-writer-js":5}],13:[function(require,module,exports){
+},{"midi-writer-js":6}],15:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./theory/base.js"),
@@ -4180,7 +4582,7 @@ function fix(chords) {
   
   // transpose the progression, so it's fixed
   for (var i=0; i<chords.length; ++i) {
-    chords[i].transpose(-lowestPosition);
+    chords[i].fix(-lowestPosition);
   }
   
   return chords;
@@ -4238,7 +4640,7 @@ lib.createChordProgression = function(scale, chordDefs) {
   return fix(progression);
 };
 
-},{"./fingering.js":10,"./theory/base.js":14}],14:[function(require,module,exports){
+},{"./fingering.js":11,"./theory/base.js":16}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4262,7 +4664,7 @@ var majorNotes = [
 var WHITESPACE_REGEX = /\s+/;
 
 function parseChordDefinition(chordDef, voicings) {
-  voicings = voicings || {defaultVoicing: ""};
+  voicings = voicings || {defaultVoicing: "1 3 5"};
   var defaultVoicing = voicings.defaultVoicing;
   // parse shall return the chord definition, when chord defs are passed
   if (typeof(chordDef.getInversion) === "function") {
@@ -4469,7 +4871,9 @@ function findIntervalName(interval, intervalNameMap) {
   
   if (interval < 0) {
     console.warn("findIntervalName() - negative interval: " + interval);
-    interval += 12;
+    do {
+      interval += 12;
+    } while(interval < 0);
   }
   
   // fallback
@@ -4617,6 +5021,8 @@ function parseNote(noteDefinition, parsedInterval) {
 lib.parseNote = parseNote;
 
 /**
+  * TODO if notes is a chord, then altering the returned notes would alter the chord
+  * 
   * @param notes valid input examples: 
   *          ["1 2 r4 6"]
   *          "1 2 r4 6"
@@ -4624,6 +5030,8 @@ lib.parseNote = parseNote;
   *          an object which has the function getNotes
   *          ["1", "2", "r4", "6"]  (= output format)
   * @param intervalNameMap optional out parameter @see findIntervalName()
+  * 
+  * @return an array of note objects
   */
 function parseNotes(notes, intervalNameMap, recursion) {
   intervalNameMap = intervalNameMap || {};
@@ -4648,10 +5056,14 @@ function parseNotes(notes, intervalNameMap, recursion) {
     return [];
   }
   
+  // see TODO of function
+  //if (typeof c.getNotes === "function" && typeof c.clone === "function") {
+  //  return notes.clone().getNotes();
+  //}
   if (typeof c.getNotes === "function") {
     return notes.getNotes();
   }
-  
+
   if (typeof c === "string") {
     c = c.trim();
     if (c === "") {
@@ -4725,13 +5137,28 @@ lib.parseNotesList = function(notesList) {
  * @return scale
  */
 function createScale(definition) {
-  var notes = parseNotes(definition);
-  
+  var _notes = parseNotes(definition);
+
+  // the root can be anywhere in the scale:
+  var _rootNoteIndex = _notes.findIndex(function(note) { return note.isRoot(); });
+  // if there is no explicit root, the first note becomes the root:
+  if (_rootNoteIndex < 0) {
+    _rootNoteIndex = 0;
+    if (_notes.length > 0) {
+      _notes[0].setRoot(true);
+    }
+  }
+
   return {
     getNotes: function() {
-      return notes;
+      return _notes;
     },
-    
+    /**
+     * @return can be null
+     */
+    getRootNote: function() {
+      return _notes[_rootNoteIndex];
+    },
     /**
      * @param chordDef
      */
@@ -4745,12 +5172,15 @@ function createScale(definition) {
       var _inversion = 0; // <- gets initialized by calling invert() later
       var _step = chordDef.getStep();
       var _voicing = chordDef.getVoicing();
+      var _scale = this;
+      var _fixedOffset = 0;
       
       var chordScaleNotes = this.getNotes();
       if (_step > 0) {  
         var tempScale = this.clone()
         tempScale.shift(_step);
         chordScaleNotes = tempScale.getNotes();
+        _scale = tempScale;
       }
       
       function createNotesByVoices(voices, scaleNotes) {
@@ -4760,14 +5190,13 @@ function createScale(definition) {
           var noteIndex = voices[i] % scaleNotes.length;
           var noteTransposition = Math.floor(voices[i] / scaleNotes.length) * 12;
           var note = scaleNotes[noteIndex].clone();
-          // mark the root
-          if (voices[i] % scaleNotes.length === 0) {
-            note.setRoot(true);
-          }
+
           if (noteTransposition !== 0) {
             note.transpose(noteTransposition);
+            // alter chromatic root, so the interval names also "change registers"
             note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
           }
+          
           notes.push(note);
         }
         return notes;
@@ -4789,8 +5218,19 @@ function createScale(definition) {
             if (!voices2.hasOwnProperty(i)) {
               continue;
             }
-            // TODO add .... but exactly how ....?
+            
+            // TODO add second voicing part.... but exactly how ....?
+            var notesForVoices2 = _scale.getNotes();
+            if (_step > 0) {
+              // TODO there is something wrong here...
+              var tempScale = _scale.clone();
+              tempScale.shift(-_step);
+              tempScale.setChromaticRoot(notes[0].getPosition());
+              notesForVoices2 = tempScale.getNotes();
+            }
           }
+          notes = notes.concat(createNotesByVoices(_voicing.getVoices2(), notesForVoices2));
+          
           return notes;
         },
         // TODO I dont like how the find methods are implemented
@@ -4821,6 +5261,12 @@ function createScale(definition) {
             },
             null
           );
+        },
+        getFixedOffset: function() {
+          return _fixedOffset;
+        },
+        setFixedOffset: function(fixedOffset) {
+          _fixedOffset = fixedOffset;
         },
         invert: function() {
           var notes = _chordNotes;
@@ -4854,6 +5300,13 @@ function createScale(definition) {
             _chordNotes[i].transpose(semitones);
           }
         },
+        /**
+         * "Fixing" is like transposing, but there is a remainder, what got transposed -> _fixedOffset
+         */
+        fix: function(semitones) {
+          this.transpose(semitones);
+          _fixedOffset = semitones;
+        },
         getName: function() {
           return _name + (_inversion > 0 ? (" " + _inversion): "");
         }
@@ -4876,52 +5329,60 @@ function createScale(definition) {
         return;
       }
       
-      // also the root notes of all chords notes get shifted
-      var newChromaticRoot;
+      // also the root notes of all notes get shifted
+      this.getRootNote().setRoot(false);
 
       // do the shift
       if (steps > 0) {
-        //newChromaticRoot = notes[steps % notes.length].getPosition();
         for (var i = 0; i < steps; ++i) {
-          var note = notes.shift();
-          // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorithms? I mean, maybe.... look it up man.
-          note.transpose(12);
-          notes.push(note);
+          var note = _notes.shift();
+          var previousNote = _notes[Math.abs((i - 1) % _notes.length)];
+          do {
+            note.transpose(12);
+          } while(previousNote.getPosition() > note.getPosition());
+          _notes.push(note);
+          lastNote = note;
         }
       } else {
-        // newChromaticRoot = notes[(notes.length + steps) % notes.length].getPosition();
         for (var i = 0; i < Math.abs(steps); ++i) {
-          var note = notes.pop();
-          // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorithms? I mean, maybe.... look it up man.
-          note.transpose(-12);
-          notes.unshift(note);
+          var previousNote = _notes[(i + 1) % _notes.length];
+          var note = _notes.pop();
+          do {
+            note.transpose(-12);
+          } while(previousNote.getPosition() < note.getPosition());
+          _notes.unshift(note);
         }
       }
       
-      newChromaticRoot = notes[0].getPosition();
       // set the new chromatic roots after transposing, so they are not affected by it
-      for (var i = 0; i < notes.length; ++i) {
-        notes[i].setChromaticRoot(newChromaticRoot);
-      }
+      rootNote = this.getRootNote();
+      rootNote.setRoot(true);
+      newChromaticRoot = rootNote.getPosition();
+      this.setChromaticRoot(newChromaticRoot);
       
-      // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
+      // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
+    },
+    setChromaticRoot: function(newChromaticRoot) {
+      for (var i = 0; i < _notes.length; ++i) {
+        _notes[i].setChromaticRoot(newChromaticRoot);
+      }
     },
     transpose: function(semitones) {
-      for (var i=0; i<notes.length; ++i) {
-        notes[i].transpose(semitones);
+      for (var i=0; i<_notes.length; ++i) {
+        _notes[i].transpose(semitones);
       }
     },
     clone: function() {
       var newNotes = [];
-      for (var i=0; i<notes.length; ++i)  {
-        newNotes.push(notes[i].clone());
+      for (var i=0; i<_notes.length; ++i)  {
+        newNotes.push(_notes[i].clone());
       }
       return createScale(newNotes);
     },
     toString: function() {
       var str = "";
-      for (var i=0; i<notes.length; ++i) {
-        str += (notes[i].toString() + " ");
+      for (var i=0; i<_notes.length; ++i) {
+        str += (_notes[i].toString() + " ");
       }
       return str.trim();
     }
@@ -4929,7 +5390,7 @@ function createScale(definition) {
 }
 lib.createScale = createScale;
 
-},{"./voicing.js":15}],15:[function(require,module,exports){
+},{"./voicing.js":17}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5059,6 +5520,5 @@ lib.isVoicing = function(object) {
 
 },{}]},{},[1]);
 </script>
-    
   </body>
 </html>
