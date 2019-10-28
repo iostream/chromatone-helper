@@ -124,9 +124,8 @@ section#templates {
   background-color: white;
   outline: solid black 0.5px;
 }
-/* TODO maybe delete me, if really not used: */
 .zebra.keyboard .row span.half {
-  width: 2.5pt;
+  width: 4pt;
 }
 .zebra.keyboard .row span.d {
   position: relative;
@@ -136,6 +135,15 @@ section#templates {
   width: 5pt;
   margin-left: -2.5pt;
   margin-right: -2.5pt;
+}
+.zebra.keyboard .row span.d.half {
+  width: 2.5pt;
+}
+.zebra.keyboard .row span:first-child.d.half {
+  margin-left: 0pt;
+}
+.zebra.keyboard .row span:last-child.d.half {
+  margin-right: 0pt;
 }
 .zebra.keyboard .row span.selected {
   background-color: orange;
@@ -215,13 +223,13 @@ var k = g.createKeyboard(3, 7);
 var REGEX_COUNT_SCALE = /\*/g;
 
 // TODO move this code into an own file / layer:
-g.addForm(function(scales, chordDefs, voicings, options, resultSection) {            
+g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
   var chordDefinitionGroups = [];
   var chordDefinitions = [];
-  
+
   // TODO does this even make sense??? (I am on Linux, so this should be fine???)
   chordDefs = chordDefs.replace("\n", " ");
-  
+
   // parse chord definitions in groups, so we can split the generated chords afterwards...
   chordDefs.split(",").forEach(function(chordDefsOfGroup) {
     // the chord progression needs to be generated in one go!
@@ -238,15 +246,15 @@ g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
     chordDefinitionGroups.push(chordDefObjectsOfGroup);
     chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
   });
-  
+
   // generate the chords in one go:
   // TODO smells, that the scale not even is needed any more, because all chords have their own scale reference?
   var chords = p.createChordProgression(scales[0], chordDefinitions);
-  
+
   if (options.generateMidi) {
-    midi.downloadMidi(chords, scales);
+    midi.downloadMidi(chords, scales, options.serializedForm);
   }
-  
+
   // but output the chords in groups (defined by comma):
   chordDefinitionGroups.forEach(function(group) {
     var chordsOfGroup = [];
@@ -264,7 +272,7 @@ var zebra = require("./src/gui/zebra.js");
 (function() {
   var scale = t.createScale("1 2 3 4 5 6 7");
   var notes = scale.clone().getNotes();
-  scale.getNotes().forEach(function(rootNote) {
+  notes.forEach(function(rootNote) {
     var k = zebra.createZebraKeyboard(14, scale.getNotes()[6].getPosition() + 1, rootNote.getPosition());
     chordSection.appendChild(k.getElement());
     k.add(scale);
@@ -272,20 +280,18 @@ var zebra = require("./src/gui/zebra.js");
   });
 })();
 
-/*g.addForm(function(scale, chordDefs, resultSection) {                
+/*g.addForm(function(scale, chordDefs, resultSection) {
   var chords = [];
-  // var k = g.createKeyboard(5, 14); 
+  // var k = g.createKeyboard(5, 14);
   for (var i=0; i<chordDefs.length; ++i) {
     var chord = scale.createChord(chordDefs[i]);
     f.updateFingering(chord);
     chords.push(chord);
   }
-  
+
   g.addChordGroup(chords, null, resultSection);
 }, presets.progressions);
 */
-      
-      
 
 },{"./resources/presets.js":10,"./src/fingering.js":11,"./src/gui/base.js":12,"./src/gui/zebra.js":13,"./src/midi.js":14,"./src/progression.js":15,"./src/theory/base.js":16}],2:[function(require,module,exports){
 'use strict'
@@ -3956,12 +3962,13 @@ lib.updateFingering = updateFingering;
 var lib = {};
 module.exports = lib;
 
+var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
 var zebra = require("./zebra.js");
 
 console.log("    \"    \"  \"  ChromatoneLibGUI       !");
 
-/** 
+/**
  * Basic lib stuff...
  */
 function $_(id) { return document.getElementById(id); }
@@ -3975,14 +3982,14 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
   chordSection = $_("chords"),
   interactiveSection = $_("interactive");
-  
+
 /**
- * 
+ *
  */
 function createChromaticKeyboard(rows, columns) {
   var keyboard = chromaticKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
-  
+
   var rowIteration = 0;
   for (var row=0; row < rows; ++row) {
     // the first shall never be a cross row (because of the cut out parts there)
@@ -4005,12 +4012,12 @@ function createChromaticKeyboard(rows, columns) {
       rowEl.appendChild(button);
       chromatic += 2;
     }
-    
+
     keyArea.insertBefore(rowEl, keyArea.firstChild);
-    
+
     rowIteration += 0.5;
   }
-  
+
   var debug = false;
   function construct(keyboard) {
     return {
@@ -4022,7 +4029,7 @@ function createChromaticKeyboard(rows, columns) {
         if (debug) {
           console.log("ChromaticKeyboard - Adding notes: ", notes.map(function(note){ return note.toString(); }));
         }
-        
+
         // add each
         var firstNoteIsOnCrossRow = notes.length > 0 && (notes[0].getPosition() % 2) === 1;
         for (var i=0; i<notes.length; ++i) {
@@ -4037,14 +4044,14 @@ function createChromaticKeyboard(rows, columns) {
           var query = ".row.i" + iteration + " span.c" + absoluteChromatic;
           var noteEl = keyboard.querySelector(query);
           if (noteEl === null || typeof noteEl === "undefined") {
-            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query); 
-            
+            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
+
             if(!document.body.contains(keyboard)) {
               console.info("Keyboard was not attached!");
             }
-            
+
             continue;
-          } 
+          }
           // add label
           noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
           noteEl.classList.add("selected");
@@ -4053,7 +4060,7 @@ function createChromaticKeyboard(rows, columns) {
             noteEl.classList.add("root");
           }
         }
-        
+
         // add description
         if (typeof description !== "undefined") {
           var descriptionEl = keyboard.getElementsByClassName("description");
@@ -4099,7 +4106,7 @@ function createChromaticKeyboard(rows, columns) {
       }
     };
   }
-  
+
   return construct(keyboard);
 }
 lib.createKeyboard = createChromaticKeyboard;
@@ -4113,14 +4120,14 @@ function addChord(chord, parent, zebraRoot) {
   } else {
     k = createChromaticKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
   }
-  
+
   var name;
   if (typeof chord.getName !== "undefined") {
     name = chord.getName();
   }
-  k.add(chord, name);    
+  k.add(chord, name);
   parent.appendChild(k.getElement());
-  
+
   return k;
 }
 lib.addChord = addChord;
@@ -4131,11 +4138,11 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
 
   var groupEl = section.appendChild(chordGroupTemplate.cloneNode(true)),
     titleEl = groupEl.getElementsByClassName("title")[0] || false;
-    
+
   if (titleEl && title) {
     titleEl.innerHTML = title;
   }
-  
+
   // TODO legacy code?
   if (!Array.isArray(chords)) {
     // make the array out of the string:
@@ -4150,7 +4157,7 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
     // add chord to the new keyboard
     var keyboard = addChord(chords[i], groupEl, zebraRoot);
     var nextChord = chords[(i + 1) % chords.length];
-    
+
     // mark differences between voicings/notes, won't work all the time, because it's very simple:
     // last chord of group and nextChordAfterGroup was passed?
     if (i === chords.length - 1 && nextChordAfterGroup !== null) {
@@ -4177,7 +4184,7 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
   if (!Array.isArray(presetSelectElements)) {
     presetSelectElements = [presetSelectElements];
   }
-  
+
   presetSelectElements.forEach(function(presetEl) {
     for (var i=0; i<presets.length; ++i) {
       var preset = presets[i];
@@ -4186,7 +4193,7 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
       option.innerHTML = preset
         .map(function(v){
           return Array.isArray(v) ? v.join(", ") : v;
-        })  
+        })
         .join(" -> ");
     }
     presetEl.addEventListener("change", function(event) {
@@ -4211,14 +4218,14 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
             }
             ++index;
           });
-          
+
         } else {
           applyPresetValue(elementOrElements, preset[i]);
         }
       }
       presetEl.form.update.click();
     });
-  });  
+  });
 }
 
 function applyPresetValue(element, presetValue) {
@@ -4231,7 +4238,7 @@ function applyPresetValue(element, presetValue) {
 
 /**
  * TODO This is very messy now!
- * 
+ *
  * presets .. array of arrays
  */
 lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, section) {
@@ -4242,11 +4249,11 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     scaleElementTemplate = formGroupEl.getElementsByClassName("scale_container")[0],
     scalesElement = formGroupEl.getElementsByClassName("scales")[0],
     chordsElement = formGroupEl.getElementsByClassName("chords")[0];
-  
+
   scaleElementTemplate.style = "display:none";
-  
+
   function submitForm() { form.update.click(); }
-  
+
   [form.chords, form.voicing, form.zebra_root].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
@@ -4273,14 +4280,14 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     scaleContainer.input.name += ("[" + index + "]");
     return scaleContainer;
   }
-  
+
   var scaleContainers = [];
 
   function addScaleGUI() {
     var c = createScaleContainer(scaleContainers.length);
     scaleContainers.push(c);
     scalesElement.appendChild(c.root);
-    
+
     // shift scales through all their modes by "<" and ">" buttons
     c.root.querySelectorAll('input[type="button"]').forEach(function(button) {
       if (button.value == "<") {
@@ -4294,7 +4301,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     // update result after changing the scale text input
     c.input.addEventListener("change", submitForm);
   }
-  
+
   function popScaleGUI() {
     var c = scaleContainers.pop();
     scalesElement.removeChild(c.root);
@@ -4313,9 +4320,19 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     submitForm();
   });
 
+  var serializedForm = null;
   form.addEventListener("submit", function(event) {
     event.preventDefault();
-    
+
+    var newSerializedForm = formSerialize(form);
+    if (serializedForm !== null && newSerializedForm === serializedForm) {
+      // skip, because this already was submitted before
+      // this allows to trigger the form submission more often without so much drawbacks
+      // the serialized form is used any ways
+      console.log("Skipping form submission.");
+      return;
+    }
+
     var scales = [];
     scaleContainers.forEach(function(c) {
       var scale = tLib.createScale(c.input.value);
@@ -4323,47 +4340,52 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
         scales.push(scale);
       }
     });
-    
+
     var chordDefs = form.chords.value;
     var voicings = tLib.parseVoicings(form.voicing.value);
-    
+
     // validate inputs aka only submit valid data
     if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
       return;
     }
-    
+
     var zebraRoot = parseInt(form.zebra_root.value);
     var options = {
       zebraRoot: zebraRoot,
-      generateMidi: generateMidi
+      generateMidi: generateMidi,
+      serializedForm: newSerializedForm
     };
 
     // reset flag
     generateMidi = false;
-    
-    // XXX update the serialized form before it actually got applied, so generated midi file can use it
-    updateSerializedFormOfLocation();
-    
+
     // repaint all
     resultSection.innerHTML = "";
     submitFunction(scales, chordDefs, voicings, options, resultSection);
+
+    serializedForm = newSerializedForm;
+    updateSerializedFormOfLocation();
   }, false);
-  
+
   function updateSerializedFormOfLocation() {
-    var serialize = require('form-serialize');
-    var serializedFormData = serialize(form);
     // using URL, so this won't work in IE 11 :
-    var url = new URL("#" + serializedFormData, document.location.href);
+    var url = new URL("#" + serializedForm, document.location.href);
     document.location.href = url;
   }
-  
-  initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
-  initPresets(voicingPresets, form.voicing_preset, [form.voicing]);  
 
-  document.addEventListener('DOMContentLoaded', function(event) {
+  initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
+  initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
+
+  function updateGUIByUrl() {
+    // the last successfully submitted form is the same like the one which would be applied,
+    // this savely can be skipped, because it would just result in the same result
+    if (document.location.hash.substring(1) === serializedForm) {
+      return;
+    }
+
     // initialize form by hash parameters
     var parameters = new URL("?" + document.location.hash.substring(1), document.location.href).searchParams;
-    
+
     // add as many scale GUIs as needed
     while (parameters.has("scale[" + scaleContainers.length + "]")) {
       addScaleGUI();
@@ -4374,7 +4396,15 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
       form[key].value = value;
     });
     submitForm();
+  }
+
+  document.addEventListener('DOMContentLoaded', function(event) {
+    updateGUIByUrl();
   });
+
+  window.addEventListener('hashchange', function() {
+    updateGUIByUrl();
+  }, false);
 };
 
 },{"../theory/base.js":16,"./zebra.js":13,"form-serialize":4}],13:[function(require,module,exports){
@@ -4388,23 +4418,22 @@ var zebraKeyboardTemplate = document.getElementById("templates").getElementsByCl
 
 /**
  * Should only be used with "fixed chords", so the lowest chromatic position always is 0.
- * 
+ *
  * @param int columns chromatic, so e.g. 12 is one octave
  * @param int chromaticRoot chromatic root note, 0 based, C = 0, C# = 1, etc.
  * @param int chromaticLowestNote chromatic value of the lowest note of the keyboard
  */
 lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) {
-console.log("chromaticLowestNote", chromaticRootOffset);
   function isDisplacedButton(chromatic) {
    // var relativePosition = (chromaticLowestNote + chromatic + chromaticRoot) % 12;
     var relativePosition = (chromatic + chromaticRoot - chromaticRootOffset) % 12;
     while (relativePosition < 0) {
       relativePosition += 12;
     }
-    return relativePosition === 1 || relativePosition === 3 || relativePosition === 6 
+    return relativePosition === 1 || relativePosition === 3 || relativePosition === 6
       || relativePosition === 8 || relativePosition === 10;
   }
-  
+
   function createButton(chromatic) {
     var button = document.createElement("span");
     // c<chromaticPosition>
@@ -4414,33 +4443,37 @@ console.log("chromaticLowestNote", chromaticRootOffset);
     }
     return button;
   }
-  /*function createHalfButton(chromatic) {
+  function createHalfButton(chromatic) {
     var button = createButton(chromatic);
     button.className += " half";
     return button;
-  }*/
-  
+  }
+
   var keyboard = zebraKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
   var rowEl = document.createElement("div");
   var chromatic = 0;
   rowEl.className = "row";
-  
-  // if the first button is displaced, then add one half button before, so it looks cleaner
-  //if (isDisplacedButton(chromatic)) {
-  //  rowEl.appendChild(createHalfButton(chromatic - 1));
-  //}
+
+  // if the button before the first button is displaced
+  // or if the first button is displaced
+  // then add one half button before the actual needed buttons
+  if (isDisplacedButton(chromatic - 1) || isDisplacedButton(chromatic)) {
+    rowEl.appendChild(createHalfButton(chromatic - 1));
+  }
   for (var column = 0; column < columns; ++column) {
     rowEl.appendChild(createButton(chromatic));
     chromatic += 1;
   }
-  // if the last button is displaced, then add one half button after it, so it looks cleaner
-  //if (isDisplacedButton(chromatic - 1)) {
-  //  rowEl.appendChild(createHalfButton(chromatic));
-  //}
-  
+  // if the button after the last button would be displaced
+  // or the last button is displaced,
+  // then add one half button at the end
+  if (isDisplacedButton(chromatic) || isDisplacedButton(chromatic - 1)) {
+    rowEl.appendChild(createHalfButton(chromatic));
+  }
+
   keyArea.insertBefore(rowEl, keyArea.firstChild);
-  
+
   var debug = false;
   function construct(keyboard) {
     return {
@@ -4452,7 +4485,7 @@ console.log("chromaticLowestNote", chromaticRootOffset);
         if (debug) {
           console.log("ZebraKeyboard - Adding notes: ", notes.map(function(note){ return note.toString(); }));
         }
-        
+
         // add each
         for (var i=0; i<notes.length; ++i) {
           var note = notes[i];
@@ -4462,9 +4495,9 @@ console.log("chromaticLowestNote", chromaticRootOffset);
           var query = "span.c" + absoluteChromatic;
           var noteEl = keyboard.querySelector(query);
           if (noteEl === null || typeof noteEl === "undefined") {
-            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query); 
+            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
             continue;
-          } 
+          }
           // add label
           // noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
           noteEl.classList.add("selected");
@@ -4473,7 +4506,7 @@ console.log("chromaticLowestNote", chromaticRootOffset);
             noteEl.classList.add("root");
           }
         }
-        
+
         // add description
         if (typeof description !== "undefined") {
           var descriptionEl = keyboard.getElementsByClassName("description");
@@ -4490,7 +4523,7 @@ console.log("chromaticLowestNote", chromaticRootOffset);
       }
     };
   }
-  
+
   return construct(keyboard);
 }
 
@@ -4519,41 +4552,47 @@ function buildScalesDescription(scales) {
   }).join("\n");
 }
 
+function buildGeneratorUrl(serializedForm) {
+  var url = new URL("#" + serializedForm, document.location.href);
+  console.log("buildGeneratorUrl() -> " +  url.href);
+  return url.href;
+}
+
 /**
  * @see https://github.com/grimmdude/MidiWriterJS
- * 
+ *
  * @return string
  */
-lib.downloadMidi = function(chords, scales) {
+lib.downloadMidi = function(chords, scales, serializedForm) {
   var basePitch = 60;
-  
+
   var MidiWriter = require("midi-writer-js");
-  
+
   // Start with a new track
   var track = new MidiWriter.Track();
 
   track.setTempo(162);
-  track.addTrackName(buildScalesDescription(scales) + "\nGenerated via: " + document.location.href);
+  track.addTrackName(buildScalesDescription(scales) + "\nGenerated via: " + buildGeneratorUrl(serializedForm));
 
   // do not define an instrument, because program change events moslty suck within DAWs after importing the MIDI file
   // track.addEvent(new MidiWriter.ProgramChangeEvent({instrument : 1}));
-  
+
   chords.forEach(function(chord) {
     var pitches = [];
     chord.getNotes().forEach(function(note) {
       var pitch = note.getPosition() + basePitch;
       pitches.push(pitch);
     });
-    
+
     // all values are 1-100 (not like in MIDI)
     var minVelocity = 70;
     var maxVelocity = 90;
-     
+
     track.addMarker(chord.getName());
     track.addEvent(new MidiWriter.NoteEvent({pitch: pitches, duration: '1'}));
-    
+
   });
-  
+
   var write = new MidiWriter.Writer([track]);
   downloadDataUri(write.dataUri(), "chromatone-helper.mid");
 }
