@@ -4325,13 +4325,14 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     event.preventDefault();
 
     var newSerializedForm = formSerialize(form);
-    if (serializedForm !== null && newSerializedForm === serializedForm) {
-      // skip, because this already was submitted before
-      // this allows to trigger the form submission more often without so much drawbacks
-      // the serialized form is used any ways
-      console.log("Skipping form submission.");
-      return;
-    }
+    // TODO do we need this or do we have enough of this already?
+    // if (serializedForm !== null && newSerializedForm === serializedForm) {
+    //  // skip, because this already was submitted before
+    //  // this allows to trigger the form submission more often without so much drawbacks
+    //  // the serialized form is used any ways
+    //  console.log("Skipping form submission.");
+    //  return;
+    // }
 
     var scales = [];
     scaleContainers.forEach(function(c) {
