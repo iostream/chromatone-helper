@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <title>Chromatone Helper 🧙 by iostream 2018-2019</title>
     <meta charset="UTF-8">
@@ -112,45 +112,82 @@ section#templates {
 }
 </style>
 <style>
+/** Zebra keyboard layout style */
+
 .zebra.keyboard {
+  --key-color: white;
+  --key-outline: solid black 0.5px;
+  --displaced-key-color: black;
+  --key-root-color: yellow;
+  --key-selected-color: orange;
+
+  --key-height: calc(4 * 18pt);
+  --key-width: calc(var(--key-height) * 0.2667);
+  --displaced-key-height: calc(var(--key-height) * 0.6667);;
+  --displaced-key-width: calc(var(--key-width) * 0.625);
+
   display: inline-block;
   margin-right: 15pt;
 }
 
 .zebra.keyboard .row span {
   display: inline-block;
-  width: 8pt;
-  height: 30pt;
-  background-color: white;
-  outline: solid black 0.5px;
+  width: var(--key-width);
+  height: var(--key-height);
+  background-color: var(--key-color);
+  outline: var(--key-outline);
 }
 .zebra.keyboard .row span.half {
-  width: 4pt;
+  width: calc(var(--key-width) / 2);
 }
 .zebra.keyboard .row span.d {
   position: relative;
-  top: -8pt;
-  height: 22pt;
-  background-color: black;
-  width: 5pt;
-  margin-left: -2.5pt;
-  margin-right: -2.5pt;
+  top: calc(-1 * (var(--key-height) - var(--displaced-key-height)));
+  height: var(--displaced-key-height);
+  background-color: var(--displaced-key-color);
+  width: var(--displaced-key-width);
+  margin-left: calc(-1 * var(--displaced-key-width) / 2);
+  margin-right: calc(-1 * var(--displaced-key-width) / 2);
 }
 .zebra.keyboard .row span.d.half {
-  width: 2.5pt;
+  width: calc(var(--displaced-key-width) / 2);
 }
 .zebra.keyboard .row span:first-child.d.half {
-  margin-left: 0pt;
+  margin-left: 0;
 }
 .zebra.keyboard .row span:last-child.d.half {
-  margin-right: 0pt;
+  margin-right: 0;
 }
 .zebra.keyboard .row span.selected {
-  background-color: orange;
+  background-color: var(--key-selected-color);
 }
-
 .zebra.keyboard .row span.selected.root {
-  background-color: yellow;
+  background-color: var(--key-root-color);
+}
+.zebra.keyboard .row span .note-text {
+  --border-color: var(--key-color);
+  --shadow-offset: 1pt;
+  position: absolute;
+  width: inherit;
+  margin-top: 1pt;
+  font-size: 9pt;
+  text-align: center;
+  /* a text outline makes the text readable also when it overlaps another key */
+  text-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--border-color),
+    var(--shadow-offset) calc(var(--shadow-offset) * -1) 0 var(--border-color),
+    calc(var(--shadow-offset) * -1) var(--shadow-offset) 0 var(--border-color),
+    calc(var(--shadow-offset) * -1) calc(var(--shadow-offset) * -1) 0 var(--border-color),
+    var(--shadow-offset) 0 0 var(--border-color),
+    0 var(--shadow-offset) 0 var(--border-color),
+    calc(var(--shadow-offset) * -1) 0 0 var(--border-color),
+    0 calc(var(--shadow-offset) * -1) 0 var(--border-color);
+    z-index: 1;
+}
+.zebra.keyboard .row span.selected .note-text {
+  --border-color: var(--key-selected-color);
+}
+.zebra.keyboard .row span.root .note-text {
+  --border-color: var(--key-root-color);
 }
 </style>
   </head>
@@ -162,53 +199,52 @@ section#templates {
         <div class="keys"></div>
         <div class="description"></div>
       </div>
-      
+
       <div class="zebra keyboard">
         <div class="keys"></div>
         <div class="description"></div>
       </div>
-      
+
       <div class="chord-group">
-        <h2 class="title"></h2> 
+        <h2 class="title"></h2>
       </div>
-      
+
       <div class="interactive-form">
         <form name="interactive" class="form">
           <textarea name="chords" placeholder="chords"></textarea>
           <span class="chords">
             <span class="chord">
               <!-- <input type="text" name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"><select name="voicing_preset" class="voicing-preset"></select> -->
-              <textarea name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"></textarea><select name="voicing_preset" class="voicing-preset"></select>
+              <textarea name="voicing" placeholder="voicing" class="voicing"></textarea><select name="voicing_preset" class="voicing-preset"></select>
             </span>
           </span>
-          </select>
-          
-          <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="Chromatic root for zebra keyboard mode.">
-          
+
+          <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="chromatic root for zebra keyboard mode, an integer value activates the zebra keyboard layout">
+
           <select class="preset" name="preset"></select>
 
           <span class="scales">
-            <input type="button" value="+" name="add_scale">
-            <input type="button" value="-" name="pop_scale">
+            <input type="button" value="+" name="add_scale" title="add a scale">
+            <input type="button" value="-" name="pop_scale" title="remove last scale">
             <span class="scale_container">
-              <input type="button" value="<" name="shift_scale_left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right"><select name="scale_preset" class="preset"></select>
+              <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right"><select name="scale_preset" class="preset"></select>
             </span>
           </span>
           <input style="display:none" type="submit" value="⛵" name="update">
-          <input type="button" value="💾" name="generate_midi">
-          
+          <input type="button" value="💾" name="generate_midi" title="generate midi out of the generated progression">
+
         </form>
         <div class="result">
         </div>
       </div>
     </section>
-    
+
     <section id="interactive">
     </section>
     🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡
     <section id="chords">
     </section>
-    
+
     <!-- see main.js -->
 <script>
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
@@ -252,7 +288,7 @@ g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
   var chords = p.createChordProgression(scales[0], chordDefinitions);
 
   if (options.generateMidi) {
-    midi.downloadMidi(chords, scales, options.serializedForm);
+    midi.downloadMidi(chords, scales, options.serializedForm, options.zebraRoot);
   }
 
   // but output the chords in groups (defined by comma):
@@ -269,16 +305,17 @@ function $_(id) { return document.getElementById(id); }
 var chordSection = $_("chords");
 var zebra = require("./src/gui/zebra.js");
 
-(function() {
-  var scale = t.createScale("1 2 3 4 5 6 7");
-  var notes = scale.clone().getNotes();
-  notes.forEach(function(rootNote) {
-    var k = zebra.createZebraKeyboard(14, scale.getNotes()[6].getPosition() + 1, rootNote.getPosition());
-    chordSection.appendChild(k.getElement());
-    k.add(scale);
-    scale.shift();
-  });
-})();
+
+// (function() {
+//   var scale = t.createScale("1 2 3 4 5 6 7");
+//   var notes = scale.clone().getNotes();
+//   notes.forEach(function(rootNote) {
+//     var k = zebra.createZebraKeyboard(14, scale.getNotes()[6].getPosition() + 1, rootNote.getPosition());
+//     chordSection.appendChild(k.getElement());
+//     k.add(scale);
+//     scale.shift();
+//   });
+// })();
 
 /*g.addForm(function(scale, chordDefs, resultSection) {
   var chords = [];
@@ -3869,17 +3906,19 @@ exports.toMidi = toMidi;
 exports.note = note;
 
 },{"note-parser":7}],10:[function(require,module,exports){
+var std4Voicing = "1 3 5 7";
+var std6Voicing = "1 3 5 6";
 module.exports.progressions = [
 // [ scales, chords, optional voicing ]
-  [["1 2 b3 4 5 6 b7", "1 2 b3 4 b5 5 6"], "6 2 4 5 1, 1* 2 4* 5 1*, 1"],
-  [["1 2 3 #4 5 6 7"], "2 5 1 6 4 5 1"],
-  [["1 b2 b3 4 b5 b6 b7", "1 2 3 4 5 6 b7"], "2 5 1 6, 4 5 1* 4, 5 1* 4  5, 1* 4"],
-  [["1 b2 #3 b5 b6 6 b7"], "1 6 2 4 5 1"],
-  [["1 b2 b3 3 4 5 b6"], "1 6 2 4 5 1"],
-  [["1 2 3 4 5 6 7"], "2i2 5 1, 2 5 1"],
-  [["1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1"],
-  [["1 2 3 4 5 6 7", "1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1"],
-  [["1 3 4 5 6"], "1 2 3 4 5, 4 3 2 1"],
+  [["1 2 b3 4 5 6 b7", "1 2 b3 4 b5 5 6"], "6 2 4 5 1, 1* 2 4* 5 1*, 1", std4Voicing],
+  [["1 2 3 #4 5 6 7"], "2 5 1 6 4 5 1", std4Voicing],
+  [["1 b2 b3 4 b5 b6 b7", "1 2 3 4 5 6 b7"], "2 5 1 6, 4 5 1* 4, 5 1* 4  5, 1* 4", std6Voicing],
+  [["1 b2 #3 b5 b6 6 b7"], "1 6 2 4 5 1", std4Voicing],
+  [["1 b2 b3 3 4 5 b6"], "1 6 2 4 5 1", std4Voicing],
+  [["1 2 3 4 5 6 7"], "2i2 5 1, 2 5 1", std6Voicing],
+  [["1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1", std4Voicing],
+  [["1 2 3 4 5 6 7", "1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1", std6Voicing],
+  [["1 3 4 5 6"], "1 2 3 4 5, 4 3 2 1", std4Voicing],
   [["1 b2 b3 3 5 b6 b7", "1 2 3 4 5 6 b7"], "2Vb 5 1Va 6, 4 5Vb 1* 4, 5 1* 4Vb  5, 1* 4", "a: 1 3 5 7\nb: 6 8 11 13\n3 6 8 11"]
 ];
 
@@ -3896,13 +3935,14 @@ module.exports.scales = [
 // 7 note scales
   ["1 2 3  4 5 6  7"], // major
   ["1 2 3  4 5 b6 7"], // harmonic major
-  ["1 2 b3 4 5 6  7"], // melodic minor 
+  ["1 2 b3 4 5 6  7"], // melodic minor
   ["1 2 b3 4 5 b6 7"], // harmonic minor
 // 8 note scales
   ["1 2 3 4 5 b6 6 7"],
   ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
 // 5/6 note scales
   ["1 3   4 5 6"],
+  ["1 2 3 b5 b6 b7"], // wholetone scale
   ["1 #2 3 5 #5 7"], // augmented scale
   ["1 b2 b3 4 5 b6"] // "by me"
 ];
@@ -4045,11 +4085,6 @@ function createChromaticKeyboard(rows, columns) {
           var noteEl = keyboard.querySelector(query);
           if (noteEl === null || typeof noteEl === "undefined") {
             console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
-
-            if(!document.body.contains(keyboard)) {
-              console.info("Keyboard was not attached!");
-            }
-
             continue;
           }
           // add label
@@ -4377,9 +4412,20 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
 
+  document.addEventListener('DOMContentLoaded', function(event) {
+    updateGUIByUrl();
+  });
+
+  window.addEventListener('hashchange', function() {
+    updateGUIByUrl();
+  }, false);
+
   function updateGUIByUrl() {
-    // the last successfully submitted form is the same like the one which would be applied,
+    // the last successfully submitted form is the same like the one which would be applied by submitting the form
+    // with the parameters of the current location's url
     // this savely can be skipped, because it would just result in the same result
+    // this saves one extra form submission after each form submission triggered by an actual form submission
+    // and
     if (document.location.hash.substring(1) === serializedForm) {
       return;
     }
@@ -4392,20 +4438,15 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
       addScaleGUI();
     }
 
+    // reset the form, so empty values are possible
+    form.reset();
+
     // initialize the form and submit it
     parameters.forEach(function(value, key) {
       form[key].value = value;
     });
     submitForm();
   }
-
-  document.addEventListener('DOMContentLoaded', function(event) {
-    updateGUIByUrl();
-  });
-
-  window.addEventListener('hashchange', function() {
-    updateGUIByUrl();
-  }, false);
 };
 
 },{"../theory/base.js":16,"./zebra.js":13,"form-serialize":4}],13:[function(require,module,exports){
@@ -4426,7 +4467,6 @@ var zebraKeyboardTemplate = document.getElementById("templates").getElementsByCl
  */
 lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) {
   function isDisplacedButton(chromatic) {
-   // var relativePosition = (chromaticLowestNote + chromatic + chromaticRoot) % 12;
     var relativePosition = (chromatic + chromaticRoot - chromaticRootOffset) % 12;
     while (relativePosition < 0) {
       relativePosition += 12;
@@ -4472,8 +4512,7 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
   if (isDisplacedButton(chromatic) || isDisplacedButton(chromatic - 1)) {
     rowEl.appendChild(createHalfButton(chromatic));
   }
-
-  keyArea.insertBefore(rowEl, keyArea.firstChild);
+  keyArea.appendChild(rowEl);
 
   var debug = false;
   function construct(keyboard) {
@@ -4491,6 +4530,7 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
         for (var i=0; i<notes.length; ++i) {
           var note = notes[i];
           var absoluteChromatic = note.getPosition();
+          var name = note.findIntervalName();
 
           // find buttons to light
           var query = "span.c" + absoluteChromatic;
@@ -4500,7 +4540,8 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
             continue;
           }
           // add label
-          // noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
+          noteEl.setAttribute("title", name);
+          noteEl.innerHTML = '<p class="note-text">' + name + "</p>";
           noteEl.classList.add("selected");
           // mark root
           if (note.isRoot()) {
@@ -4564,7 +4605,9 @@ function buildGeneratorUrl(serializedForm) {
  *
  * @return string
  */
-lib.downloadMidi = function(chords, scales, serializedForm) {
+lib.downloadMidi = function(chords, scales, serializedForm, tonalKey) {
+  tonalKey = tonalKey || 0;
+  // middle c
   var basePitch = 60;
 
   var MidiWriter = require("midi-writer-js");
@@ -4572,7 +4615,7 @@ lib.downloadMidi = function(chords, scales, serializedForm) {
   // Start with a new track
   var track = new MidiWriter.Track();
 
-  track.setTempo(162);
+  track.setTempo(110);
   track.addTrackName(buildScalesDescription(scales) + "\nGenerated via: " + buildGeneratorUrl(serializedForm));
 
   // do not define an instrument, because program change events moslty suck within DAWs after importing the MIDI file
@@ -4580,14 +4623,11 @@ lib.downloadMidi = function(chords, scales, serializedForm) {
 
   chords.forEach(function(chord) {
     var pitches = [];
+    var pitchOffset = chord.getFixedOffset();
     chord.getNotes().forEach(function(note) {
-      var pitch = note.getPosition() + basePitch;
+      var pitch = basePitch + tonalKey - pitchOffset + note.getPosition();
       pitches.push(pitch);
     });
-
-    // all values are 1-100 (not like in MIDI)
-    var minVelocity = 70;
-    var maxVelocity = 90;
 
     track.addMarker(chord.getName());
     track.addEvent(new MidiWriter.NoteEvent({pitch: pitches, duration: '1'}));
