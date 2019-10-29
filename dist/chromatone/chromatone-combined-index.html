@@ -4355,19 +4355,21 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     submitForm();
   });
 
+  var presetElements = form.querySelectorAll(".preset, .voicing-preset");
+  function enablePresets(enabled) {
+    presetElements.forEach(function(element) {
+      element.disabled = !enabled;
+    });
+  }
+
   var serializedForm = null;
   form.addEventListener("submit", function(event) {
     event.preventDefault();
 
+    // disable the preset elements while serializing, so they are ignored for serializing
+    enablePresets(false);
     var newSerializedForm = formSerialize(form);
-    // TODO do we need this or do we have enough of this already?
-    // if (serializedForm !== null && newSerializedForm === serializedForm) {
-    //  // skip, because this already was submitted before
-    //  // this allows to trigger the form submission more often without so much drawbacks
-    //  // the serialized form is used any ways
-    //  console.log("Skipping form submission.");
-    //  return;
-    // }
+    enablePresets(true);
 
     var scales = [];
     scaleContainers.forEach(function(c) {
@@ -4421,12 +4423,11 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   }, false);
 
   function updateGUIByUrl() {
-    // the last successfully submitted form is the same like the one which would be applied by submitting the form
-    // with the parameters of the current location's url
-    // this savely can be skipped, because it would just result in the same result
-    // this saves one extra form submission after each form submission triggered by an actual form submission
-    // and
     if (document.location.hash.substring(1) === serializedForm) {
+      // the last successfully submitted form is the same like the one which would be applied by submitting the form
+      // with the parameters of the current location's url
+      // this savely can be skipped, because it would just result in the same result
+      // this saves one extra form submission after each form submission triggered by the hashchange event listener
       return;
     }
 
@@ -4438,10 +4439,8 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
       addScaleGUI();
     }
 
-    // reset the form, so empty values are possible
-    form.reset();
-
     // initialize the form and submit it
+    form.reset(); // <- reset the form, so empty values are possible
     parameters.forEach(function(value, key) {
       form[key].value = value;
     });
