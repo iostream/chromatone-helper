@@ -1,7 +1,7 @@
 User Reference
 ==============
 
-[Chromatone Helper](https://iostream.github.io/chromatone-helper/ "Chromatone Helper by iostream")
+[Try the Chromatone Janko Tool!](https://iostream.github.io/chromatone-helper/ "Chromatone Helper by iostream")
 
 Voicings
 --------
