@@ -1,7 +1,9 @@
 User Reference
 ==============
 
-[Try the Chromatone Janko Tool!](https://iostream.github.io/chromatone-helper/ "Chromatone Helper by iostream")
+[Try the Chromatone Janko Tool!](https://iostream.github.io/chromatone-helper/ "Chromatone Janko Tool by iostream")
+
+You can also use it offline in most web browsers, also on mobile devices! [Just save this link as an HTML file](https://github.com/iostream/chromatone-helper/raw/master/dist/chromatone/chromatone-combined-index.html "Download the Chromatone Janko Tool") and then run it locally in your web browser!
 
 Voicings
 --------
@@ -23,7 +25,7 @@ For development, run:
 npm run watch
 ```
 
-Then open `chromatone-index.html` in your (Firefox!) browser and reload it everytime you changed any source code to see the effects.
+Then open `chromatone-index.html` in your web browser and reload it everytime you changed any source code to see the effects. There is no server side code. The tool runs completely in the web browser.
 
 How to build
 ------------
@@ -32,11 +34,12 @@ How to build
 npm run build
 ```
 
-Creates `build/chromatone/chromatone-combined-index.html` which contains everything in one file. This way it also works on mobile browsers!
+Creates `dist/chromatone/chromatone-combined-index.html` which contains everything in one file. This way the tool also works on mobile web browsers!
 
 Feature wishes
 --------------
-
+- Actual user reference
+- 
 - Voicings
    * [x] include voicing in MIDI export
    * enable voicings like this (beginning from comma does not exist yet), examples:
@@ -54,9 +57,6 @@ Feature wishes
 - Automatic Inversions
    * better/always working automatic chord transition inversion optimization
    * allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
-
-- Presets
-   * load first preset at startup
    
 - Chord-Length (first only for MIDI generation)
    * default length of a chord is one bar
