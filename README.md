@@ -39,7 +39,6 @@ Creates `dist/chromatone/chromatone-combined-index.html` which contains everythi
 Feature wishes
 --------------
 - Actual user reference
-- 
 - Voicings
    * [x] include voicing in MIDI export
    * enable voicings like this (beginning from comma does not exist yet), examples:
