@@ -12,7 +12,7 @@ lib.isVoicing = voicingLib.isVoicing;
 var majorNotes = [
 // -- 1-7:
   0, 2, 4, 5, 7, 9, 11,
-//  -- 8  9  10  11  12  13  14 
+//  -- 8  9  10  11  12  13  14
   0+12, 2+12, 4+12, 5+12, 7+12, 9+12, 11+12,
 // -- 15
   0+12+12
@@ -21,7 +21,7 @@ var majorNotes = [
 var WHITESPACE_REGEX = /\s+/;
 
 function parseChordDefinition(chordDef, voicings) {
-  voicings = voicings || {defaultVoicing: ""};
+  voicings = voicings || {defaultVoicing: "1 3 5"};
   var defaultVoicing = voicings.defaultVoicing;
   // parse shall return the chord definition, when chord defs are passed
   if (typeof(chordDef.getInversion) === "function") {
@@ -31,13 +31,13 @@ function parseChordDefinition(chordDef, voicings) {
 
   /**
    * returns an array of integers values used within the chord definition being parsed which have the given key.
-   * 
+   *
    * Example chord definition with an int parameter: 1
    */
   function parseIntParameters(key, defaultValue, description) {
     var parameterValues = [];
     var defaultValues = [defaultValue];
-    
+
     var searchIndex = 0;
     while (chordDef.length > searchIndex) {
       var index = chordDef.indexOf(key, searchIndex);
@@ -56,28 +56,28 @@ function parseChordDefinition(chordDef, voicings) {
       parameterValues.push(parameterValue);
       searchIndex = index + 1;
     }
-    
+
     if (parameterValues.length === 0) {
       return defaultValues;
     }
 
     return parameterValues;
   }
-  
+
   /**
    * Some rules:
    * - All string parameters must be at the end of the string.
    * - keys must be in higher case
    * - values must be in lowercase
-   * 
+   *
    * Examples: (key is "V")
-   * 
+   *
    * 1*t5VaVtension
    * 1*t5VaVb7      // TODO maybe having them (b7, b5, b3 as defauls fallbacks available all time would be best! OR not! because it interfers with a1, a2; b1, b2, b3)
    */
   function parseStringParameters(key, defaultValue, description) {
     var parameterValues = [];
-    
+
     var searchIndex = 0;
     while (chordDef.length > searchIndex) {
       searchIndex = chordDef.indexOf(key, searchIndex);
@@ -88,22 +88,22 @@ function parseChordDefinition(chordDef, voicings) {
         }
         return parameterValues;
       }
-      
+
       var valueStartIndex = searchIndex + 1;
-      
+
       // find end of value: everything which comes after the key as long as it is lower case
       while (chordDef.length > (searchIndex + 1) && chordDef[searchIndex + 1].toLowerCase() === chordDef[searchIndex + 1]) {
         ++searchIndex;
       }
-      
+
       ++searchIndex;
-      
+
       var value = chordDef.substring(valueStartIndex, searchIndex);
       if (value.length > 0) {
         parameterValues.push(value);
       }
     }
-    
+
     return parameterValues;
   }
 
@@ -115,7 +115,7 @@ function parseChordDefinition(chordDef, voicings) {
   function sum(a, b) { return a + b; };
   var _inversion = parseIntParameters("i", 0, "inversion").reduce(sum, 0);
   var _transposition = parseIntParameters("t", 0, "transposition").reduce(sum, 0);
-  
+
   function mergeVoices(combinedVoicing, voicing) {
     var voice;
     for (var i in voicing) {
@@ -126,7 +126,7 @@ function parseChordDefinition(chordDef, voicings) {
       combinedVoicing[voice] = voice;
     }
   }
-  
+
   var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
     // map voicing references to actual voicings
     .map(function(voicingReference) {
@@ -149,7 +149,7 @@ function parseChordDefinition(chordDef, voicings) {
       mergeVoices(combinedVoicing, a);
       mergeVoices(combinedVoicing, b);
       return combinedVoicing;
-    });  
+    });
 
   if (!_voicing) {
     _voicing = defaultVoicing;
@@ -159,7 +159,7 @@ function parseChordDefinition(chordDef, voicings) {
     console.error("parseChordDefinition() - Could not parse step out of: " + chordDef);
     _step = 0;
   }
-  
+
   return {
     toString: function() {
       return _chordDef;
@@ -202,18 +202,18 @@ lib.parseChordDefinitions = function(chordDefs, voicings) {
     console.error("parseChordDefinitions() - Only strings can be parsed");
     return [];
   }
-  
+
   var chordDefObjects = [];
   chordDefs.trim().split(/\s+/).forEach(function(chordDef) {
     chordDefObjects.push(parseChordDefinition(chordDef, voicings));
   });
-  
+
   return chordDefObjects;
 };
 
 /**
  * TODO Make lookups in intervalNameMap and fallback also work for higher than contained intervals, e.g. if b3 is contained, also b11 should also work
- * 
+ *
  * int interval    .. chromatic interval, 0 based
  * int root        .. absolute chromatic root position, 0 based (used for interval naming)
  * intervalNameMap .. Map of chromatic interval (int|string) to interval name (string).
@@ -225,12 +225,14 @@ function findIntervalName(interval, intervalNameMap) {
   if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval] === "string") {
     return intervalNameMap[interval];
   }
-  
+
   if (interval < 0) {
     console.warn("findIntervalName() - negative interval: " + interval);
-    interval += 12;
+    do {
+      interval += 12;
+    } while(interval < 0);
   }
-  
+
   // fallback
   for (var i = 0; i < majorNotes.length; ++i) {
     if (majorNotes[i] == interval) {
@@ -241,9 +243,9 @@ function findIntervalName(interval, intervalNameMap) {
       return "b" + (i + 1);
     }
   }
-  
+
   console.error("findIntervalName() could not find name for interval=" + interval + " in scale ", intervalNameMap, " and automatic conversion also failed!");
-  
+
   return "error";
 }
 
@@ -259,7 +261,7 @@ var flat = "b";
 function parseNote(noteDefinition, parsedInterval) {
   var _chromaticRoot = 0,
     intervalNameMap = {};
-  
+
   var note = noteDefinition;
   if (typeof(note) === "undefined") {
     return parseNote("1e");
@@ -271,12 +273,12 @@ function parseNote(noteDefinition, parsedInterval) {
   if (note==="") {
     return parseNote("1e");
   }
-  
+
   // TODO make this these checks more efficient
   var _marks = [note.indexOf("e") !== -1];
   var _isRoot = note.indexOf("r") !== -1;
   var _isUp = note.indexOf("+") !== -1;
-  
+
   // find interval
   var interval = 1;
   var index = 0;
@@ -295,16 +297,16 @@ function parseNote(noteDefinition, parsedInterval) {
     }
     ++index;
   } while (true);
-  
+
   if (typeof parsedInterval !== "undefined" && parsedInterval.ref !== "undefined") {
     parsedInterval.ref = sharp.repeat(sharps) + flat.repeat(flats) + interval;
   }
-  
+
   if (typeof majorNotes[interval - 1] === "undefined") {
     console.error("parseNote() - I have no mapping for major note: " + interval);
   }
   var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
-  
+
   return {
     getChromaticInterval: function () {
       return _chromaticInterval - _chromaticRoot;
@@ -319,7 +321,7 @@ function parseNote(noteDefinition, parsedInterval) {
       return _isUp;
     },
     setUp: function(isUp) {
-     _isUp = isUp; 
+     _isUp = isUp;
     },
     /** int|string mark index or name based lookup */
     hasMark: function(mark) {
@@ -328,7 +330,7 @@ function parseNote(noteDefinition, parsedInterval) {
         if (typeof mark === "undefined") {
           return false;
         }
-        
+
       } else {
         if (position >= _marks.length) {
           return false;
@@ -376,41 +378,49 @@ function parseNote(noteDefinition, parsedInterval) {
 lib.parseNote = parseNote;
 
 /**
-  * @param notes valid input examples: 
+  * TODO if notes is a chord, then altering the returned notes would alter the chord
+  *
+  * @param notes valid input examples:
   *          ["1 2 r4 6"]
   *          "1 2 r4 6"
   *          ["1",  2 , "r4", "6"]
   *          an object which has the function getNotes
   *          ["1", "2", "r4", "6"]  (= output format)
   * @param intervalNameMap optional out parameter @see findIntervalName()
+  *
+  * @return an array of note objects
   */
 function parseNotes(notes, intervalNameMap, recursion) {
   intervalNameMap = intervalNameMap || {};
-  
+
   function createNote(noteDef) {
     var parsedName = {ref: ""};
     var note = parseNote(noteDef, parsedName);
-    
+
     // TODO handle conflicts
     intervalNameMap[note.getChromaticInterval()] = parsedName.ref;
-    
+
     // notes which were parsed in a group will share the same names by default:
     note.setIntervalNameMap(intervalNameMap);
-    
+
     return note;
   }
-  
+
   // this method is a mess!
   recursion = recursion || false;
   var c = notes;
   if (typeof c === "undefined") {
     return [];
   }
-  
+
+  // see TODO of function
+  //if (typeof c.getNotes === "function" && typeof c.clone === "function") {
+  //  return notes.clone().getNotes();
+  //}
   if (typeof c.getNotes === "function") {
     return notes.getNotes();
   }
-  
+
   if (typeof c === "string") {
     c = c.trim();
     if (c === "") {
@@ -426,26 +436,26 @@ function parseNotes(notes, intervalNameMap, recursion) {
       return [createNote(c)];
     }
   }
-  
+
   if (typeof c === "number") {
     return parseNote(""+c);
   }
 
   if (Array.isArray(c) && !recursion) {
     var outputNotes = [];
-    
+
     for (var i=0; i < c.length; ++i) {
       outputNotes = outputNotes.concat(parseNotes(c[i], intervalNameMap, true));
     }
     return outputNotes;
   }
-  
+
   // TODO is this actually needed?
   var out = c;
   if (recursion && !Array.isArray(c)) {
     out = [c];
   }
-  
+
   return out;
 }
 lib.parseNotes = parseNotes;
@@ -484,13 +494,28 @@ lib.parseNotesList = function(notesList) {
  * @return scale
  */
 function createScale(definition) {
-  var notes = parseNotes(definition);
-  
+  var _notes = parseNotes(definition);
+
+  // the root can be anywhere in the scale:
+  var _rootNoteIndex = _notes.findIndex(function(note) { return note.isRoot(); });
+  // if there is no explicit root, the first note becomes the root:
+  if (_rootNoteIndex < 0) {
+    _rootNoteIndex = 0;
+    if (_notes.length > 0) {
+      _notes[0].setRoot(true);
+    }
+  }
+
   return {
     getNotes: function() {
-      return notes;
+      return _notes;
     },
-    
+    /**
+     * @return can be null
+     */
+    getRootNote: function() {
+      return _notes[_rootNoteIndex];
+    },
     /**
      * @param chordDef
      */
@@ -499,19 +524,22 @@ function createScale(definition) {
       if (typeof(chordDef.getScale()) !== "undefined" && chordDef.getScale() !== this) {
         return chordDef.getScale().createChord(chordDef);
       }
-      
+
       // TODO this is now kind of a mess here!?
       var _inversion = 0; // <- gets initialized by calling invert() later
       var _step = chordDef.getStep();
       var _voicing = chordDef.getVoicing();
-      
+      var _scale = this;
+      var _fixedOffset = 0;
+
       var chordScaleNotes = this.getNotes();
-      if (_step > 0) {  
+      if (_step > 0) {
         var tempScale = this.clone()
         tempScale.shift(_step);
         chordScaleNotes = tempScale.getNotes();
+        _scale = tempScale;
       }
-      
+
       function createNotesByVoices(voices, scaleNotes) {
         var notes = [];
         for (var i = 0; i < voices.length; ++i) {
@@ -519,37 +547,47 @@ function createScale(definition) {
           var noteIndex = voices[i] % scaleNotes.length;
           var noteTransposition = Math.floor(voices[i] / scaleNotes.length) * 12;
           var note = scaleNotes[noteIndex].clone();
-          // mark the root
-          if (voices[i] % scaleNotes.length === 0) {
-            note.setRoot(true);
-          }
+
           if (noteTransposition !== 0) {
             note.transpose(noteTransposition);
+            // alter chromatic root, so the interval names also "change registers"
             note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
           }
+
           notes.push(note);
         }
         return notes;
       }
-      
+
       var _chordNotes = createNotesByVoices(_voicing.getVoices1(), chordScaleNotes);
-      
+
       // console.log("createChord() - ", _chordNotes.map(function(note){ return note.toString() }).join(", "));
-      
+
       var _name = chordDef.toString();
-      
+
       var chord = {
         getNotes: function() {
           // voices2 are added after inversion...
           var notes = _chordNotes.slice(0);
           var voices2 = _voicing.getVoices2();
-          
+
           for (var i in voices2) {
             if (!voices2.hasOwnProperty(i)) {
               continue;
             }
-            // TODO add .... but exactly how ....?
+
+            // TODO add second voicing part.... but exactly how ....?
+            var notesForVoices2 = _scale.getNotes();
+            if (_step > 0) {
+              // TODO there is something wrong here...
+              var tempScale = _scale.clone();
+              tempScale.shift(-_step);
+              tempScale.setChromaticRoot(notes[0].getPosition());
+              notesForVoices2 = tempScale.getNotes();
+            }
           }
+          notes = notes.concat(createNotesByVoices(_voicing.getVoices2(), notesForVoices2));
+
           return notes;
         },
         // TODO I dont like how the find methods are implemented
@@ -581,14 +619,20 @@ function createScale(definition) {
             null
           );
         },
+        getFixedOffset: function() {
+          return _fixedOffset;
+        },
+        setFixedOffset: function(fixedOffset) {
+          _fixedOffset = fixedOffset;
+        },
         invert: function() {
           var notes = _chordNotes;
-          
+
           if (notes.length < 2) {
             // this would result in the same "chord"
             return;
           }
-          
+
           // lowest note becomes the highest note
           var lowestNote = notes.shift();
           var highestNote = notes[notes.length - 1];
@@ -596,13 +640,13 @@ function createScale(definition) {
             lowestNote.transpose(12);
           }
           notes.push(lowestNote);
-          
+
           // new lowest note interval is the new chromatic root for all notes
           var newChromaticRoot = notes[0].getPosition();
           for (var i=0; i < notes.length; ++i) {
             notes[i].setChromaticRoot(newChromaticRoot);
           }
-          
+
           _inversion = (_inversion + 1) % notes.length;
         },
         transpose: function(semitones) {
@@ -613,74 +657,89 @@ function createScale(definition) {
             _chordNotes[i].transpose(semitones);
           }
         },
+        /**
+         * "Fixing" is like transposing, but there is a remainder, what got transposed -> _fixedOffset
+         */
+        fix: function(semitones) {
+          this.transpose(semitones);
+          _fixedOffset = semitones;
+        },
         getName: function() {
           return _name + (_inversion > 0 ? (" " + _inversion): "");
         }
       };
-      
+
       // execute stuff the chord definition tells...
-      
+
       // inversion
       for (var i=0; i<chordDef.getInversion(); ++i) {
         chord.invert();
       }
-      
+
       // transposition
       chord.transpose(chordDef.getTransposition());
-      
+
       return chord;
     },
-    shift: function(steps) {        
+    shift: function(steps) {
       if (steps == 0) {
         return;
       }
-      
-      // also the root notes of all chords notes get shifted
-      var newChromaticRoot;
+
+      // also the root notes of all notes get shifted
+      this.getRootNote().setRoot(false);
 
       // do the shift
       if (steps > 0) {
-        //newChromaticRoot = notes[steps % notes.length].getPosition();
         for (var i = 0; i < steps; ++i) {
-          var note = notes.shift();
-          // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorithms? I mean, maybe.... look it up man.
-          note.transpose(12);
-          notes.push(note);
+          var note = _notes.shift();
+          var previousNote = _notes[Math.abs((i - 1) % _notes.length)];
+          do {
+            note.transpose(12);
+          } while(previousNote.getPosition() > note.getPosition());
+          _notes.push(note);
+          lastNote = note;
         }
       } else {
-        // newChromaticRoot = notes[(notes.length + steps) % notes.length].getPosition();
         for (var i = 0; i < Math.abs(steps); ++i) {
-          var note = notes.pop();
-          // TODO does it also depend on the other scale notes, maybe sometimes even more than 12 are required or are the different algorithms? I mean, maybe.... look it up man.
-          note.transpose(-12);
-          notes.unshift(note);
+          var previousNote = _notes[(i + 1) % _notes.length];
+          var note = _notes.pop();
+          do {
+            note.transpose(-12);
+          } while(previousNote.getPosition() < note.getPosition());
+          _notes.unshift(note);
         }
       }
-      
-      newChromaticRoot = notes[0].getPosition();
+
       // set the new chromatic roots after transposing, so they are not affected by it
-      for (var i = 0; i < notes.length; ++i) {
-        notes[i].setChromaticRoot(newChromaticRoot);
+      rootNote = this.getRootNote();
+      rootNote.setRoot(true);
+      newChromaticRoot = rootNote.getPosition();
+      this.setChromaticRoot(newChromaticRoot);
+
+      // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
+    },
+    setChromaticRoot: function(newChromaticRoot) {
+      for (var i = 0; i < _notes.length; ++i) {
+        _notes[i].setChromaticRoot(newChromaticRoot);
       }
-      
-      // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
     },
     transpose: function(semitones) {
-      for (var i=0; i<notes.length; ++i) {
-        notes[i].transpose(semitones);
+      for (var i=0; i<_notes.length; ++i) {
+        _notes[i].transpose(semitones);
       }
     },
     clone: function() {
       var newNotes = [];
-      for (var i=0; i<notes.length; ++i)  {
-        newNotes.push(notes[i].clone());
+      for (var i=0; i<_notes.length; ++i)  {
+        newNotes.push(_notes[i].clone());
       }
       return createScale(newNotes);
     },
     toString: function() {
       var str = "";
-      for (var i=0; i<notes.length; ++i) {
-        str += (notes[i].toString() + " ");
+      for (var i=0; i<_notes.length; ++i) {
+        str += (_notes[i].toString() + " ");
       }
       return str.trim();
     }

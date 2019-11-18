@@ -54,7 +54,7 @@ function fix(chords) {
   
   // transpose the progression, so it's fixed
   for (var i=0; i<chords.length; ++i) {
-    chords[i].transpose(-lowestPosition);
+    chords[i].fix(-lowestPosition);
   }
   
   return chords;
