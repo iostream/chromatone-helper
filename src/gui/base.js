@@ -1,11 +1,13 @@
 var lib = {};
 module.exports = lib;
 
+var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
+var zebra = require("./zebra.js");
 
 console.log("    \"    \"  \"  ChromatoneLibGUI       !");
 
-/** 
+/**
  * Basic lib stuff...
  */
 function $_(id) { return document.getElementById(id); }
@@ -19,14 +21,14 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
   chordSection = $_("chords"),
   interactiveSection = $_("interactive");
-  
+
 /**
- * 
+ *
  */
 function createChromaticKeyboard(rows, columns) {
   var keyboard = chromaticKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
-  
+
   var rowIteration = 0;
   for (var row=0; row < rows; ++row) {
     // the first shall never be a cross row (because of the cut out parts there)
@@ -49,12 +51,12 @@ function createChromaticKeyboard(rows, columns) {
       rowEl.appendChild(button);
       chromatic += 2;
     }
-    
+
     keyArea.insertBefore(rowEl, keyArea.firstChild);
-    
+
     rowIteration += 0.5;
   }
-  
+
   var debug = false;
   function construct(keyboard) {
     return {
@@ -66,7 +68,7 @@ function createChromaticKeyboard(rows, columns) {
         if (debug) {
           console.log("ChromaticKeyboard - Adding notes: ", notes.map(function(note){ return note.toString(); }));
         }
-        
+
         // add each
         var firstNoteIsOnCrossRow = notes.length > 0 && (notes[0].getPosition() % 2) === 1;
         for (var i=0; i<notes.length; ++i) {
@@ -81,9 +83,9 @@ function createChromaticKeyboard(rows, columns) {
           var query = ".row.i" + iteration + " span.c" + absoluteChromatic;
           var noteEl = keyboard.querySelector(query);
           if (noteEl === null || typeof noteEl === "undefined") {
-            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query); 
+            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
             continue;
-          } 
+          }
           // add label
           noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
           noteEl.classList.add("selected");
@@ -92,7 +94,7 @@ function createChromaticKeyboard(rows, columns) {
             noteEl.classList.add("root");
           }
         }
-        
+
         // add description
         if (typeof description !== "undefined") {
           var descriptionEl = keyboard.getElementsByClassName("description");
@@ -138,66 +140,43 @@ function createChromaticKeyboard(rows, columns) {
       }
     };
   }
-  
+
   return construct(keyboard);
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-/**
- * GUI related stuff...
- */
-
-function createSizeOptimizedChromaticKeyboard(notes, rows) {
-  rows = rows || 4;
-  notes = tLib.parseNotes(notes);
-  if (notes.length < 2) {
-    // TODO ääääähhhmmmmm
-    return createChromaticKeyboard(3, 7);
-  }
-  // find highest note (also in the overkill version)
-  var highestPosition = notes[0].getPosition();
-  for (var i=1; i<notes.length; ++i) {
-    if (notes[i].getPosition() > highestPosition) {
-      highestPosition = notes[i].getPosition();
-    }
-  }
-  
-  return createChromaticKeyboard(rows, Math.ceil(highestPosition / 2 + 1));
-}
-
-function addChord(chord, parent, keyboardTemplate) {
+function addChord(chord, parent, zebraRoot) {
   parent = parent || chordSection;
-  keyboardTemplate = keyboardTemplate || null;
   var k; // <- keyboard
-  if (keyboardTemplate !== null) {
-    k = keyboardTemplate.clone();
+  // currently only integer root notes work for zebra root notes:
+  if (!isNaN(zebraRoot)) {
+    k = zebra.createZebraKeyboard(chord.getHighestNote().getPosition() + 1, zebraRoot, chord.getFixedOffset());
   } else {
-    // var k = createChromaticKeyboard(3, 7);
-    var k = createSizeOptimizedChromaticKeyboard(chord);
-    // k = createChromaticKeyboard(5, 14); 
+    k = createChromaticKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
   }
+
   var name;
   if (typeof chord.getName !== "undefined") {
     name = chord.getName();
   }
-  k.add(chord, name);    
+  k.add(chord, name);
   parent.appendChild(k.getElement());
-  
+
   return k;
 }
 lib.addChord = addChord;
 
-function addChordGroup(chords, title, section, keyboardTemplate, nextChordAfterGroup) {
+function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
   section = section || chordSection;
   nextChordAfterGroup = nextChordAfterGroup || null;
 
   var groupEl = section.appendChild(chordGroupTemplate.cloneNode(true)),
     titleEl = groupEl.getElementsByClassName("title")[0] || false;
-    
+
   if (titleEl && title) {
     titleEl.innerHTML = title;
   }
-  
+
   // TODO legacy code?
   if (!Array.isArray(chords)) {
     // make the array out of the string:
@@ -210,9 +189,9 @@ function addChordGroup(chords, title, section, keyboardTemplate, nextChordAfterG
 
   for (var i = 0; i < chords.length; ++i) {
     // add chord to the new keyboard
-    var keyboard = addChord(chords[i], groupEl, keyboardTemplate);
+    var keyboard = addChord(chords[i], groupEl, zebraRoot);
     var nextChord = chords[(i + 1) % chords.length];
-    
+
     // mark differences between voicings/notes, won't work all the time, because it's very simple:
     // last chord of group and nextChordAfterGroup was passed?
     if (i === chords.length - 1 && nextChordAfterGroup !== null) {
@@ -239,7 +218,7 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
   if (!Array.isArray(presetSelectElements)) {
     presetSelectElements = [presetSelectElements];
   }
-  
+
   presetSelectElements.forEach(function(presetEl) {
     for (var i=0; i<presets.length; ++i) {
       var preset = presets[i];
@@ -248,7 +227,7 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
       option.innerHTML = preset
         .map(function(v){
           return Array.isArray(v) ? v.join(", ") : v;
-        })  
+        })
         .join(" -> ");
     }
     presetEl.addEventListener("change", function(event) {
@@ -273,14 +252,14 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
             }
             ++index;
           });
-          
+
         } else {
           applyPresetValue(elementOrElements, preset[i]);
         }
       }
       presetEl.form.update.click();
     });
-  });  
+  });
 }
 
 function applyPresetValue(element, presetValue) {
@@ -293,7 +272,7 @@ function applyPresetValue(element, presetValue) {
 
 /**
  * TODO This is very messy now!
- * 
+ *
  * presets .. array of arrays
  */
 lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, section) {
@@ -304,12 +283,12 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     scaleElementTemplate = formGroupEl.getElementsByClassName("scale_container")[0],
     scalesElement = formGroupEl.getElementsByClassName("scales")[0],
     chordsElement = formGroupEl.getElementsByClassName("chords")[0];
-  
+
   scaleElementTemplate.style = "display:none";
-  
+
   function submitForm() { form.update.click(); }
-  
-  [form.chords, form.voicing].forEach(function(element) {
+
+  [form.chords, form.voicing, form.zebra_root].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -326,22 +305,23 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     form.update.click();
   }
 
-  function createScaleContainer(rootElement) {
+  function createScaleContainer(index, rootElement) {
     rootElement = rootElement || scaleElementTemplate.cloneNode(true);
     rootElement.style = '';
     var scaleContainer = {root: rootElement};
     scaleContainer.input = scaleContainer.root.getElementsByClassName("scale")[0];
     scaleContainer.preset = scaleContainer.root.getElementsByClassName("preset")[0];
+    scaleContainer.input.name += ("[" + index + "]");
     return scaleContainer;
   }
-  
+
   var scaleContainers = [];
 
   function addScaleGUI() {
-    var c = createScaleContainer();
+    var c = createScaleContainer(scaleContainers.length);
     scaleContainers.push(c);
     scalesElement.appendChild(c.root);
-    
+
     // shift scales through all their modes by "<" and ">" buttons
     c.root.querySelectorAll('input[type="button"]').forEach(function(button) {
       if (button.value == "<") {
@@ -355,7 +335,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     // update result after changing the scale text input
     c.input.addEventListener("change", submitForm);
   }
-  
+
   function popScaleGUI() {
     var c = scaleContainers.pop();
     scalesElement.removeChild(c.root);
@@ -365,8 +345,8 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   addScaleGUI();
   addScaleGUI();
 
-  form.add_scale.addEventListener("click", addScaleGUI);
-  form.pop_scale.addEventListener("click", popScaleGUI);
+  form.add_scale.addEventListener("click", function() {addScaleGUI(); updateSerializedFormOfLocation(); });
+  form.pop_scale.addEventListener("click", function() {popScaleGUI(); updateSerializedFormOfLocation(); });
 
   var generateMidi = false; // <- flag which triggers midi generation after the next form submit
   form.generate_midi.addEventListener("click", function(event) {
@@ -374,9 +354,22 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     submitForm();
   });
 
+  var presetElements = form.querySelectorAll(".preset, .voicing-preset");
+  function enablePresets(enabled) {
+    presetElements.forEach(function(element) {
+      element.disabled = !enabled;
+    });
+  }
+
+  var serializedForm = null;
   form.addEventListener("submit", function(event) {
     event.preventDefault();
-    
+
+    // disable the preset elements while serializing, so they are ignored for serializing
+    enablePresets(false);
+    var newSerializedForm = formSerialize(form);
+    enablePresets(true);
+
     var scales = [];
     scaleContainers.forEach(function(c) {
       var scale = tLib.createScale(c.input.value);
@@ -384,32 +377,72 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
         scales.push(scale);
       }
     });
-    
+
     var chordDefs = form.chords.value;
     var voicings = tLib.parseVoicings(form.voicing.value);
-    
+
     // validate inputs aka only submit valid data
     if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
       return;
     }
-    
-    // TODO str: use it or remove it!
-    // var serialize = require('form-serialize');
-    // var str = serialize(form, { hash: true });
-    // console.log("serialized form", str);
-    
+
+    var zebraRoot = parseInt(form.zebra_root.value);
     var options = {
-      generateMidi: generateMidi
+      zebraRoot: zebraRoot,
+      generateMidi: generateMidi,
+      serializedForm: newSerializedForm
     };
-    
+
     // reset flag
     generateMidi = false;
-    
+
     // repaint all
     resultSection.innerHTML = "";
     submitFunction(scales, chordDefs, voicings, options, resultSection);
+
+    serializedForm = newSerializedForm;
+    updateSerializedFormOfLocation();
   }, false);
-  
+
+  function updateSerializedFormOfLocation() {
+    // using URL, so this won't work in IE 11 :
+    var url = new URL("#" + serializedForm, document.location.href);
+    document.location.href = url;
+  }
+
   initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
+
+  document.addEventListener('DOMContentLoaded', function(event) {
+    updateGUIByUrl();
+  });
+
+  window.addEventListener('hashchange', function() {
+    updateGUIByUrl();
+  }, false);
+
+  function updateGUIByUrl() {
+    if (document.location.hash.substring(1) === serializedForm) {
+      // the last successfully submitted form is the same like the one which would be applied by submitting the form
+      // with the parameters of the current location's url
+      // this savely can be skipped, because it would just result in the same result
+      // this saves one extra form submission after each form submission triggered by the hashchange event listener
+      return;
+    }
+
+    // initialize form by hash parameters
+    var parameters = new URL("?" + document.location.hash.substring(1), document.location.href).searchParams;
+
+    // add as many scale GUIs as needed
+    while (parameters.has("scale[" + scaleContainers.length + "]")) {
+      addScaleGUI();
+    }
+
+    // initialize the form and submit it
+    form.reset(); // <- reset the form, so empty values are possible
+    parameters.forEach(function(value, key) {
+      form[key].value = value;
+    });
+    submitForm();
+  }
 };

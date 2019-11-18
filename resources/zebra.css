@@ -1,0 +1,73 @@
+/** Zebra keyboard layout style */
+.zebra.keyboard {
+  --key-color: white;
+  --key-outline: solid black 0.5px;
+  --displaced-key-color: black;
+  --key-root-color: yellow;
+  --key-selected-color: orange;
+  --key-height: calc(4 * 18pt);
+  --key-width: calc(var(--key-height) * 0.2667);
+  --displaced-key-height: calc(var(--key-height) * 0.6667);;
+  --displaced-key-width: calc(var(--key-width) * 0.625);
+  display: inline-block;
+  margin-right: 15pt;
+}
+.zebra.keyboard .row span {
+  display: inline-block;
+  width: var(--key-width);
+  height: var(--key-height);
+  background-color: var(--key-color);
+  outline: var(--key-outline);
+}
+.zebra.keyboard .row span.half {
+  width: calc(var(--key-width) / 2);
+}
+.zebra.keyboard .row span.d {
+  position: relative;
+  top: calc(-1 * (var(--key-height) - var(--displaced-key-height)));
+  height: var(--displaced-key-height);
+  background-color: var(--displaced-key-color);
+  width: var(--displaced-key-width);
+  margin-left: calc(-1 * var(--displaced-key-width) / 2);
+  margin-right: calc(-1 * var(--displaced-key-width) / 2);
+}
+.zebra.keyboard .row span.d.half {
+  width: calc(var(--displaced-key-width) / 2);
+}
+.zebra.keyboard .row span:first-child.d.half {
+  margin-left: 0;
+}
+.zebra.keyboard .row span:last-child.d.half {
+  margin-right: 0;
+}
+.zebra.keyboard .row span.selected {
+  background-color: var(--key-selected-color);
+}
+.zebra.keyboard .row span.selected.root {
+  background-color: var(--key-root-color);
+}
+.zebra.keyboard .row span .note-text {
+  --border-color: var(--key-color);
+  --shadow-offset: 1pt;
+  position: absolute;
+  width: inherit;
+  margin-top: 1pt;
+  font-size: 9pt;
+  text-align: center;
+  /* a text outline makes the text readable also when it overlaps another key */
+  text-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--border-color),
+    var(--shadow-offset) calc(var(--shadow-offset) * -1) 0 var(--border-color),
+    calc(var(--shadow-offset) * -1) var(--shadow-offset) 0 var(--border-color),
+    calc(var(--shadow-offset) * -1) calc(var(--shadow-offset) * -1) 0 var(--border-color),
+    var(--shadow-offset) 0 0 var(--border-color),
+    0 var(--shadow-offset) 0 var(--border-color),
+    calc(var(--shadow-offset) * -1) 0 0 var(--border-color),
+    0 calc(var(--shadow-offset) * -1) 0 var(--border-color);
+    z-index: 1;
+}
+.zebra.keyboard .row span.selected .note-text {
+  --border-color: var(--key-selected-color);
+}
+.zebra.keyboard .row span.root .note-text {
+  --border-color: var(--key-root-color);
+}

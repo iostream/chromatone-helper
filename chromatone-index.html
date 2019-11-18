@@ -1,9 +1,10 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <title>Chromatone Helper 🧙 by iostream 2018-2019</title>
     <meta charset="UTF-8">
     <link rel="stylesheet" href="resources/style.css">
+    <link rel="stylesheet" href="resources/zebra.css">
   </head>
   <body>
     <section id="templates">
@@ -13,49 +14,53 @@
         <div class="keys"></div>
         <div class="description"></div>
       </div>
-      
-      <div class="chord-group">
-        <h2 class="title"></h2> 
+
+      <div class="zebra keyboard">
+        <div class="keys"></div>
+        <div class="description"></div>
       </div>
-      
+
+      <div class="chord-group">
+        <h2 class="title"></h2>
+      </div>
+
       <div class="interactive-form">
-        <form class="form">
+        <form name="interactive" class="form">
           <textarea name="chords" placeholder="chords"></textarea>
           <span class="chords">
             <span class="chord">
               <!-- <input type="text" name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"><select name="voicing_preset" class="voicing-preset"></select> -->
-              <textarea name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"></textarea><select name="voicing_preset" class="voicing-preset"></select>
+              <textarea name="voicing" placeholder="voicing" class="voicing"></textarea><select name="voicing_preset" class="voicing-preset"></select>
             </span>
           </span>
-          </select>
-          
+
+          <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="chromatic root for zebra keyboard mode, an integer value activates the zebra keyboard layout">
+
           <select class="preset" name="preset"></select>
 
           <span class="scales">
-            <input type="button" value="+" name="add_scale">
-            <input type="button" value="-" name="pop_scale">
+            <input type="button" value="+" name="add_scale" title="add a scale">
+            <input type="button" value="-" name="pop_scale" title="remove last scale">
             <span class="scale_container">
-              <input type="button" value="<" name="shift_scale_left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right"><select name="scale_preset" class="preset"></select>
+              <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right"><select name="scale_preset" class="preset"></select>
             </span>
           </span>
-          
           <input style="display:none" type="submit" value="⛵" name="update">
-          <input type="button" value="💾" name="generate_midi">
-          
+          <input type="button" value="💾" name="generate_midi" title="generate midi out of the generated progression">
+
         </form>
         <div class="result">
         </div>
       </div>
     </section>
-    
+
     <section id="interactive">
     </section>
     🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡
     <section id="chords">
     </section>
-    
+
     <!-- see main.js -->
     <script src="bundle.js"></script>
-    
   </body>
 </html>
