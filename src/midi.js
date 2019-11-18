@@ -22,41 +22,46 @@ function buildScalesDescription(scales) {
   }).join("\n");
 }
 
+function buildGeneratorUrl(serializedForm) {
+  var url = new URL("#" + serializedForm, document.location.href);
+  console.log("buildGeneratorUrl() -> " +  url.href);
+  return url.href;
+}
+
 /**
  * @see https://github.com/grimmdude/MidiWriterJS
- * 
+ *
  * @return string
  */
-lib.downloadMidi = function(chords, scales) {
+lib.downloadMidi = function(chords, scales, serializedForm, tonalKey) {
+  tonalKey = tonalKey || 0;
+  // middle c
   var basePitch = 60;
-  
+
   var MidiWriter = require("midi-writer-js");
-  
+
   // Start with a new track
   var track = new MidiWriter.Track();
 
-  track.setTempo(162);
-  track.addTrackName(buildScalesDescription(scales));
+  track.setTempo(110);
+  track.addTrackName(buildScalesDescription(scales) + "\nGenerated via: " + buildGeneratorUrl(serializedForm));
 
   // do not define an instrument, because program change events moslty suck within DAWs after importing the MIDI file
   // track.addEvent(new MidiWriter.ProgramChangeEvent({instrument : 1}));
-  
+
   chords.forEach(function(chord) {
     var pitches = [];
+    var pitchOffset = chord.getFixedOffset();
     chord.getNotes().forEach(function(note) {
-      var pitch = note.getPosition() + basePitch;
+      var pitch = basePitch + tonalKey - pitchOffset + note.getPosition();
       pitches.push(pitch);
     });
-    
-    // all values are 1-100 (not like in MIDI)
-    var minVelocity = 70;
-    var maxVelocity = 90;
-     
+
     track.addMarker(chord.getName());
     track.addEvent(new MidiWriter.NoteEvent({pitch: pitches, duration: '1'}));
-    
+
   });
-  
+
   var write = new MidiWriter.Writer([track]);
-  downloadDataUri(write.dataUri(), "test.mid");
+  downloadDataUri(write.dataUri(), "chromatone-helper.mid");
 }
