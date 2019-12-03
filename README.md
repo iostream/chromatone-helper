@@ -40,6 +40,7 @@ Feature wishes
 --------------
 - Actual user reference
 - Voicings
+   * allow usage of all chord modifiers also in voicings
    * [x] include voicing in MIDI export
    * enable voicings like this (beginning from comma does not exist yet), examples:
       * 1 3 5 6, -2 (drop 2 voicing)
