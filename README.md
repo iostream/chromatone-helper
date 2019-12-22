@@ -39,7 +39,9 @@ Creates `dist/chromatone/chromatone-combined-index.html` which contains everythi
 Feature wishes
 --------------
 - Actual user reference
+- Reaper-DAW integration
 - Voicings
+   * allow usage of accidentals in voicings
    * allow usage of all chord modifiers also in voicings
    * [x] include voicing in MIDI export
    * enable voicings like this (beginning from comma does not exist yet), examples:
@@ -51,13 +53,15 @@ Feature wishes
    * Bug: Using the voicings definition: `defaultVoicing` leads to endless recursion ("too much recursion" error in Firefox)
 
 - GUI
+   * make it possible to switch between note naming modes: `relative` (each note is named by its chord interval, no matter the inversion), `absolute` (shows the actual intervals, starting from the lowest note), and maybe make it so, that the absolute naming can be starting from the highest note
    * better diff to next chord: just superimpose the next chord!
    * render chord specifications next to the chord visualisation and enable modifications of the chord definition via just clicking on the visualisations or symbols next to them (e.g. transpose via `+`,`-`)
 
 - Automatic Inversions
    * better/always working automatic chord transition inversion optimization
    * allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
-   
+   * add new mode: optimize for best voice leading
+ 
 - Chord-Length (first only for MIDI generation)
    * default length of a chord is one bar
    * change length examples: 
