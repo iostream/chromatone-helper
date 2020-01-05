@@ -382,6 +382,7 @@ function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, 
  * returned as a chord definition composit objects.
  */
 lib.parseChordDefinitions = function(multiLineString, voicings, scales, rhythmPatterns, arpeggioPatterns) {
+  multiLineString = multiLineString.split(",").join("\n"); // <- convert commas to new lines
   var parserDelegate = createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns);
   recursiveParser.parseThingsRecursive(multiLineString, parserDelegate);
   return parserDelegate.chordDefinitionComposit;
