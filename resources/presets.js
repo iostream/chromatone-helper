@@ -14,6 +14,11 @@ module.exports.progressions = [
   [["1 b2 b3 3 5 b6 b7", "1 2 3 4 5 6 b7"], "2Vb 5 1Va 6, 4 5Vb 1* 4, 5 1* 4Vb  5, 1* 4", "a: 1 3 5 7\nb: 6 8 11 13\n3 6 8 11"]
 ];
 
+module.exports.chords = [
+  ["A\nA: 2 5 1"],
+  ["A\nA: 1 6 4 5"]
+];
+
 module.exports.voicings = [
   ["1 3 5 7"],
   ["1 2 5 7"],
@@ -45,6 +50,7 @@ module.exports.arpeggioPatterns = [
 ];
 
 module.exports.rhythmPatterns = [
+  ["1"], // default rhythm
   ["8 8 8 8 8 8 8 8"], // 8 events
   ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events

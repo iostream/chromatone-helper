@@ -312,7 +312,7 @@ function applyPresetValue(element, presetValue) {
  *
  * presets .. array of arrays
  */
-lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
+lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
   section = section || interactiveSection;
   var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0],
@@ -488,6 +488,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
       form.voicing
     ]
   );
+  initPresets(chordPresets, form.chords_preset, [form.chords]);
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
   initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
   initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);

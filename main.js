@@ -44,7 +44,7 @@ g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns
   //   group.forEach(function() { chordsOfGroup.push(chords.shift()); });
   //   g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
   // });
-}, presets.progressions, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
+}, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
 function buildGeneratorUrl(serializedForm) {
   var url = new URL("#" + serializedForm, document.location.href);
