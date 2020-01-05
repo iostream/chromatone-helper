@@ -3,9 +3,9 @@ module.exports = lib;
 
 var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
+var rhythmLib = require("../theory/rhythm.js");
+var arpeggioLib = require("../theory/arpeggio.js");
 var zebra = require("./zebra.js");
-
-console.log("    \"    \"  \"  ChromatoneLibGUI       !");
 
 /**
  * Basic lib stuff...
@@ -275,14 +275,13 @@ function applyPresetValue(element, presetValue) {
  *
  * presets .. array of arrays
  */
-lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, section) {
+lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
   section = section || interactiveSection;
   var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0],
     resultSection = formGroupEl.getElementsByClassName("result")[0],
     scaleElementTemplate = formGroupEl.getElementsByClassName("scale_container")[0],
-    scalesElement = formGroupEl.getElementsByClassName("scales")[0],
-    chordsElement = formGroupEl.getElementsByClassName("chords")[0];
+    scalesElement = formGroupEl.getElementsByClassName("scales")[0];
 
   scaleElementTemplate.style = "display:none";
 
@@ -337,6 +336,11 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   }
 
   function popScaleGUI() {
+    // skip removing of a scale if it is the last one, so there always is at
+    // least one scale left
+    if (scaleContainers.length <= 1) {
+      return;
+    }
     var c = scaleContainers.pop();
     scalesElement.removeChild(c.root);
   }
@@ -348,13 +352,14 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
   form.add_scale.addEventListener("click", function() {addScaleGUI(); updateSerializedFormOfLocation(); });
   form.pop_scale.addEventListener("click", function() {popScaleGUI(); updateSerializedFormOfLocation(); });
 
+  // TODO refactor to pass options to submitForm(), instead using generateMidi variable
   var generateMidi = false; // <- flag which triggers midi generation after the next form submit
   form.generate_midi.addEventListener("click", function(event) {
     generateMidi = true;
     submitForm();
   });
 
-  var presetElements = form.querySelectorAll(".preset, .voicing-preset");
+  var presetElements = form.querySelectorAll(".preset");
   function enablePresets(enabled) {
     presetElements.forEach(function(element) {
       element.disabled = !enabled;
@@ -381,6 +386,22 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     var chordDefs = form.chords.value;
     var voicings = tLib.parseVoicings(form.voicing.value);
 
+    var rhythmPatterns;
+    if (form.rhythms.value.trim().length > 0) {
+      rhythmPatterns = rhythmLib.parseRhythmPatterns(form.rhythms.value);
+    }
+    if (!rhythmPatterns || !rhythmPatterns.defaultRhythmPattern) {
+      rhythmPatterns = rhythmLib.parseRhythmPatterns("1");
+    }
+
+    var arpeggioPatterns;
+    if (form.arp.value.trim().length > 0) {
+      arpeggioPatterns = arpeggioLib.parseArpeggioPatterns(form.arp.value);
+    }
+    if (!arpeggioPatterns || !arpeggioPatterns.defaultArpeggioPattern) {
+      arpeggioPatterns = arpeggioLib.parseArpeggioPatterns(">*_");
+    }
+
     // validate inputs aka only submit valid data
     if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
       return;
@@ -390,15 +411,16 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
     var options = {
       zebraRoot: zebraRoot,
       generateMidi: generateMidi,
+      uploadToDAW: form.upload_to_daw.checked,
       serializedForm: newSerializedForm
     };
 
-    // reset flag
+    // reset flags
     generateMidi = false;
 
     // repaint all
     resultSection.innerHTML = "";
-    submitFunction(scales, chordDefs, voicings, options, resultSection);
+    submitFunction(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
 
     serializedForm = newSerializedForm;
     updateSerializedFormOfLocation();
@@ -412,6 +434,8 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, se
 
   initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
+  initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
+  initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
 
   document.addEventListener('DOMContentLoaded', function(event) {
     updateGUIByUrl();

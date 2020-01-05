@@ -1,39 +1,18 @@
 var lib = {};
 module.exports = lib;
 
-/**
- * @see https://stackoverflow.com/questions/23451726/saving-binary-data-as-file-using-javascript-from-a-browser
- */
-var downloadDataUri = (function () {
-  var a = document.createElement("a");
-  document.body.appendChild(a);
-  // a.style = "display: none";
-  a.text = "MIDI";
-  return function (dataUri, name) {
-    a.href = dataUri;
-    a.download = name;
-    a.click();
-  };
-}());
-
 function buildScalesDescription(scales) {
   return scales.map(function(scale, i) {
     return "*".repeat(i) + ": " + scale.toString();
   }).join("\n");
 }
 
-function buildGeneratorUrl(serializedForm) {
-  var url = new URL("#" + serializedForm, document.location.href);
-  console.log("buildGeneratorUrl() -> " +  url.href);
-  return url.href;
-}
-
 /**
  * @see https://github.com/grimmdude/MidiWriterJS
  *
- * @return string
+ * @return MidiWriter object
  */
-lib.downloadMidi = function(chords, scales, serializedForm, tonalKey) {
+lib.createMidi = function(events, chords, scales, generatorUrl, tonalKey) {
   tonalKey = tonalKey || 0;
   // middle c
   var basePitch = 60;
@@ -43,25 +22,31 @@ lib.downloadMidi = function(chords, scales, serializedForm, tonalKey) {
   // Start with a new track
   var track = new MidiWriter.Track();
 
-  track.setTempo(110);
-  track.addTrackName(buildScalesDescription(scales) + "\nGenerated via: " + buildGeneratorUrl(serializedForm));
+  track.setTempo(140);
+  track.addTrackName(buildScalesDescription(scales) + " Generated via: " + generatorUrl);
 
-  // do not define an instrument, because program change events moslty suck within DAWs after importing the MIDI file
-  // track.addEvent(new MidiWriter.ProgramChangeEvent({instrument : 1}));
-
-  chords.forEach(function(chord) {
-    var pitches = [];
-    var pitchOffset = chord.getFixedOffset();
-    chord.getNotes().forEach(function(note) {
-      var pitch = basePitch + tonalKey - pitchOffset + note.getPosition();
-      pitches.push(pitch);
-    });
-
-    track.addMarker(chord.getName());
-    track.addEvent(new MidiWriter.NoteEvent({pitch: pitches, duration: '1'}));
-
+  var restingTime = 0;
+  events.forEach(function(event) {
+    // Tn : where n is an explicit number of ticks (T128 = 1 beat)
+    var eventDuration = "T" + event.getLengthInQN() * 128;
+    if (event.isRest()) {
+      restingTime += event.getLengthInQN();
+    } else {
+      var pitches = event.getPitches().map(function(note) {
+        return basePitch + tonalKey + note.getPosition();
+      });
+      var noteData = {pitch: pitches, duration: eventDuration};
+      if (restingTime > 0) {
+        // Tn : where n is an explicit number of ticks (T128 = 1 beat)
+        noteData.wait = "T" + restingTime * 128;
+        restingTime = 0;
+      }
+      track.addEvent(new MidiWriter.NoteEvent(noteData));
+    }
+    // TODO can we bring back chord names in MIDI export?
+    // track.addMarker(chord.getName());
   });
 
-  var write = new MidiWriter.Writer([track]);
-  downloadDataUri(write.dataUri(), "chromatone-helper.mid");
+  var writer = new MidiWriter.Writer([track]);
+  return writer;
 }

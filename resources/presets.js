@@ -38,3 +38,14 @@ module.exports.scales = [
   ["1 #2 3 5 #5 7"], // augmented scale
   ["1 b2 b3 4 5 b6"] // "by me"
 ];
+
+module.exports.arpeggioPatterns = [
+  [">*_"],// play all notes of voicing at once
+  [">*"] // play all notes of the voicing after one another in order of the voicing
+];
+
+module.exports.rhythmPatterns = [
+  ["8 8 8 8 8 8 8 8"], // 8 events
+  ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
+  ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
+];

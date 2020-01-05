@@ -26,28 +26,71 @@
 
       <div class="interactive-form">
         <form name="interactive" class="form">
-          <textarea name="chords" placeholder="chords"></textarea>
-          <span class="chords">
-            <span class="chord">
-              <!-- <input type="text" name="voicing" placeholder="voicing" class="voicing" value="1 3 5 7"><select name="voicing_preset" class="voicing-preset"></select> -->
-              <textarea name="voicing" placeholder="voicing" class="voicing"></textarea><select name="voicing_preset" class="voicing-preset"></select>
-            </span>
+          <span class="form-element">
+            <label for="chords">chords</label>
+            <textarea name="chords" placeholder="chords"></textarea>
+          </span>
+          <span class="scales form-element">
+            <div>
+              <label>scales</label>
+              <input type="button" value="add scale" name="add_scale" title="add a scale">
+              <input type="button" value="remove scale" name="pop_scale" title="remove last scale">
+            </div>
+            <div class="scale_container">
+              <select name="scale_preset" class="preset"></select>
+              <input type="text" name="scale" placeholder="scale" class="scale">
+              <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left">
+              <input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right">
+            </div>
+          </span>
+          <span class="form-element">
+            <label for="voicing">voicings</label><select name="voicing_preset" class="voicing-preset preset"></select>
+            <textarea name="voicing" placeholder="voicing" class="voicing"></textarea>
+          </span>
+          <span class="form-element">
+            <label for="rhythms">rhythms</label><select name="rhythms_preset" class="rhythms-preset preset"></select>
+            <textarea name="rhythms" placeholder="rhythms" class="rhythms"></textarea>
+          </span>
+          <span class="form-element">
+            <label for="arpeggio patterns">arpeggio patterns</label><select name="arpeggio_patterns_preset" class="arpeggio-patterns-preset preset"></select>
+            <textarea name="arp" placeholder="arpeggio patterns" class="arpeggio-patterns"></textarea>
           </span>
 
-          <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="chromatic root for zebra keyboard mode, an integer value activates the zebra keyboard layout">
-
-          <select class="preset" name="preset"></select>
-
-          <span class="scales">
-            <input type="button" value="+" name="add_scale" title="add a scale">
-            <input type="button" value="-" name="pop_scale" title="remove last scale">
-            <span class="scale_container">
-              <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left"><input type="text" name="scale" placeholder="scale" class="scale"><input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right"><select name="scale_preset" class="preset"></select>
+          <div class="secondary-form-elements">
+            <span class="form-element">
+              <label for="zebra_root">zebra root</label>
+              <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="chromatic root for zebra keyboard mode, an integer value activates the zebra keyboard layout">
             </span>
-          </span>
+            <!--
+            <span class="form-element">
+              <label for="auto_invert">automatic inversions</label>
+              <input type="checkbox" name="auto_invert" title="activate automatic inversion optimization" checked="checked">
+            </span>
+          -->
+            <span class="form-element">
+              <label for="preset">preset</label>
+              <select class="preset" name="preset"></select>
+            </span>
+          </div>
+          <div class="secondary-form-elements">
+            <!--
+            <span class="form-element">
+              <label for="interval_naming">interval naming</label>
+              <select name="interval_naming">
+                <option value="relative">relative</option>
+                <option value="absolute">absolute</option>
+              </select>
+            </span>
+          -->
+            <span class="form-element">
+              <input type="button" value="💾" name="generate_midi" title="download midi out of the generated progression">
+            </span>
+            <span class="form-element">
+              <label for="upload_to_daw">Update DAW</label>
+              <input type="checkbox" value="upload to DAW" name="upload_to_daw" title="also send generated progressions to server to update DAW">
+            </span>
+          </div>
           <input style="display:none" type="submit" value="⛵" name="update">
-          <input type="button" value="💾" name="generate_midi" title="generate midi out of the generated progression">
-
         </form>
         <div class="result">
         </div>

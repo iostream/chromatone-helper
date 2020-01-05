@@ -1,5 +1,6 @@
 :root {
   --main-background-color: #edfdf8;
+  --form-element-background-color: #EEF5FD;
 }
 body {
   background-color: var(--main-background-color);
@@ -67,7 +68,7 @@ section#templates {
   margin-bottom: 8pt;
 }
 .chromatic.keyboard .description {
-  style: inline-block;
+margin-top: 4pt;
 }
 .chromatic.keyboard .diff {
   font-size: 7px;
@@ -83,8 +84,8 @@ section#templates {
   top: 0;
   width: 100%;
 }
-.interactive-form .scales {
-  float: left;
+.interactive-form .scales div {
+    display: inline-grid;
 }
 .interactive-form .scale {
   width: 100pt;
@@ -95,15 +96,32 @@ section#templates {
 .interactive-form .result {
   min-height: 420pt;
 }
-.interactive-form .voicing {
-  width: 70pt;
-}
-.interactive-form .voicing-preset {
-  width: 5pt;
-}
-.interactive-form .scale_container {
-  display:inline-block;
+.interactive-form .voicing-preset,
+.interactive-form .arpeggio-patterns-preset,
+.interactive-form .rhythms-preset {
+  max-width: 50pt;
 }
 .preset {
   width: 50pt;
+}
+.form-element {
+  display: inline-block;
+  padding: 1pt;
+  padding-right: 3pt;
+  border: outset 2pt;
+  background-color: var(--form-element-background-color);
+}
+.form-element label {
+  display: inline-block;
+}
+.form-element textarea {
+  display: block;
+  width: 100%;
+}
+.secondary-form-elements {
+  float: right;
+  width: 110pt;
+}
+.secondary-form-elements .form-element {
+  display: block;
 }
