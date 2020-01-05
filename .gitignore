@@ -1,4 +1,6 @@
 dist
 bundle.js
 node_modules
+src/server/daw_input.txt
+src/server/last_generated.midi
 
