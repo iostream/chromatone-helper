@@ -102,13 +102,10 @@ margin-top: 4pt;
 .interactive-form .result {
   min-height: 420pt;
 }
-.interactive-form .voicing {
-  width: 70pt;
-}
 .interactive-form .voicing-preset,
 .interactive-form .arpeggio-patterns-preset,
 .interactive-form .rhythms-preset {
-  width: 5pt;
+  max-width: 50pt;
 }
 .preset {
   width: 50pt;
@@ -116,6 +113,7 @@ margin-top: 4pt;
 .form-element {
   display: inline-block;
   padding: 1pt;
+  padding-right: 3pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
@@ -124,6 +122,7 @@ margin-top: 4pt;
 }
 .form-element textarea {
   display: block;
+  width: 100%;
 }
 .secondary-form-elements {
   float: right;
@@ -247,15 +246,15 @@ margin-top: 4pt;
             </div>
           </span>
           <span class="form-element">
-            <label for="voicing">voicings</label><select name="voicing_preset" class="voicing-preset"></select>
+            <label for="voicing">voicings</label><select name="voicing_preset" class="voicing-preset preset"></select>
             <textarea name="voicing" placeholder="voicing" class="voicing"></textarea>
           </span>
           <span class="form-element">
-            <label for="rhythms">rhythms</label><select name="rhythms_preset" class="rhythms-preset"></select>
+            <label for="rhythms">rhythms</label><select name="rhythms_preset" class="rhythms-preset preset"></select>
             <textarea name="rhythms" placeholder="rhythms" class="rhythms"></textarea>
           </span>
           <span class="form-element">
-            <label for="arpeggio patterns">arpeggio patterns</label><select name="arpeggio_patterns_preset" class="arpeggio-patterns-preset"></select>
+            <label for="arpeggio patterns">arpeggio patterns</label><select name="arpeggio_patterns_preset" class="arpeggio-patterns-preset preset"></select>
             <textarea name="arp" placeholder="arpeggio patterns" class="arpeggio-patterns"></textarea>
           </span>
 
@@ -312,7 +311,6 @@ margin-top: 4pt;
 var g = require("./src/gui/base.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),
- rhythmLib = require("./src/theory/rhythm.js"),
  arpeggioLib = require("./src/theory/arpeggio.js"),
  midi = require("./src/midi.js"),
  serverClient = require("./src/server/client.js"),
@@ -321,17 +319,14 @@ var g = require("./src/gui/base.js"),
 var k = g.createKeyboard(3, 7);
 
 // TODO move this code into an own file / layer:
-g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
+g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
   var chordDefinitionGroups = [];
   var chordDefinitions = [];
-
-  // TODO does this even make sense??? (I am on Linux, so this should be fine???)
-  chordDefs = chordDefs.replace("\n", " ");
 
   // parse chord definitions in groups, so we can split the generated chords afterwards...
   chordDefs.split(",").forEach(function(chordDefsOfGroup) {
     // the chord progression needs to be generated in one go!
-    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup, voicings, scales)
+    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup, voicings, scales, rhythmPatterns, arpeggioPatterns)
     chordDefinitionGroups.push(chordDefObjectsOfGroup);
     chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
   });
@@ -341,21 +336,8 @@ g.addForm(function(scales, chordDefs, voicings, options, resultSection) {
   var progression = p.createChordProgression(scales[0], chordDefinitions);
   var chords = progression.getChords();
 
-  var rhythm;
-  var arpeggioPattern;
-  var events;
   if (options.uploadToDAW || options.uploadMidi || options.generateMidi) {
-    if (options.unparsedRhythms.length > 0) {
-      rhythm = rhythmLib.parseRhythmPattern(options.unparsedRhythms);
-    } else {
-      rhythm = rhythmLib.parseRhythmPattern("1");
-    }
-    if (options.unparsedArpeggioPatterns.length > 0) {
-      arpeggioPattern = arpeggioLib.parseArpeggioPattern(options.unparsedArpeggioPatterns);
-    } else {
-      arpeggioPattern = arpeggioLib.parseArpeggioPattern(">*_");
-    }
-    events = arpeggioLib.arpeggiate(progression, rhythm, arpeggioPattern);
+    events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
   }
 
   if (options.uploadToDAW) {
@@ -404,7 +386,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":14,"./src/server/client.js":15,"./src/theory/arpeggio.js":17,"./src/theory/base.js":18,"./src/theory/progression.js":19,"./src/theory/rhythm.js":20}],2:[function(require,module,exports){
+},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":14,"./src/server/client.js":16,"./src/theory/arpeggio.js":18,"./src/theory/base.js":19,"./src/theory/progression.js":22}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -4037,9 +4019,10 @@ var lib = {};
 module.exports = lib;
 
 var tLib = require("./theory/base.js");
+var notesLib = require("./theory/notes.js");
 
 function updateFingering(notes) {
-  var notesArray = tLib.parseNotes(notes);
+  var notesArray = notesLib.parseNotes(notes);
 
   if (notesArray.length < 1) {
     return;
@@ -4081,12 +4064,14 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":18}],12:[function(require,module,exports){
+},{"./theory/base.js":19,"./theory/notes.js":21}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
+var rhythmLib = require("../theory/rhythm.js");
+var arpeggioLib = require("../theory/arpeggio.js");
 var zebra = require("./zebra.js");
 
 /**
@@ -4441,7 +4426,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     submitForm();
   });
 
-  var presetElements = form.querySelectorAll(".preset, .voicing-preset");
+  var presetElements = form.querySelectorAll(".preset");
   function enablePresets(enabled) {
     presetElements.forEach(function(element) {
       element.disabled = !enabled;
@@ -4468,6 +4453,22 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     var chordDefs = form.chords.value;
     var voicings = tLib.parseVoicings(form.voicing.value);
 
+    var rhythmPatterns;
+    if (form.rhythms.value.trim().length > 0) {
+      rhythmPatterns = rhythmLib.parseRhythmPatterns(form.rhythms.value);
+    }
+    if (!rhythmPatterns || !rhythmPatterns.defaultRhythmPattern) {
+      rhythmPatterns = rhythmLib.parseRhythmPatterns("1");
+    }
+
+    var arpeggioPatterns;
+    if (form.arp.value.trim().length > 0) {
+      arpeggioPatterns = arpeggioLib.parseArpeggioPatterns(form.arp.value);
+    }
+    if (!arpeggioPatterns || !arpeggioPatterns.defaultArpeggioPattern) {
+      arpeggioPatterns = arpeggioLib.parseArpeggioPatterns(">*_");
+    }
+
     // validate inputs aka only submit valid data
     if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
       return;
@@ -4478,8 +4479,6 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
       zebraRoot: zebraRoot,
       generateMidi: generateMidi,
       uploadToDAW: form.upload_to_daw.checked,
-      unparsedRhythms: form.rhythms.value.trim(),
-      unparsedArpeggioPatterns: form.arp.value.trim(),
       serializedForm: newSerializedForm
     };
 
@@ -4488,7 +4487,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
 
     // repaint all
     resultSection.innerHTML = "";
-    submitFunction(scales, chordDefs, voicings, options, resultSection);
+    submitFunction(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
 
     serializedForm = newSerializedForm;
     updateSerializedFormOfLocation();
@@ -4539,7 +4538,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
   }
 };
 
-},{"../theory/base.js":18,"./zebra.js":13,"form-serialize":4}],13:[function(require,module,exports){
+},{"../theory/arpeggio.js":18,"../theory/base.js":19,"../theory/rhythm.js":23,"./zebra.js":13,"form-serialize":4}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4659,7 +4658,7 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
   return construct(keyboard);
 }
 
-},{"../theory/base.js":18}],14:[function(require,module,exports){
+},{"../theory/base.js":19}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4714,6 +4713,90 @@ lib.createMidi = function(events, chords, scales, generatorUrl, tonalKey) {
 }
 
 },{"midi-writer-js":6}],15:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var LINES_REGEX = /[^\r\n]+/g;
+
+function createReferenceResolver(referenceMap, parserDelegate) {
+  return {
+    resolveReference: function(referenceName) {
+      // resolve reference
+      var thing = referenceMap[referenceName];
+      if (typeof thing === "undefined") {
+        // TODO what is best to do here?
+        console.error("Reference resolver for " + parserDelegate.getName() + ": Undeclared reference used: " + referenceName);
+        return;
+      }
+
+      // already resolved?
+      if (typeof(thing) !== "string") {
+        return thing;
+      }
+
+      // resolve
+      referenceMap[referenceName] = parserDelegate.parseThing(thing, this);
+
+      return referenceMap[referenceName];
+    }
+  };
+}
+
+/**
+* Returns resultMapping, a mapping object of names to <Thing> objects.
+*
+* parserDelegate is an object which is expected to have the following methods:
+* - String getName() // <- something which makes error messages more verbose
+* - <Thing> parseThing(singleLineString, referencResolver)
+* - addNoNameThing(<Thing>, resultMapping) // <- this way there can be different behaviors to for unnamed things
+*
+* referencResolver provides the method:
+* - <Thing> resolveReference(referenceNameString)
+*/
+lib.parseThingsRecursive = function(multineText, parserDelegate) {
+  var resultMapping = {};
+  var noNameThings = [];
+
+  // first just initialize the result mapping with the unparsed strings, parsing and resolving references follows later,
+  // because first all definitions are required to be known...
+
+  // for each line of the multine string:
+  var lines = multineText.match(LINES_REGEX) || [];
+  lines.forEach(function(definition){
+    var split = definition.trim().split(":");
+    if (split.length > 2) {
+      console.error("parseThingsRecursive() - Ignoring line, because it contains too many \":\": " + definition);
+      return;
+    }
+    if (split.length == 1) {
+      // collect the things without name separatly, so its final handling can be decided by the parser delegate
+      noNameThings.push(split[0].trim());
+      return;
+    }
+    resultMapping[split[0].trim()] = split[1].trim();
+  });
+
+  var referenceResolver = createReferenceResolver(resultMapping, parserDelegate);
+
+  // parse and resolve references...
+  for (var key in resultMapping) {
+    if (!resultMapping.hasOwnProperty(key)) {
+      continue;
+    }
+    if (typeof(resultMapping[key]) === "string") {
+      resultMapping[key] = parserDelegate.parseThing(resultMapping[key], referenceResolver);
+    }
+  }
+
+  noNameThings.forEach(function(unparsedThing) {
+    var thing = parserDelegate.parseThing(unparsedThing, referenceResolver);
+    parserDelegate.addNoNameThing(thing, resultMapping);
+  });
+
+  return resultMapping;
+};
+
+},{}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4786,15 +4869,17 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":16}],16:[function(require,module,exports){
+},{"./host.js":17}],17:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
+
+var recursiveParser = require("../recursive_parser.js");
 
 var WHITESPACE_REGEX = /\s+/;
 
@@ -4915,7 +5000,6 @@ function createArpeggioPattern(internalPitchIterators) {
             _currentPitchIterator.reset();
 
             // one completed round of all internal pitch iterators also resets the state
-            // this also is the initialization of the state
             if (_currentPitchIteratorIndex === 0) {
               _state.reset();
             }
@@ -4928,6 +5012,9 @@ function createArpeggioPattern(internalPitchIterators) {
           return pitches;
         }
       };
+    },
+    getInternalPitchIterators: function() {
+      return _internalPitchIterators;
     }
   };
   return pattern;
@@ -5005,6 +5092,27 @@ function createStepsInternalPitchIterator(steps, atTheSameTime) {
 }
 
 /**
+ * This internal decorator iterator always resets the state before it returns its first pitch.
+ */
+function createStateResettingInternalPitchIteratorDecorator(wrappedIterator) {
+  var _wrappedIterator = wrappedIterator;
+  var _resetStatusOnNextPitches = true;
+  return {
+    nextPitches: function(chord, status) {
+      if (_resetStatusOnNextPitches) {
+        status.reset();
+        _resetStatusOnNextPitches = false;
+      }
+      return _wrappedIterator.nextPitches(chord, status);
+    },
+    reset: function () {
+      _wrappedIterator.reset();
+      _resetStatusOnNextPitches = true;
+    }
+  }
+}
+
+/**
  * Returns events being rests or pitch events.
  */
 lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPattern) {
@@ -5015,7 +5123,7 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
     if (notes.length == 0) {
       return;
     }
-    var nextPattern = defaultRhythmPattern;
+    var nextPattern = chord.getChordDefinition().getRhythmPattern() || defaultRhythmPattern;
     var nextArpPattern = defaultArpeggioPattern;
     var pitchIterator = nextArpPattern.createPitchIterator(chord);
     nextPattern.getEvents().forEach(function(event) {
@@ -5051,11 +5159,13 @@ function getNextVoicingPitchStep() {
     return nextVoicingPitchStep;
 }
 
+/**
+ * Returns undefined, if no valid string was passed to parse.
+ */
 function createPitchByRelativePitchIndexStep(pitchIndex) {
   var _pitchIndex = parseInt(pitchIndex);
   if (isNaN(pitchIndex)) {
-    console.error("createPitchByRelativePitchIndexStep() - Invalid pitch index: " + pitchIndex);
-    _pitchIndex = 0;
+    return;
   }
   // make index 0 based
   --_pitchIndex;
@@ -5085,15 +5195,42 @@ function createArpeggioStep(token) {
  * ">*" gets replaced with as many > as there are notes in the voicing
  * ">*_" like ">*" but all pitches are played at the same time
  */
-lib.parseArpeggioPattern = function(patternAsString) {
-  var internalPitchIterators = patternAsString.trim().split(WHITESPACE_REGEX).map(function(token) {
+function parseArpeggioPattern(patternAsString, referenceResolver) {
+  var internalPitchIterators = [];
+  patternAsString.trim().split(WHITESPACE_REGEX).forEach(function(token) {
     if (token.indexOf("*") !== -1) {
-      return createPlaceholderInternalPitchIterator(token);
+      internalPitchIterators.push(createPlaceholderInternalPitchIterator(token));
+      return;
     }
-    var arpSteps = token.trim().split("_").map(function(subToken) {
-      return createArpeggioStep(subToken);
-    });
-    return createStepsInternalPitchIterator(arpSteps, true);
+    var arpSteps;
+    var subTokens = token.trim().split("_");
+    if (subTokens.length > 1) {
+      arpSteps = subTokens.map(function(subToken) {
+        var step = createArpeggioStep(subToken);
+        if (!step) {
+          console.error("parseArpeggioPattern() - Error parsing token as arpeggio step: " + subToken);
+        }
+        return step;
+      });
+    } else {
+      var step = createArpeggioStep(token);
+      if (!step) {
+        // try to parse as a reference
+        var referencedPattern = referenceResolver.resolveReference(token);
+        if (referencedPattern) {
+          var indexOfFirstAddedIterator = internalPitchIterators.length;
+          internalPitchIterators = internalPitchIterators.concat(referencedPattern.getInternalPitchIterators());
+          // the beginning of a new pattern shall always reset the state:
+          internalPitchIterators[indexOfFirstAddedIterator] = createStateResettingInternalPitchIteratorDecorator(internalPitchIterators[indexOfFirstAddedIterator]);
+          return;
+        }
+      } else {
+        arpSteps = [step];
+      }
+    }
+    if (arpSteps.length > 0) {
+      internalPitchIterators.push(createStepsInternalPitchIterator(arpSteps, true));
+    }
   });
   return createArpeggioPattern(internalPitchIterators);
 }
@@ -5107,29 +5244,67 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{}],18:[function(require,module,exports){
+var arpeggioParserDelegate = {
+  getName: function() {
+    return "Arpeggios";
+  },
+  parseThing: function(singleLineString, referenceResolver) {
+    return parseArpeggioPattern(singleLineString, referenceResolver);
+  },
+  addNoNameThing: function(arpeggioPattern, referenceMap) {
+    // the last rhythm without a name becomes the default rhythm
+    referenceMap.defaultArpeggioPattern = arpeggioPattern;
+  }
+};
+
+lib.parseArpeggioPatterns = function(multiLineString) {
+  return recursiveParser.parseThingsRecursive(multiLineString, arpeggioParserDelegate);
+};
+
+},{"../recursive_parser.js":15}],19:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var scaleLib = require("./scale.js");
+var voicingLib = require("./voicing.js");
+var notesLib = require("./notes.js");
+var chordDefinitionLib = require("./chord_definition.js");
+lib.createScale = scaleLib.createScale;
+lib.parseVoicings = voicingLib.parseVoicings;
+lib.isVoicing = voicingLib.isVoicing;
+lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
+lib.parseNote = notesLib.parseNote;
+lib.parseNotes = notesLib.parseNotes;
+
+},{"./chord_definition.js":20,"./notes.js":21,"./scale.js":24,"./voicing.js":25}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var voicingLib = require("./voicing.js");
-lib.parseVoicings = voicingLib.parseVoicings;
-lib.isVoicing = voicingLib.isVoicing;
+var recursiveParser = require("../recursive_parser.js");
 
-// -- diatonic (~0-24) to chromatic notes (0-11) mapping of major scale
-// TODO enable bigger intervals
-var majorNotes = [
-// -- 1-7:
-  0, 2, 4, 5, 7, 9, 11,
-//  -- 8  9  10  11  12  13  14
-  0+12, 2+12, 4+12, 5+12, 7+12, 9+12, 11+12,
-// -- 15
-  0+12+12
-];
-
-var WHITESPACE_REGEX = /\s+/;
 var REGEX_COUNT_SCALE = /\*/g;
 
-function parseChordDefinition(chordDef, voicings, scales) {
+function resolveRhythmPattern(rhythmReference, rhythmPatterns, chordDefString) {
+  if (!rhythmPatterns[rhythmReference]) {
+    console.warn("Unknown rhythm reference \"" + rhythmReference + "\" used in chord definition \"" + chordDefString  + "\"");
+    return;
+  }
+  return rhythmPatterns[rhythmReference];
+}
+
+/**
+ * Returns false if there is no valid chord definition to be parsed.
+ */
+function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpeggioPatterns) {
+  var _step = parseInt(chordDef.trim());
+  if (isNaN(_step)) {
+    return false;
+  }
+
+  // make step 0 based
+  --_step;
+
   voicings = voicings || {defaultVoicing: "1 3 5"};
   var defaultVoicing = voicings.defaultVoicing;
   // parse shall return the chord definition, when chord defs are passed
@@ -5217,7 +5392,7 @@ function parseChordDefinition(chordDef, voicings, scales) {
   }
 
   var _chordDef = "" + chordDef;
-  var _step = parseInt(chordDef.trim()) - 1;
+
   // any parameter can be used multiple times and the result just gets
   // reduced to one value, basically allows for easier input and also hopefully reading
   function sum(a, b) { return a + b; };
@@ -5247,10 +5422,30 @@ function parseChordDefinition(chordDef, voicings, scales) {
     }
   }
 
+  var _rhythmPattern;
+  var rhythmPatternReferences = parseStringParameters("R", null, "rhythms");
+  if (rhythmPatternReferences.length == 1) {
+    if (rhythmPatternReferences[0] !== null) {
+      _rhythmPattern = resolveRhythmPattern(rhythmPatternReferences[0], rhythmPatterns, chordDef);
+    }
+  } else if (rhythmPatternReferences.length > 1) {
+    rhythmPatternReferences.forEach(function(patternReference) {
+      var pattern = resolveRhythmPattern(patternReference, rhythmPatterns, chordDef);
+      if (!pattern) {
+        return;
+      }
+      if (!_rhythmPattern) {
+        _rhythmPattern = pattern.clone();
+        return;
+      }
+      _rhythmPattern.addPattern(pattern);
+    });
+  }
+
   var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
     // map voicing references to actual voicings
     .map(function(voicingReference) {
-      if (lib.isVoicing(voicingReference)) {
+      if (voicingLib.isVoicing(voicingReference)) {
         return voicingReference;
       }
       if (Array.isArray(voicingReference)) {
@@ -5273,11 +5468,6 @@ function parseChordDefinition(chordDef, voicings, scales) {
 
   if (!_voicing) {
     _voicing = defaultVoicing;
-  }
-
-  if (isNaN(_step)) {
-    console.error("parseChordDefinition() - Could not parse step out of: " + chordDef);
-    _step = 0;
   }
 
   return {
@@ -5304,29 +5494,94 @@ function parseChordDefinition(chordDef, voicings, scales) {
     },
     getScale: function() {
       return _scale;
+    },
+    getRhythmPattern: function() {
+      return _rhythmPattern;
     }
   };
 }
 
-lib.parseChordDefinitions = function(chordDefs, voicings, scales) {
+/**
+ * Returns an array of chord definitions.
+ */
+function parseChordDefinitionsLine(singleLineString, voicings, scales, rhythmPatterns, arpeggioPatterns, referencResolver) {
   var defaultVoicing = voicings.defaultVoicing;
-  if (Array.isArray(chordDefs)) {
-    return chordDefs.map(function(chordDef) {
-      return parseChordDefinition(chordDef, voicings, scales);
-    });
-  }
-  if (typeof chordDefs !== "string") {
+  if (typeof singleLineString !== "string") {
     console.error("parseChordDefinitions() - Only strings can be parsed");
     return [];
   }
 
   var chordDefObjects = [];
-  chordDefs.trim().split(/\s+/).forEach(function(chordDef) {
-    chordDefObjects.push(parseChordDefinition(chordDef, voicings, scales));
+  singleLineString.trim().split(/\s+/).forEach(function(token) {
+    // try to parse as chord definition
+    var chordDef = parseChordDefinition(token, voicings, scales, rhythmPatterns, arpeggioPatterns);
+    if (chordDef !== false) {
+      chordDefObjects.push(chordDef);
+      return;
+    }
+    // try as a reference
+    var chordDefinitions = referencResolver.resolveReference(token);
+    if (Array.isArray(chordDefinitions)) {
+      // add all referenced chord definitions
+      chordDefObjects = chordDefObjects.concat(chordDefinitions);
+    }
   });
-
   return chordDefObjects;
 };
+
+/**
+ * The parsed thing of the created parser delegate is an array of chord definitions.
+ */
+function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns) {
+  var _voicings = voicings;
+  var _scales = scales;
+  var _rhythmPatterns = rhythmPatterns;
+  var _arpeggioPatterns = arpeggioPatterns;
+
+  return {
+    chordDefinitions: [],
+    getName: function() {
+      return "Chord Definitions";
+    },
+    parseThing: function(singleLineString, referencResolver) {
+      return parseChordDefinitionsLine(singleLineString, _voicings, _scales, _rhythmPatterns, _arpeggioPatterns, referencResolver);
+    },
+    addNoNameThing: function(chordDefinitions, referenceMap) {
+      // all chord definitions without a name become part of the result
+      this.chordDefinitions = this.chordDefinitions.concat(chordDefinitions);
+    }
+  };
+};
+
+/**
+ * All lines of chord definitions which have no name are accumulated and are
+ * returned.
+ */
+lib.parseChordDefinitions = function(multiLineString, voicings, scales, rhythmPatterns, arpeggioPatterns) {
+  var parserDelegate = createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns);
+  recursiveParser.parseThingsRecursive(multiLineString, parserDelegate);
+  return parserDelegate.chordDefinitions;
+}
+
+},{"../recursive_parser.js":15,"./voicing.js":25}],21:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+/**
+* TODO find better names for the functions and the file
+*/
+
+// -- diatonic (~0-24) to chromatic notes (0-11) mapping of major scale
+// TODO enable bigger intervals
+var majorNotes = [
+// -- 1-7:
+  0, 2, 4, 5, 7, 9, 11,
+//  -- 8  9  10  11  12  13  14
+  0+12, 2+12, 4+12, 5+12, 7+12, 9+12, 11+12,
+// -- 15
+  0+12+12
+];
+
+var WHITESPACE_REGEX = /\s+/;
 
 /**
  * TODO Make lookups in intervalNameMap and fallback also work for higher than contained intervals, e.g. if b3 is contained, also b11 should also work
@@ -5577,41 +5832,372 @@ function parseNotes(notes, intervalNameMap, recursion) {
 }
 lib.parseNotes = parseNotes;
 
+},{}],22:[function(require,module,exports){
+var lib = {}; // gets exported
+module.exports = lib;
+var t = require("./base.js"),
+  f = require("../fingering.js");
+
 /**
- * TODO Never tested nor used, should be unfinished
- * Returns array of arrays by splitting by comma.
+ * Idea: add direction bias parameter (up, down, stay close), then remember lowest negative diff and lowest positive diff; if the absolute values of the diffs are the same, choose the biased one,
+ *       maybe compare using a handicap for the biased side and make the handycap maybe even configurable
  *
- * output examples:
- *   * [note1, note2, note3]
- *   * [ [note1, note2, note3], [note4, note5] ]
- *   * [ [note1, note2, note3] ]
- *   * []
+ *
+ * return int diff
  */
-lib.parseNotesList = function(notesList) {
-  if (typeof(notesList) === "string") {
-    var result = notesList.trim().split(",");
-    for (var i=0; i<parts.length; ++i) {
-      result[i] = parseNotes(result[i]);
-    }
-    return result;
+function calculateDiff(chord1, chord2) {
+  var notes1 = chord1.getNotes();
+  var notes2 = chord2.getNotes();
+  if (notes1.length != notes2.length) {
+    console.error("ChromatoneLibProgression.diff - Diffing currently only works with chords of the same length.");
+    return 0;
   }
-  if (Array.isArray(notesList)) {
-    var result = [];
-    for (var i=0; i<notesList.length; ++i) {
-      result.push(parseNotes(notesList[i]));
-    }
-    return result;
+
+  var diff = 0;
+  for (var i=0; i<notes1.length; ++i) {
+    diff += (notes1[i].getPosition() - notes2[i].getPosition());
   }
-  console.warn("parseNotesList - don't know how to parse, returning empty array.", notesList);
-  return [];
+
+  return Math.abs(diff);
+}
+
+/**
+ * Lowest note of progression gets the position 0.
+ *
+ * return array progression of chords = altered input
+ */
+function fix(chords) {
+  if (chords.length < 2) {
+    return chords;
+  }
+
+  // find lowest note position
+  var lowestPosition = chords[0].getLowestNote().getPosition();
+  chords.forEach(function(chord) {
+    var lowestPosition2 = chord.getLowestNote().getPosition();
+    if (lowestPosition2 < lowestPosition) {
+      lowestPosition = lowestPosition2;
+    }
+  });
+
+  // already fixed
+  if (lowestPosition == 0) {
+    return chords;
+  }
+
+  // transpose the progression, so it's fixed
+  for (var i=0; i<chords.length; ++i) {
+    chords[i].fix(-lowestPosition);
+  }
+
+  return chords;
+}
+
+/**
+ * chordDefs[]  .. strings of chord definitions relating to the scale
+ */
+lib.createChordProgression = function(scale, chordDefinitions) {
+  var _chordDefs = chordDefinitions;
+  var _chords;
+  return {
+    /**
+     * XXX Once fixed they stay fixed.... so this becomes a thing of using it
+     * in the right order! must return a copy instead!
+     */
+    fixChords: function() {
+      _chords = fix(this.getChords());
+    },
+    getChords: function() {
+      // lazy init
+      if (Array.isArray(_chords)) {
+        return _chords;
+      }
+
+      var progression = [];
+      var previousChord = scale.createChord(_chordDefs[0]);
+      f.updateFingering(previousChord);
+      progression.push(previousChord);
+      for (var i=1; i<_chordDefs.length; ++i) {
+        var chordDef = _chordDefs[i];
+        // get best diff of all the inversions (inversion=0 is in root position)
+        var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
+        var bestInversion = 0, bestTransposed = 0, transposed = 0;
+        var voicingLength = chordDef.getVoicing().getVoices1().length;
+        for (var inversion = 1; inversion < voicingLength; ++inversion) {
+          chordDef.setInversion(inversion);
+          var chord = scale.createChord(chordDef);
+          // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
+
+          // TODO this is not working too well!
+          if (previousChord.getNotes()[0].getPosition() < chordDef.getStep()) {
+          // if (chordDefs[i - 1] < chordDef) {
+            transposed = -12;
+            chord.transpose(transposed);
+          }
+          var diff = calculateDiff(previousChord, chord);
+          if (diff < minDiff) {
+            minDiff = diff;
+            bestInversion = inversion;
+            bestTransposed = transposed;
+          }
+        }
+        _chordDefs[i].setInversion(bestInversion);
+        var previousChord = scale.createChord(_chordDefs[i]);
+        previousChord.transpose(bestTransposed);
+        f.updateFingering(previousChord);
+        progression.push(previousChord);
+      }
+      _chords = progression;
+      return _chords;
+    }
+  }
+}
+
+},{"../fingering.js":11,"./base.js":19}],23:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var recursiveParser = require("../recursive_parser.js");
+
+var WHITESPACE_REGEX = /\s+/;
+
+var LEGATO = 0;
+var TENUTO = 1;
+
+var lengthArticulationMappings = {
+  legato: LEGATO,
+  l: LEGATO,
+  tenuto: TENUTO,
+  t: TENUTO
 };
+
+function createDefaultArticulation() {
+  return createArticulation(TENUTO);
+}
+
+function createArticulation(lengthArticulation) {
+  var _lengthArticulation = lengthArticulation;
+  return {
+    getLengthArticulation: function() {
+      return _lengthArticulation;
+    },
+    /**
+     * returns true, if there was something to be applied (= a valid input)
+     */
+    applyToken: function(articulationAsString) {
+      if (typeof lengthArticulationMappings[articulationAsString] !== "undefined") {
+        _lengthArticulation = lengthArticulationMappings[articulationAsString];
+        return true;
+      }
+      return false;
+    },
+    clone: function() {
+      return createArticulation(_lengthArticulation);
+    }
+  };
+}
+
+function createRhythmPattern(length, events, quarterNoteCount) {
+  var _patternLength = length;
+  var _events = events;
+  var _quarterNoteCount = quarterNoteCount;
+  var _defaultArticulation = createDefaultArticulation();
+
+  // TODO Use articulations or delete the code for it!
+  // apply the tokens to the articulations object while it works from last to first
+  // while (tokens.length > 0 && _defaultArticulation.applyToken(tokens[tokens.length - 1])) {
+    // remove applied token
+  //  tokens.pop();
+  // }
+
+  var pattern = {
+    getEvents: function() {
+      return _events;
+    },
+    applyOption: function(key, value) {
+      if (key === "q") {
+        var valueAsFloat = parseFloat(value);
+        if (isNaN(valueAsFloat)) {
+          console.error("applyOption() - Ignoring invalid float option value: " + key + "=" + value);
+          return;
+        }
+        _quarterNoteCount = valueAsFloat;
+      } else {
+        console.error("applyOption() - Ignoring unknown option key: " + key);
+      }
+    },
+    getDefaultArticulation: function() {
+      return _defaultArticulation;
+    },
+    /* Makes only sense, when used by child events, because they way patterns are merged. */
+    getQuarterNoteCount: function() {
+      return _quarterNoteCount;
+    },
+    /* Makes only sense, when used by child events, because they way patterns are merged. */
+    getLength: function() {
+      return _patternLength;
+    },
+    setLength: function(patternLength) {
+      _patternLength = patternLength;
+    },
+    addPattern: function(otherPattern) {
+      _events = _events.concat(otherPattern.getEvents());
+    },
+    clone: function() {
+      // actually the only thing which gets used if the clones is the list of events
+      return createRhythmPattern(_patternLength, _events.slice(), _quarterNoteCount);
+    }
+  };
+
+  return pattern;
+}
+
+/**
+ * Format of one rhythm pattern:
+ *
+ * A list of integer numbers each taking up length witihin the rhythm pattern
+ * proportional to its value.
+ * Total length is the sum of all values.
+ *
+ *  - breaks: e.g. "!1"
+ */
+function parseRhythmPattern(patternAsString, referenceResolver) {
+  var patternLength = 0;
+  var events = [];
+  // default quarter note length of a pattern is 4
+  var pattern = createRhythmPattern(patternLength, events, 4);
+  var defaultArticulation = pattern.getDefaultArticulation();
+
+  var tokens = patternAsString.trim().split(WHITESPACE_REGEX);
+
+  tokens.forEach(function(token) {
+    // try to parse event
+    var event = parseEvent(token, pattern, defaultArticulation);
+    if (event !== false) {
+      patternLength += event.getLength();
+      events.push(event);
+    } else {
+      // try to parse option
+      var parts = token.split("=");
+      if (parts.length === 2) {
+        pattern.applyOption(parts[0], parts[1]);
+      } else {
+        // try to resolve as reference
+        var rhythmPattern = referenceResolver.resolveReference(token);
+        // and merge it into the rhythm
+        if (rhythmPattern) {
+          // this works, because the added events still reference their original
+          // patterns, so what these events return for their length in quarter notes
+          // still stays the same
+          pattern.addPattern(rhythmPattern);
+        }
+      }
+    }
+  });
+  pattern.setLength(patternLength);
+  return pattern;
+}
+
+/**
+ * Returns false if eventAsString is nothing valid to be parsed.
+ */
+function parseEvent(eventAsString, pattern, defaultArticulation) {
+  if (eventAsString.length == 0) {
+    return false;
+  }
+  var eventAsStringBeingParsed = eventAsString;
+  var isRest = false;
+  var value = 0;
+
+  if (eventAsStringBeingParsed[0] == "!") {
+    isRest = true;
+    eventAsStringBeingParsed = eventAsStringBeingParsed.substr(1);
+  }
+
+  value = parseFloat(eventAsStringBeingParsed);
+  if (isNaN(value)) {
+    return false;
+  }
+
+  var articulation = defaultArticulation.clone();
+
+  // maybe add articulation
+  // XXX only works for one shorthand
+  articulation.applyToken(eventAsStringBeingParsed[eventAsStringBeingParsed.length - 1]);
+
+  return createEventObject(value, isRest, pattern, articulation);
+}
+
+function createEventObject(length, isRest, pattern, articulation) {
+  var _length = length;
+  var _isRest = isRest;
+  var _articulation = articulation;
+  var _pattern = pattern;
+  return {
+    /**
+     * The duration of the whole event
+     */
+    getLength: function() {
+      return _length;
+    },
+    isRest: function() {
+      return _isRest;
+    },
+    /**
+     * returns the length in quarter notes
+     */
+    getLengthInQN: function() {
+      return (_length / _pattern.getLength()) * _pattern.getQuarterNoteCount();
+    },
+    clone: function() {
+      return createEventObject(_length, _isRest, _pattern, _articulation);
+    }
+  };
+}
+
+var rhythmParserDelegate = {
+  getName: function() {
+    return "Rhythms";
+  },
+  parseThing: function(singleLineString, referenceResolver) {
+    return parseRhythmPattern(singleLineString, referenceResolver);
+  },
+  addNoNameThing: function(rhythmPattern, referenceMap) {
+    // the last rhythm without a name becomes the default rhythm
+    referenceMap.defaultRhythmPattern = rhythmPattern;
+  }
+};
+
+lib.parseRhythmPatterns = function(multiLineString) {
+  var map = recursiveParser.parseThingsRecursive(multiLineString, rhythmParserDelegate);
+  // assure a default rhythm pattern
+  if (!map.defaultRhythmPattern) {
+    // use the first named pattern
+    var defaultPattern;
+    for (var key in map) {
+      if (map.hasOwnProperty(key)) {
+        map.defaultRhythmPattern = map[key];
+        break;
+      }
+    }
+  }
+  return map;
+};
+
+},{"../recursive_parser.js":15}],24:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var notesLib = require("./notes.js");
+
+var WHITESPACE_REGEX = /\s+/;
 
 /**
  * @param String definition
  * @return scale
  */
-function createScale(definition) {
-  var _notes = parseNotes(definition);
+lib.createScale = function(definition) {
+  var _notes = notesLib.parseNotes(definition);
 
   // the root can be anywhere in the scale:
   var _rootNoteIndex = _notes.findIndex(function(note) { return note.isRoot(); });
@@ -5648,6 +6234,7 @@ function createScale(definition) {
       var _voicing = chordDef.getVoicing();
       var _scale = this;
       var _fixedOffset = 0;
+      var _chordDef = chordDef;
 
       var chordScaleNotes = this.getNotes();
       if (_step > 0) {
@@ -5783,6 +6370,9 @@ function createScale(definition) {
         },
         getName: function() {
           return _name + (_inversion > 0 ? (" " + _inversion): "");
+        },
+        getChordDefinition: function() {
+          return _chordDef;
         }
       };
 
@@ -5851,7 +6441,7 @@ function createScale(definition) {
       for (var i=0; i<_notes.length; ++i)  {
         newNotes.push(_notes[i].clone());
       }
-      return createScale(newNotes);
+      return lib.createScale(newNotes);
     },
     toString: function() {
       var str = "";
@@ -5862,335 +6452,15 @@ function createScale(definition) {
     }
   };
 }
-lib.createScale = createScale;
 
-},{"./voicing.js":21}],19:[function(require,module,exports){
-var lib = {}; // gets exported
-module.exports = lib;
-var t = require("./base.js"),
-  f = require("../fingering.js");
-
-/**
- * Idea: add direction bias parameter (up, down, stay close), then remember lowest negative diff and lowest positive diff; if the absolute values of the diffs are the same, choose the biased one,
- *       maybe compare using a handicap for the biased side and make the handycap maybe even configurable
- *
- *
- * return int diff
- */
-function calculateDiff(chord1, chord2) {
-  var notes1 = chord1.getNotes();
-  var notes2 = chord2.getNotes();
-  if (notes1.length != notes2.length) {
-    console.error("ChromatoneLibProgression.diff - Diffing currently only works with chords of the same length.");
-    return 0;
-  }
-
-  var diff = 0;
-  for (var i=0; i<notes1.length; ++i) {
-    diff += (notes1[i].getPosition() - notes2[i].getPosition());
-  }
-
-  return Math.abs(diff);
-}
-
-/**
- * Lowest note of progression gets the position 0.
- *
- * return array progression of chords = altered input
- */
-function fix(chords) {
-  if (chords.length < 2) {
-    return chords;
-  }
-
-  // find lowest note position
-  var lowestPosition = chords[0].getLowestNote().getPosition();
-  chords.forEach(function(chord) {
-    var lowestPosition2 = chord.getLowestNote().getPosition();
-    if (lowestPosition2 < lowestPosition) {
-      lowestPosition = lowestPosition2;
-    }
-  });
-
-  // already fixed
-  if (lowestPosition == 0) {
-    return chords;
-  }
-
-  // transpose the progression, so it's fixed
-  for (var i=0; i<chords.length; ++i) {
-    chords[i].fix(-lowestPosition);
-  }
-
-  return chords;
-}
-
-/**
- * scale[]      .. note objects
- * chordDefs[]  .. strings of chord definitions relating to the scale
- * chordLength  .. how many notes per chord
- */
-lib.createChordProgression = function(scale, chordDefs) {
-  if (chordDefs.length === 0) {
-    return createProgressionObject([]);
-  }
-
-  var progression = [];
-  var transposeAll = 0;
-
-  var previousChord = scale.createChord(chordDefs[0]);
-  f.updateFingering(previousChord);
-  progression.push(previousChord);
-  for (var i=1; i<chordDefs.length; ++i) {
-    var chordDef = chordDefs[i];
-    // get best diff of all the inversions (inversion=0 is in root position)
-    var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
-    var bestInversion = 0, bestTransposed = 0, transposed = 0;
-    var voicingLength = chordDef.getVoicing().getVoices1().length;
-    for (var inversion = 1; inversion < voicingLength; ++inversion) {
-      chordDef.setInversion(inversion);
-      var chord = scale.createChord(chordDef);
-      // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
-
-      // TODO this is not working too well!
-      if (previousChord.getNotes()[0].getPosition() < chordDef.getStep()) {
-      // if (chordDefs[i - 1] < chordDef) {
-        transposed = -12;
-        chord.transpose(transposed);
-      }
-      var diff = calculateDiff(previousChord, chord);
-      if (diff < minDiff) {
-        minDiff = diff;
-        bestInversion = inversion;
-        bestTransposed = transposed;
-      }
-    }
-    chordDefs[i].setInversion(bestInversion);
-    var previousChord = scale.createChord(chordDefs[i]);
-    previousChord.transpose(bestTransposed);
-    f.updateFingering(previousChord);
-    progression.push(previousChord);
-  }
-  return createProgressionObject(progression);
-};
-
-function createProgressionObject(chords) {
-  var _chords = chords;
-  return {
-    /**
-     * XXX Once fixed they stay fixed.... so this becomes a thing of using it
-     * in the right order! must return a copy instead!
-     */
-    fixChords: function() {
-      _chords = fix(_chords);
-    },
-    getChords: function() {
-      return _chords;
-    }
-  }
-}
-
-},{"../fingering.js":11,"./base.js":18}],20:[function(require,module,exports){
+},{"./notes.js":21}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var WHITESPACE_REGEX = /\s+/;
-
-var LEGATO = 0;
-var TENUTO = 1;
-
-var lengthArticulationMappings = {
-  legato: LEGATO,
-  l: LEGATO,
-  tenuto: TENUTO,
-  t: TENUTO
-};
-
-function createDefaultArticulation() {
-  return createArticulation(TENUTO);
-}
-
-function createArticulation(lengthArticulation) {
-  var _lengthArticulation = lengthArticulation;
-  return {
-    getLengthArticulation: function() {
-      return _lengthArticulation;
-    },
-    /**
-     * returns true, if there was something to be applied (= a valid input)
-     */
-    applyToken: function(articulationAsString) {
-      if (typeof lengthArticulationMappings[articulationAsString] !== "undefined") {
-        _lengthArticulation = lengthArticulationMappings[articulationAsString];
-        return true;
-      }
-      return false;
-    },
-    clone: function() {
-      return createArticulation(_lengthArticulation);
-    }
-  };
-}
-
-/**
- * Format of one rhythm pattern:
- *
- * A list of integer numbers each taking up length witihin the rhythm pattern
- * proportional to its value.
- * Total length is the sum of all values.
- *
- *  - breaks: e.g. "!1"
- */
-lib.parseRhythmPattern = function(patternAsString) {
-  var _patternLength = 0;
-  var _events = [];
-  var _quarterNoteCount = 4;
-  var _defaultArticulation = createDefaultArticulation();
-
-  // TODO Use articulations or delete the code for it!
-  // apply the tokens to the articulations object while it works from last to first
-  // while (tokens.length > 0 && _defaultArticulation.applyToken(tokens[tokens.length - 1])) {
-    // remove applied token
-  //  tokens.pop();
-  // }
-
-  var pattern = {
-    applyOption: function(key, value) {
-      if (key === "q") {
-        var valueAsFloat = parseFloat(value);
-        if (isNaN(valueAsFloat)) {
-          console.error("applyOption() - Ignoring invalid float option value: " + key + "=" + value);
-          return;
-        }
-        _quarterNoteCount = valueAsFloat;
-      } else {
-        console.error("applyOption() - Ignoring unknown option key: " + key);
-      }
-    },
-    getDefaultArticulation: function() {
-      return _defaultArticulation;
-    },
-    getQuarterNoteCount: function() {
-      return _quarterNoteCount;
-    },
-    getEvents: function() {
-      return _events;
-    },
-    getLength: function() {
-      return _patternLength;
-    }
-  };
-
-  var defaultArticulation = pattern.getDefaultArticulation();
-
-  var tokens = patternAsString.trim().split(WHITESPACE_REGEX);
-
-  tokens.forEach(function(eventOrOptionAsString) {
-    // try to parse event
-    var event = parseEvent(eventOrOptionAsString, pattern, defaultArticulation);
-    if (event !== false) {
-      _patternLength += event.getLength();
-      _events.push(event);
-    } else {
-      // try to parse option
-      var parts = eventOrOptionAsString.split("=");
-      if (parts.length === 2) {
-        pattern.applyOption(parts[0], parts[1]);
-      } else {
-        console.error("parseRhythmPattern() - Ignoring unknown token in rhythm pattern: " + token);
-      }
-    }
-  });
-
-  return pattern;
-}
-
-/**
- * Returns false if eventAsString is nothing valid to be parsed.
- */
-function parseEvent(eventAsString, pattern, defaultArticulation) {
-  if (eventAsString.length == 0) {
-    return false;
-  }
-  var eventAsStringBeingParsed = eventAsString;
-  var isRest = false;
-  var value = 0;
-
-  if (eventAsStringBeingParsed[0] == "!") {
-    isRest = true;
-    eventAsStringBeingParsed = eventAsStringBeingParsed.substr(1);
-  }
-
-  value = parseFloat(eventAsStringBeingParsed);
-  if (isNaN(value)) {
-    return false;
-  }
-
-  var articulation = defaultArticulation.clone();
-
-  // maybe add articulation
-  // XXX only works for one shorthand
-  articulation.applyToken(eventAsStringBeingParsed[eventAsStringBeingParsed.length - 1]);
-
-  return createEventObject(value, isRest, pattern, articulation);
-}
-
-function createEventObject(length, isRest, pattern, articulation) {
-  var _length = length;
-  var _isRest = isRest;
-  var _articulation = articulation;
-  var _pattern = pattern;
-  return {
-    /**
-     * The duration of the whole event
-     */
-    getLength: function() {
-      return _length;
-    },
-    isRest: function() {
-      return _isRest;
-    },
-    /**
-     * returns the length in quarter notes
-     */
-    getLengthInQN: function() {
-      return (_length / _pattern.getLength()) * _pattern.getQuarterNoteCount();
-    },
-    clone: function() {
-      return createEventObject(_length, _isRest, _pattern, _articulation);
-    }
-  };
-}
-
-},{}],21:[function(require,module,exports){
-var lib = {};
-module.exports = lib;
+var recursiveParser = require("../recursive_parser.js");
 
 var LINES_REGEX = /[^\r\n]+/g;
 var WHITESPACE_REGEX = /\s+/;
-
-/**
- * returns the voicing object by its voicing reference name
- */
-function resolveVoicingReference(voicingReference, voicings) {
-  // resolve voicing reference
-  var voicing = voicings[voicingReference];
-  if (typeof voicing === "undefined") {
-    // TODO what is best to do here?
-    console.error("resolveVoicingReference() - Undeclared voicing reference used: " + voicingReference);
-    return;
-  }
-
-  // already resolved?
-  if (lib.isVoicing(voicing)) {
-    return voicing;
-  }
-
-  // resolve
-  voicings[voicingReference] = parseVoicing(voicing, voicings);
-
-  return voicings[voicingReference];
-}
 
 /**
  * returns false if there is no voice (so this should be a reference)
@@ -6212,27 +6482,27 @@ function parseVoice(voiceString) {
  * 1 3 5
  * 1 3 5 7, 8
  */
-function parseVoicing(voicingString, voicings) {
+function parseVoicing(voicingString, referenceResolver) {
   var voicing = createVoicing([], []);
   var parts = voicingString.split(",");
 
   // for each voice or voicing reference
   parts[0].trim().split(WHITESPACE_REGEX).forEach(function(voiceOrVoicingReference) {
-    var voice = parseVoice(voiceOrVoicingReference, voicings);
+    var voice = parseVoice(voiceOrVoicingReference);
     if (voice !== false) {
       voicing.addVoice1(voice);
     } else {
-      voicing.addVoicing1(resolveVoicingReference(voiceOrVoicingReference, voicings));
+      voicing.addVoicing1(referenceResolver.resolveReference(voiceOrVoicingReference));
     }
   });
 
   if (parts.length > 1) {
     parts[0].trim().split(WHITESPACE_REGEX).forEach(function(voiceOrVoicingReference) {
-      var voice = parseVoice(voiceOrVoicingReference, voicings);
+      var voice = parseVoice(voiceOrVoicingReference);
       if (voice !== false) {
         voicing.addVoice2(voice);
       } else {
-        voicing.addVoicing2(resolveVoicingReference(voiceOrVoicingReference, voicings));
+        voicing.addVoicing2(referenceResolver.resolveReference(voiceOrVoicingReference));
       }
     });
   }
@@ -6262,6 +6532,19 @@ function createVoicing(voices1, voices2) {
   };
 }
 
+var voicingParserDelegate = {
+  getName: function() {
+    return "Voicings";
+  },
+  parseThing: function(singleLineString, referencResolver) {
+    return parseVoicing(singleLineString, referencResolver);
+  },
+  addNoNameThing: function(voicing, referenceMap) {
+    // the last voicing without a name becomes the default voicing
+    referenceMap.defaultVoicing = voicing;
+  }
+};
+
 /**
  * voicingsString .. multiline string
  *
@@ -6269,54 +6552,14 @@ function createVoicing(voices1, voices2) {
  *         There is always a voicing by the name `defaultVoicing`.
  */
 lib.parseVoicings = function(voicingsString) {
-  // first just initialize voicings with the unparsed strings, parsing and resolving references follows later,
-  // because first all definitions are required to be known
-  var voicings = {defaultVoicing: ""};
-  if (voicingsString.trim() === "") {
-    return voicings;
-  }
-  // split by lines
-  var voicingDefinitions = voicingsString.match(LINES_REGEX) || [];
-  voicingDefinitions.forEach(function(definition){
-    var split = definition.trim().split(":");
-    if (split.length > 2) {
-      console.error("parseVoicings() - Ignoring voicing definition: " + definition);
-      return;
-    }
-    if (split.length == 1) {
-      // the last voicing which has no name, becomes the default voicing
-      voicings.defaultVoicing = split[0].trim();
-      return;
-    }
-    voicings[split[0].trim()] = split[1].trim();
-  });
-
-  // parse and resolve references
-  for (var key in voicings) {
-    if (!voicings.hasOwnProperty(key)) {
-      continue;
-    }
-    if (!lib.isVoicing(voicings[key])) {
-      voicings[key] = parseVoicing(voicings[key], voicings);
-    }
-  }
-
-  // debugging
-  // for (var refName in voicings) {
-  //   if (!voicings.hasOwnProperty(refName)) {
-  //     continue;
-  //   }
-  //   console.log("parseVoicings()", refName, voicings[refName].asString());
-  // }
-
-  return voicings;
+  return recursiveParser.parseThingsRecursive(voicingsString, voicingParserDelegate);
 }
 
 lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{}]},{},[1]);
+},{"../recursive_parser.js":15}]},{},[1]);
 </script>
   </body>
 </html>
