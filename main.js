@@ -10,20 +10,8 @@ var k = g.createKeyboard(3, 7);
 
 // TODO move this code into an own file / layer:
 g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-  var chordDefinitionGroups = [];
-  var chordDefinitions = [];
-
-  // parse chord definitions in groups, so we can split the generated chords afterwards...
-  chordDefs.split(",").forEach(function(chordDefsOfGroup) {
-    // the chord progression needs to be generated in one go!
-    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup, voicings, scales, rhythmPatterns, arpeggioPatterns)
-    chordDefinitionGroups.push(chordDefObjectsOfGroup);
-    chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
-  });
-
-  // generate the chords in one go:
-  // TODO remove the scale parameter
-  var progression = p.createChordProgression(scales[0], chordDefinitions);
+  var chordDefinitionComposit = t.parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
+  var progression = p.createChordProgression(scales[0], chordDefinitionComposit);
   var chords = progression.getChords();
 
   if (options.uploadToDAW || options.uploadMidi || options.generateMidi) {
@@ -48,12 +36,14 @@ g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns
   progression.fixChords();
   var chords = progression.getChords();
 
-  // but output the chords in groups (defined by comma):
-  chordDefinitionGroups.forEach(function(group) {
-    var chordsOfGroup = [];
-    group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-    g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
-  });
+  g.addChordsUsingChordDefinitionComposit(chords, chordDefinitionComposit, options.zebraRoot, resultSection);
+
+  // // but output the chords in groups (defined by comma):
+  // chordDefinitionGroups.forEach(function(group) {
+  //   var chordsOfGroup = [];
+  //   group.forEach(function() { chordsOfGroup.push(chords.shift()); });
+  //   g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
+  // });
 }, presets.progressions, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
 function buildGeneratorUrl(serializedForm) {

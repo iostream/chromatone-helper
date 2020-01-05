@@ -61,8 +61,8 @@ function fix(chords) {
 /**
  * chordDefs[]  .. strings of chord definitions relating to the scale
  */
-lib.createChordProgression = function(scale, chordDefinitions) {
-  var _chordDefs = chordDefinitions;
+lib.createChordProgression = function(scale, chordDefinitionComposit) {
+  var _chordDefs = chordDefinitionComposit;
   var _chords;
   return {
     /**
@@ -78,12 +78,18 @@ lib.createChordProgression = function(scale, chordDefinitions) {
         return _chords;
       }
 
+      var iterator = _chordDefs.createChordDefinitonIterator();
+      var chordDef = iterator.next();
+      if (chordDef === false) {
+        _chords = [];
+        return _chords;
+      }
+
       var progression = [];
-      var previousChord = scale.createChord(_chordDefs[0]);
+      var previousChord = scale.createChord(chordDef);
       f.updateFingering(previousChord);
       progression.push(previousChord);
-      for (var i=1; i<_chordDefs.length; ++i) {
-        var chordDef = _chordDefs[i];
+      while ((chordDef = iterator.next()) !== false) {
         // get best diff of all the inversions (inversion=0 is in root position)
         var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
         var bestInversion = 0, bestTransposed = 0, transposed = 0;
@@ -106,8 +112,8 @@ lib.createChordProgression = function(scale, chordDefinitions) {
             bestTransposed = transposed;
           }
         }
-        _chordDefs[i].setInversion(bestInversion);
-        var previousChord = scale.createChord(_chordDefs[i]);
+        chordDef.setInversion(bestInversion);
+        var previousChord = scale.createChord(chordDef);
         previousChord.transpose(bestTransposed);
         f.updateFingering(previousChord);
         progression.push(previousChord);

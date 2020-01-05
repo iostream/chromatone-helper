@@ -17,6 +17,7 @@ function $_(id) { return document.getElementById(id); }
  */
 var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
+  chordReferenceGroupTemplate = $_("templates").getElementsByClassName("chord-reference-group")[0],
   chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
   interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
   chordSection = $_("chords"),
@@ -145,7 +146,7 @@ function createChromaticKeyboard(rows, columns) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-function addChord(chord, parent, zebraRoot) {
+function addChord(chord, parent, zebraRoot, nextChord) {
   parent = parent || chordSection;
   var k; // <- keyboard
   // currently only integer root notes work for zebra root notes:
@@ -160,11 +161,26 @@ function addChord(chord, parent, zebraRoot) {
     name = chord.getName();
   }
   k.add(chord, name);
+
+  if (nextChord) {
+    k.addDiff(nextChord);
+  }
+
   parent.appendChild(k.getElement());
 
   return k;
 }
 lib.addChord = addChord;
+
+function createChordReferenceGroup(title, section) {
+  var groupEl = section.appendChild(chordReferenceGroupTemplate.cloneNode(true)),
+    titleEl = groupEl.getElementsByClassName("title")[0] || false;
+
+  if (titleEl && title) {
+    titleEl.innerHTML = title;
+  }
+  return groupEl;
+}
 
 function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
   section = section || chordSection;
@@ -202,6 +218,28 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
 }
 lib.addChordGroup = addChordGroup;
 
+function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, zebraRoot) {
+  if (typeof chordDefinitionOrComposit.getChildren === "function") {
+    var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), parentElement);
+    chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
+      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, zebraRoot);
+    });
+    parentElement.appendChild(groupElement);
+  } else {
+    var chord = chords.shift();
+    var nextChord = chords.length > 0 ? chords[0] : false;
+    addChord(chord, parentElement, zebraRoot, nextChord);
+  }
+}
+
+lib.addChordsUsingChordDefinitionComposit = function(chords, chordDefinitionComposit, zebraRoot, parentElement) {
+  var chordsCopy = chords.slice();
+  parentElement = parentElement || chordSection;
+  chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
+    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, zebraRoot);
+  });
+}
+
 function addBreak(section) {
   section = section || chordSection;
   section.appendChild(document.createElement("br"));
@@ -235,18 +273,17 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
       for (var i=0; i < elements.length; ++i) {
         var elementOrElements = elements[i];
         if (typeof elementOrElements === "function") {
-          elementOrElements = elementOrElements();
+          elementOrElements = elementOrElements(preset[i]);
         }
         if (Array.isArray(elementOrElements)) {
           if (!Array.isArray(preset[i])) {
             console.error("initPresets () - Preset not set up right!");
             continue;
           }
-          // TODO This is the place where elements need to be deleted/created if the scale count gonna be dynamic (currently there are only 2 scales)
           var index = 0;
           preset[i].forEach(function(presetValue) {
             if (typeof elementOrElements[index] === "undefined") {
-              console.error("It's not possible to load so many scales yet: " + (index + 1));
+              console.error("initPresets () - Preset not set up right: " + (index + 1));
             } else {
               applyPresetValue(elementOrElements[index], presetValue);
             }
@@ -287,7 +324,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.zebra_root].forEach(function(element) {
+  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -311,6 +348,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     scaleContainer.input = scaleContainer.root.getElementsByClassName("scale")[0];
     scaleContainer.preset = scaleContainer.root.getElementsByClassName("preset")[0];
     scaleContainer.input.name += ("[" + index + "]");
+    scaleContainer.root.querySelector("label").innerHTML = "scale " + "*".repeat(index);
     return scaleContainer;
   }
 
@@ -345,8 +383,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     scalesElement.removeChild(c.root);
   }
 
-  // initially there are two scales available
-  addScaleGUI();
+  // initially there is only one scale available
   addScaleGUI();
 
   form.add_scale.addEventListener("click", function() {addScaleGUI(); updateSerializedFormOfLocation(); });
@@ -432,7 +469,25 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     document.location.href = url;
   }
 
-  initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
+  initPresets(
+    presets,
+    form.preset,
+    [
+      function(preset) { // returns the scale form elements
+        // add as many scale GUIs as needed
+        while (preset.length > scaleContainers.length) {
+          addScaleGUI();
+        }
+        // remove unneeded scales
+        while (scaleContainers.length > preset.length) {
+          popScaleGUI();
+        }
+        return scaleContainers.map(function(c) { return c.input; });
+      },
+      form.chords,
+      form.voicing
+    ]
+  );
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
   initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
   initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);

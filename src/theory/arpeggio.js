@@ -39,10 +39,6 @@ function createNoteIndexesByPitchIndexArray(notes) {
 }
 
 function createArpeggioPattern(internalPitchIterators) {
-  if (!internalPitchIterators || !internalPitchIterators.length) {
-    console.error("createArpeggioPattern() - child patterns must not be empty!");
-    return;
-  }
   var _internalPitchIterators = internalPitchIterators;
   var pattern = {
     // iterator which iterates over all internal pitch iteratorers
@@ -137,6 +133,17 @@ function createArpeggioPattern(internalPitchIterators) {
     },
     getInternalPitchIterators: function() {
       return _internalPitchIterators;
+    },
+    clone: function() {
+      return createArpeggioPattern(_internalPitchIterators.slice());
+    },
+    addPattern: function(otherPattern) {
+      var indexOfFirstAddedIterator = _internalPitchIterators.length;
+      _internalPitchIterators = _internalPitchIterators.concat(otherPattern.getInternalPitchIterators());
+      // the beginning of a new pattern shall always reset the state:
+      _internalPitchIterators[indexOfFirstAddedIterator] = createStateResettingInternalPitchIteratorDecorator(
+        _internalPitchIterators[indexOfFirstAddedIterator]
+      );
     }
   };
   return pattern;
@@ -246,7 +253,7 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
       return;
     }
     var nextPattern = chord.getChordDefinition().getRhythmPattern() || defaultRhythmPattern;
-    var nextArpPattern = defaultArpeggioPattern;
+    var nextArpPattern = chord.getChordDefinition().getArpeggioPattern() || defaultArpeggioPattern;
     var pitchIterator = nextArpPattern.createPitchIterator(chord);
     nextPattern.getEvents().forEach(function(event) {
       if (event.isRest()) {
@@ -319,6 +326,7 @@ function createArpeggioStep(token) {
  */
 function parseArpeggioPattern(patternAsString, referenceResolver) {
   var internalPitchIterators = [];
+  var pattern = createArpeggioPattern(internalPitchIterators);
   patternAsString.trim().split(WHITESPACE_REGEX).forEach(function(token) {
     if (token.indexOf("*") !== -1) {
       internalPitchIterators.push(createPlaceholderInternalPitchIterator(token));
@@ -340,10 +348,7 @@ function parseArpeggioPattern(patternAsString, referenceResolver) {
         // try to parse as a reference
         var referencedPattern = referenceResolver.resolveReference(token);
         if (referencedPattern) {
-          var indexOfFirstAddedIterator = internalPitchIterators.length;
-          internalPitchIterators = internalPitchIterators.concat(referencedPattern.getInternalPitchIterators());
-          // the beginning of a new pattern shall always reset the state:
-          internalPitchIterators[indexOfFirstAddedIterator] = createStateResettingInternalPitchIteratorDecorator(internalPitchIterators[indexOfFirstAddedIterator]);
+          pattern.addPattern(referencedPattern);
           return;
         }
       } else {
@@ -354,7 +359,7 @@ function parseArpeggioPattern(patternAsString, referenceResolver) {
       internalPitchIterators.push(createStepsInternalPitchIterator(arpSteps, true));
     }
   });
-  return createArpeggioPattern(internalPitchIterators);
+  return pattern;
 }
 
 function createPitchEvent(event, pitches) {

@@ -8,10 +8,18 @@ var REGEX_COUNT_SCALE = /\*/g;
 
 function resolveRhythmPattern(rhythmReference, rhythmPatterns, chordDefString) {
   if (!rhythmPatterns[rhythmReference]) {
-    console.warn("Unknown rhythm reference \"" + rhythmReference + "\" used in chord definition \"" + chordDefString  + "\"");
+    console.warn("Unknown rhythm pattern reference \"" + rhythmReference + "\" used in chord definition \"" + chordDefString  + "\"");
     return;
   }
   return rhythmPatterns[rhythmReference];
+}
+
+function resolveArpeggioPattern(arpeggioReference, arpeggioPatterns, chordDefString) {
+  if (!arpeggioPatterns[arpeggioReference]) {
+    console.warn("Unknown arpeggio pattern reference \"" + arpeggioReference + "\" used in chord definition \"" + chordDefString  + "\"");
+    return;
+  }
+  return arpeggioPatterns[arpeggioReference];
 }
 
 /**
@@ -163,6 +171,26 @@ function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpegg
     });
   }
 
+  var _arpeggioPattern;
+  var arpeggioPatternReferences = parseStringParameters("A", null, "arpeggios");
+  if (arpeggioPatternReferences.length == 1) {
+    if (arpeggioPatternReferences[0] !== null) {
+      _arpeggioPattern = resolveArpeggioPattern(arpeggioPatternReferences[0], arpeggioPatterns, chordDef);
+    }
+  } else if (arpeggioPatternReferences.length > 1) {
+    arpeggioPatternReferences.forEach(function(patternReference) {
+      var pattern = resolveArpeggioPattern(patternReference, arpeggioPatterns, chordDef);
+      if (!pattern) {
+        return;
+      }
+      if (!_arpeggioPattern) {
+        _arpeggioPattern = pattern.clone();
+        return;
+      }
+      _arpeggioPattern.addPattern(pattern);
+    });
+  }
+
   var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
     // map voicing references to actual voicings
     .map(function(voicingReference) {
@@ -218,6 +246,73 @@ function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpegg
     },
     getRhythmPattern: function() {
       return _rhythmPattern;
+    },
+    getArpeggioPattern: function() {
+      return _arpeggioPattern;
+    }
+  };
+}
+
+function createChordDefinitionComposit(chordDefinitionsOrComposits, name) {
+  // each entry can be a chord definition of another composit
+  var _children = chordDefinitionsOrComposits || [];
+  var _name = name || "";
+
+  return {
+    addChild: function(chordDefinitionOrComposit) {
+      _children.push(chordDefinitionOrComposit);
+    },
+    getName: function() {
+      return _name;
+    },
+    createChordDefinitonIterator: function() {
+      // index within _children array
+      var __index = -1;
+      // current iterator, created using createChordDefinitonIterator() on a child
+      var __currentIterator;
+
+      /**
+       * Returns true if the next iterator was initialized or it returns the next
+       * chord definition. Returns false if there is nothing more to be iterated.
+       */
+      function nextIteratorOrChordDefinition() {
+        if (__currentIterator) {
+          return true;
+        }
+        ++__index;
+        if (__index >= _children.length) {
+          return false;
+        }
+        if (!isChordDefinitionComposit(_children[__index])) {
+          // return the actual chord definition
+          return _children[__index];
+        }
+        __currentIterator = _children[__index].createChordDefinitonIterator();
+        return true;
+      }
+
+      return {
+        next: function() {
+          var nextResult = nextIteratorOrChordDefinition();
+          if (nextResult === true) {
+            // get next chord definition from the current iterator
+            var nextChordDef = __currentIterator.next();
+            if (nextChordDef !== false) {
+              return nextChordDef;
+            }
+            // the iterator has no items left, unset the iterator and try again
+            __currentIterator = false;
+            return this.next();
+          } else if (nextResult === false) {
+            return false;
+          } else {
+            return nextResult;
+          }
+        }
+      };
+    },
+    getChildren: function() {
+      return _children;
     }
   };
 }
@@ -243,15 +338,21 @@ function parseChordDefinitionsLine(singleLineString, voicings, scales, rhythmPat
     // try as a reference
     var chordDefinitions = referencResolver.resolveReference(token);
     if (Array.isArray(chordDefinitions)) {
-      // add all referenced chord definitions
-      chordDefObjects = chordDefObjects.concat(chordDefinitions);
+      // add all referenced chord definitions as a chord definition composit
+      chordDefObjects.push(createChordDefinitionComposit(chordDefinitions, token));
     }
   });
   return chordDefObjects;
 };
 
+function isChordDefinitionComposit(object) {
+  return typeof(object.createChordDefinitonIterator) === "function";
+}
+
 /**
- * The parsed thing of the created parser delegate is an array of chord definitions.
+ * The parsed thing of the created parser delegate is an array of chord definitions
+ * and chord definition composits. The parser delegate collects the result as one
+ * chordDefinitionComposit.
  */
 function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns) {
   var _voicings = voicings;
@@ -260,7 +361,7 @@ function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, 
   var _arpeggioPatterns = arpeggioPatterns;
 
   return {
-    chordDefinitions: [],
+    chordDefinitionComposit: createChordDefinitionComposit(),
     getName: function() {
       return "Chord Definitions";
     },
@@ -269,17 +370,19 @@ function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, 
     },
     addNoNameThing: function(chordDefinitions, referenceMap) {
       // all chord definitions without a name become part of the result
-      this.chordDefinitions = this.chordDefinitions.concat(chordDefinitions);
+      // add each line as an own composit, so the different lines can be differentiated later
+      var composit = createChordDefinitionComposit(chordDefinitions);
+      this.chordDefinitionComposit.addChild(composit);
     }
   };
 };
 
 /**
  * All lines of chord definitions which have no name are accumulated and are
- * returned.
+ * returned as a chord definition composit objects.
  */
 lib.parseChordDefinitions = function(multiLineString, voicings, scales, rhythmPatterns, arpeggioPatterns) {
   var parserDelegate = createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns);
   recursiveParser.parseThingsRecursive(multiLineString, parserDelegate);
-  return parserDelegate.chordDefinitions;
+  return parserDelegate.chordDefinitionComposit;
 }

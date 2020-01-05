@@ -26,6 +26,17 @@ section#templates {
   margin: 0;
   margin-left: 8pt;
 }
+.result > .chord-reference-group {
+  border: none;
+  display: block;
+  border-bottom: solid 1pt black;
+}
+.chord-reference-group {
+  border: solid black 1pt;
+  display: inline-block;
+  padding: 2pt;
+  margin: 2pt;
+}
 .chromatic.keyboard {
   display: inline-block;
   margin-right: 4pt;
@@ -84,17 +95,36 @@ margin-top: 4pt;
   top: 0;
   width: 100%;
 }
-.interactive-form .scales div {
-    display: inline-grid;
-}
 .interactive-form .scale {
   width: 100pt;
+}
+.interactive-form .scales-controls {
+  display: inline-block;
+  max-width: 85pt;
+}
+.interactive-form .scales-controls input {
+  top: -23px;
+  position: relative;
+}
+.interactive-form .scale_container input[type="button"] {
+  width: 47pt;
+}
+.interactive-form .scale_container input[value=">"] {
+  float: right;
+}
+.interactive-form .scale_container {
+  display: inline-block;
+  max-width: 113pt;
+}
+.interactive-form .scale_container label {
+  display: inline-block;
 }
 .interactive-form input[name="zebra_root"] {
   width: 15pt;
 }
 .interactive-form .result {
   min-height: 420pt;
+  margin-top: 4pt;
 }
 .interactive-form .voicing-preset,
 .interactive-form .arpeggio-patterns-preset,
@@ -106,6 +136,7 @@ margin-top: 4pt;
 }
 .form-element {
   display: inline-block;
+  vertical-align: top;
   padding: 1pt;
   padding-right: 3pt;
   border: outset 2pt;

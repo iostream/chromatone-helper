@@ -24,6 +24,10 @@
         <h2 class="title"></h2>
       </div>
 
+      <span class="chord-reference-group">
+        <div class="title"></div>
+      </span>
+
       <div class="interactive-form">
         <form name="interactive" class="form">
           <span class="form-element">
@@ -31,12 +35,12 @@
             <textarea name="chords" placeholder="chords"></textarea>
           </span>
           <span class="scales form-element">
-            <div>
-              <label>scales</label>
+            <div class="scales-controls">
               <input type="button" value="add scale" name="add_scale" title="add a scale">
               <input type="button" value="remove scale" name="pop_scale" title="remove last scale">
             </div>
             <div class="scale_container">
+              <label for="scale">scale</label>
               <select name="scale_preset" class="preset"></select>
               <input type="text" name="scale" placeholder="scale" class="scale">
               <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left">
