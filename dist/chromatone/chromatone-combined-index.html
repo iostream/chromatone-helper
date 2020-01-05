@@ -7,6 +7,7 @@
 :root {
   --main-background-color: #edfdf8;
   --form-element-background-color: #EEF5FD;
+  --chord-group-background-color: rgba(50, 165, 255, 0.06);
 }
 body {
   background-color: var(--main-background-color);
@@ -31,6 +32,22 @@ section#templates {
   font-size: 14pt;
   margin: 0;
   margin-left: 8pt;
+}
+.result > .chord-reference-group {
+  border: none !important;
+  display: block;
+  border-bottom: dashed 2pt black !important;;
+  background-color: transparent;
+}
+.chord-reference-group {
+  border: dotted black 1pt;
+  display: inline-block;
+  padding: 2pt;
+  margin: 2pt;
+  background-color: var(--chord-group-background-color);
+}
+.chord-reference-group:hover {
+  border: solid black 1pt;
 }
 .chromatic.keyboard {
   display: inline-block;
@@ -90,17 +107,36 @@ margin-top: 4pt;
   top: 0;
   width: 100%;
 }
-.interactive-form .scales div {
-    display: inline-grid;
-}
 .interactive-form .scale {
   width: 100pt;
+}
+.interactive-form .scales-controls {
+  display: inline-block;
+  max-width: 85pt;
+}
+.interactive-form .scales-controls input {
+  top: -23px;
+  position: relative;
+}
+.interactive-form .scale_container input[type="button"] {
+  width: 47pt;
+}
+.interactive-form .scale_container input[value=">"] {
+  float: right;
+}
+.interactive-form .scale_container {
+  display: inline-block;
+  max-width: 113pt;
+}
+.interactive-form .scale_container label {
+  display: inline-block;
 }
 .interactive-form input[name="zebra_root"] {
   width: 15pt;
 }
 .interactive-form .result {
   min-height: 420pt;
+  margin-top: 4pt;
 }
 .interactive-form .voicing-preset,
 .interactive-form .arpeggio-patterns-preset,
@@ -112,6 +148,7 @@ margin-top: 4pt;
 }
 .form-element {
   display: inline-block;
+  vertical-align: top;
   padding: 1pt;
   padding-right: 3pt;
   border: outset 2pt;
@@ -226,19 +263,24 @@ margin-top: 4pt;
         <h2 class="title"></h2>
       </div>
 
+      <span class="chord-reference-group">
+        <div class="title"></div>
+      </span>
+
       <div class="interactive-form">
         <form name="interactive" class="form">
           <span class="form-element">
             <label for="chords">chords</label>
+            <select name="chords_preset" class="chords-preset preset"></select>
             <textarea name="chords" placeholder="chords"></textarea>
           </span>
           <span class="scales form-element">
-            <div>
-              <label>scales</label>
+            <div class="scales-controls">
               <input type="button" value="add scale" name="add_scale" title="add a scale">
               <input type="button" value="remove scale" name="pop_scale" title="remove last scale">
             </div>
             <div class="scale_container">
+              <label for="scale">scale</label>
               <select name="scale_preset" class="preset"></select>
               <input type="text" name="scale" placeholder="scale" class="scale">
               <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left">
@@ -320,20 +362,8 @@ var k = g.createKeyboard(3, 7);
 
 // TODO move this code into an own file / layer:
 g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-  var chordDefinitionGroups = [];
-  var chordDefinitions = [];
-
-  // parse chord definitions in groups, so we can split the generated chords afterwards...
-  chordDefs.split(",").forEach(function(chordDefsOfGroup) {
-    // the chord progression needs to be generated in one go!
-    var chordDefObjectsOfGroup = t.parseChordDefinitions(chordDefsOfGroup, voicings, scales, rhythmPatterns, arpeggioPatterns)
-    chordDefinitionGroups.push(chordDefObjectsOfGroup);
-    chordDefinitions = chordDefinitions.concat(chordDefObjectsOfGroup);
-  });
-
-  // generate the chords in one go:
-  // TODO remove the scale parameter
-  var progression = p.createChordProgression(scales[0], chordDefinitions);
+  var chordDefinitionComposit = t.parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
+  var progression = p.createChordProgression(scales[0], chordDefinitionComposit);
   var chords = progression.getChords();
 
   if (options.uploadToDAW || options.uploadMidi || options.generateMidi) {
@@ -358,13 +388,15 @@ g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns
   progression.fixChords();
   var chords = progression.getChords();
 
-  // but output the chords in groups (defined by comma):
-  chordDefinitionGroups.forEach(function(group) {
-    var chordsOfGroup = [];
-    group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-    g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
-  });
-}, presets.progressions, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
+  g.addChordsUsingChordDefinitionComposit(chords, chordDefinitionComposit, options.zebraRoot, resultSection);
+
+  // // but output the chords in groups (defined by comma):
+  // chordDefinitionGroups.forEach(function(group) {
+  //   var chordsOfGroup = [];
+  //   group.forEach(function() { chordsOfGroup.push(chords.shift()); });
+  //   g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
+  // });
+}, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
 function buildGeneratorUrl(serializedForm) {
   var url = new URL("#" + serializedForm, document.location.href);
@@ -3978,6 +4010,11 @@ module.exports.progressions = [
   [["1 b2 b3 3 5 b6 b7", "1 2 3 4 5 6 b7"], "2Vb 5 1Va 6, 4 5Vb 1* 4, 5 1* 4Vb  5, 1* 4", "a: 1 3 5 7\nb: 6 8 11 13\n3 6 8 11"]
 ];
 
+module.exports.chords = [
+  ["A\nA: 2 5 1"],
+  ["A\nA: 1 6 4 5"]
+];
+
 module.exports.voicings = [
   ["1 3 5 7"],
   ["1 2 5 7"],
@@ -4009,6 +4046,7 @@ module.exports.arpeggioPatterns = [
 ];
 
 module.exports.rhythmPatterns = [
+  ["1"], // default rhythm
   ["8 8 8 8 8 8 8 8"], // 8 events
   ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
@@ -4084,6 +4122,7 @@ function $_(id) { return document.getElementById(id); }
  */
 var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
+  chordReferenceGroupTemplate = $_("templates").getElementsByClassName("chord-reference-group")[0],
   chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
   interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
   chordSection = $_("chords"),
@@ -4212,7 +4251,7 @@ function createChromaticKeyboard(rows, columns) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-function addChord(chord, parent, zebraRoot) {
+function addChord(chord, parent, zebraRoot, nextChord) {
   parent = parent || chordSection;
   var k; // <- keyboard
   // currently only integer root notes work for zebra root notes:
@@ -4227,11 +4266,26 @@ function addChord(chord, parent, zebraRoot) {
     name = chord.getName();
   }
   k.add(chord, name);
+
+  if (nextChord) {
+    k.addDiff(nextChord);
+  }
+
   parent.appendChild(k.getElement());
 
   return k;
 }
 lib.addChord = addChord;
+
+function createChordReferenceGroup(title, section) {
+  var groupEl = section.appendChild(chordReferenceGroupTemplate.cloneNode(true)),
+    titleEl = groupEl.getElementsByClassName("title")[0] || false;
+
+  if (titleEl && title) {
+    titleEl.innerHTML = title;
+  }
+  return groupEl;
+}
 
 function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
   section = section || chordSection;
@@ -4269,6 +4323,28 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
 }
 lib.addChordGroup = addChordGroup;
 
+function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, zebraRoot) {
+  if (typeof chordDefinitionOrComposit.getChildren === "function") {
+    var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), parentElement);
+    chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
+      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, zebraRoot);
+    });
+    parentElement.appendChild(groupElement);
+  } else {
+    var chord = chords.shift();
+    var nextChord = chords.length > 0 ? chords[0] : false;
+    addChord(chord, parentElement, zebraRoot, nextChord);
+  }
+}
+
+lib.addChordsUsingChordDefinitionComposit = function(chords, chordDefinitionComposit, zebraRoot, parentElement) {
+  var chordsCopy = chords.slice();
+  parentElement = parentElement || chordSection;
+  chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
+    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, zebraRoot);
+  });
+}
+
 function addBreak(section) {
   section = section || chordSection;
   section.appendChild(document.createElement("br"));
@@ -4302,18 +4378,17 @@ function initPresets(presets, presetSelectElementOrElements, elements) {
       for (var i=0; i < elements.length; ++i) {
         var elementOrElements = elements[i];
         if (typeof elementOrElements === "function") {
-          elementOrElements = elementOrElements();
+          elementOrElements = elementOrElements(preset[i]);
         }
         if (Array.isArray(elementOrElements)) {
           if (!Array.isArray(preset[i])) {
             console.error("initPresets () - Preset not set up right!");
             continue;
           }
-          // TODO This is the place where elements need to be deleted/created if the scale count gonna be dynamic (currently there are only 2 scales)
           var index = 0;
           preset[i].forEach(function(presetValue) {
             if (typeof elementOrElements[index] === "undefined") {
-              console.error("It's not possible to load so many scales yet: " + (index + 1));
+              console.error("initPresets () - Preset not set up right: " + (index + 1));
             } else {
               applyPresetValue(elementOrElements[index], presetValue);
             }
@@ -4342,7 +4417,7 @@ function applyPresetValue(element, presetValue) {
  *
  * presets .. array of arrays
  */
-lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
+lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
   section = section || interactiveSection;
   var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0],
@@ -4354,7 +4429,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.zebra_root].forEach(function(element) {
+  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -4378,6 +4453,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     scaleContainer.input = scaleContainer.root.getElementsByClassName("scale")[0];
     scaleContainer.preset = scaleContainer.root.getElementsByClassName("preset")[0];
     scaleContainer.input.name += ("[" + index + "]");
+    scaleContainer.root.querySelector("label").innerHTML = "scale " + "*".repeat(index);
     return scaleContainer;
   }
 
@@ -4412,8 +4488,7 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     scalesElement.removeChild(c.root);
   }
 
-  // initially there are two scales available
-  addScaleGUI();
+  // initially there is only one scale available
   addScaleGUI();
 
   form.add_scale.addEventListener("click", function() {addScaleGUI(); updateSerializedFormOfLocation(); });
@@ -4499,7 +4574,26 @@ lib.addForm = function(submitFunction, presets, voicingPresets, scalePresets, rh
     document.location.href = url;
   }
 
-  initPresets(presets, form.preset, [function() { return scaleContainers.map(function(c) { return c.input; }); }, form.chords, form.voicing]);
+  initPresets(
+    presets,
+    form.preset,
+    [
+      function(preset) { // returns the scale form elements
+        // add as many scale GUIs as needed
+        while (preset.length > scaleContainers.length) {
+          addScaleGUI();
+        }
+        // remove unneeded scales
+        while (scaleContainers.length > preset.length) {
+          popScaleGUI();
+        }
+        return scaleContainers.map(function(c) { return c.input; });
+      },
+      form.chords,
+      form.voicing
+    ]
+  );
+  initPresets(chordPresets, form.chords_preset, [form.chords]);
   initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
   initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
   initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
@@ -4917,10 +5011,6 @@ function createNoteIndexesByPitchIndexArray(notes) {
 }
 
 function createArpeggioPattern(internalPitchIterators) {
-  if (!internalPitchIterators || !internalPitchIterators.length) {
-    console.error("createArpeggioPattern() - child patterns must not be empty!");
-    return;
-  }
   var _internalPitchIterators = internalPitchIterators;
   var pattern = {
     // iterator which iterates over all internal pitch iteratorers
@@ -5015,6 +5105,17 @@ function createArpeggioPattern(internalPitchIterators) {
     },
     getInternalPitchIterators: function() {
       return _internalPitchIterators;
+    },
+    clone: function() {
+      return createArpeggioPattern(_internalPitchIterators.slice());
+    },
+    addPattern: function(otherPattern) {
+      var indexOfFirstAddedIterator = _internalPitchIterators.length;
+      _internalPitchIterators = _internalPitchIterators.concat(otherPattern.getInternalPitchIterators());
+      // the beginning of a new pattern shall always reset the state:
+      _internalPitchIterators[indexOfFirstAddedIterator] = createStateResettingInternalPitchIteratorDecorator(
+        _internalPitchIterators[indexOfFirstAddedIterator]
+      );
     }
   };
   return pattern;
@@ -5124,7 +5225,7 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
       return;
     }
     var nextPattern = chord.getChordDefinition().getRhythmPattern() || defaultRhythmPattern;
-    var nextArpPattern = defaultArpeggioPattern;
+    var nextArpPattern = chord.getChordDefinition().getArpeggioPattern() || defaultArpeggioPattern;
     var pitchIterator = nextArpPattern.createPitchIterator(chord);
     nextPattern.getEvents().forEach(function(event) {
       if (event.isRest()) {
@@ -5197,6 +5298,7 @@ function createArpeggioStep(token) {
  */
 function parseArpeggioPattern(patternAsString, referenceResolver) {
   var internalPitchIterators = [];
+  var pattern = createArpeggioPattern(internalPitchIterators);
   patternAsString.trim().split(WHITESPACE_REGEX).forEach(function(token) {
     if (token.indexOf("*") !== -1) {
       internalPitchIterators.push(createPlaceholderInternalPitchIterator(token));
@@ -5218,10 +5320,7 @@ function parseArpeggioPattern(patternAsString, referenceResolver) {
         // try to parse as a reference
         var referencedPattern = referenceResolver.resolveReference(token);
         if (referencedPattern) {
-          var indexOfFirstAddedIterator = internalPitchIterators.length;
-          internalPitchIterators = internalPitchIterators.concat(referencedPattern.getInternalPitchIterators());
-          // the beginning of a new pattern shall always reset the state:
-          internalPitchIterators[indexOfFirstAddedIterator] = createStateResettingInternalPitchIteratorDecorator(internalPitchIterators[indexOfFirstAddedIterator]);
+          pattern.addPattern(referencedPattern);
           return;
         }
       } else {
@@ -5232,7 +5331,7 @@ function parseArpeggioPattern(patternAsString, referenceResolver) {
       internalPitchIterators.push(createStepsInternalPitchIterator(arpSteps, true));
     }
   });
-  return createArpeggioPattern(internalPitchIterators);
+  return pattern;
 }
 
 function createPitchEvent(event, pitches) {
@@ -5287,10 +5386,18 @@ var REGEX_COUNT_SCALE = /\*/g;
 
 function resolveRhythmPattern(rhythmReference, rhythmPatterns, chordDefString) {
   if (!rhythmPatterns[rhythmReference]) {
-    console.warn("Unknown rhythm reference \"" + rhythmReference + "\" used in chord definition \"" + chordDefString  + "\"");
+    console.warn("Unknown rhythm pattern reference \"" + rhythmReference + "\" used in chord definition \"" + chordDefString  + "\"");
     return;
   }
   return rhythmPatterns[rhythmReference];
+}
+
+function resolveArpeggioPattern(arpeggioReference, arpeggioPatterns, chordDefString) {
+  if (!arpeggioPatterns[arpeggioReference]) {
+    console.warn("Unknown arpeggio pattern reference \"" + arpeggioReference + "\" used in chord definition \"" + chordDefString  + "\"");
+    return;
+  }
+  return arpeggioPatterns[arpeggioReference];
 }
 
 /**
@@ -5442,6 +5549,26 @@ function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpegg
     });
   }
 
+  var _arpeggioPattern;
+  var arpeggioPatternReferences = parseStringParameters("A", null, "arpeggios");
+  if (arpeggioPatternReferences.length == 1) {
+    if (arpeggioPatternReferences[0] !== null) {
+      _arpeggioPattern = resolveArpeggioPattern(arpeggioPatternReferences[0], arpeggioPatterns, chordDef);
+    }
+  } else if (arpeggioPatternReferences.length > 1) {
+    arpeggioPatternReferences.forEach(function(patternReference) {
+      var pattern = resolveArpeggioPattern(patternReference, arpeggioPatterns, chordDef);
+      if (!pattern) {
+        return;
+      }
+      if (!_arpeggioPattern) {
+        _arpeggioPattern = pattern.clone();
+        return;
+      }
+      _arpeggioPattern.addPattern(pattern);
+    });
+  }
+
   var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
     // map voicing references to actual voicings
     .map(function(voicingReference) {
@@ -5497,6 +5624,73 @@ function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpegg
     },
     getRhythmPattern: function() {
       return _rhythmPattern;
+    },
+    getArpeggioPattern: function() {
+      return _arpeggioPattern;
+    }
+  };
+}
+
+function createChordDefinitionComposit(chordDefinitionsOrComposits, name) {
+  // each entry can be a chord definition of another composit
+  var _children = chordDefinitionsOrComposits || [];
+  var _name = name || "";
+
+  return {
+    addChild: function(chordDefinitionOrComposit) {
+      _children.push(chordDefinitionOrComposit);
+    },
+    getName: function() {
+      return _name;
+    },
+    createChordDefinitonIterator: function() {
+      // index within _children array
+      var __index = -1;
+      // current iterator, created using createChordDefinitonIterator() on a child
+      var __currentIterator;
+
+      /**
+       * Returns true if the next iterator was initialized or it returns the next
+       * chord definition. Returns false if there is nothing more to be iterated.
+       */
+      function nextIteratorOrChordDefinition() {
+        if (__currentIterator) {
+          return true;
+        }
+        ++__index;
+        if (__index >= _children.length) {
+          return false;
+        }
+        if (!isChordDefinitionComposit(_children[__index])) {
+          // return the actual chord definition
+          return _children[__index];
+        }
+        __currentIterator = _children[__index].createChordDefinitonIterator();
+        return true;
+      }
+
+      return {
+        next: function() {
+          var nextResult = nextIteratorOrChordDefinition();
+          if (nextResult === true) {
+            // get next chord definition from the current iterator
+            var nextChordDef = __currentIterator.next();
+            if (nextChordDef !== false) {
+              return nextChordDef;
+            }
+            // the iterator has no items left, unset the iterator and try again
+            __currentIterator = false;
+            return this.next();
+          } else if (nextResult === false) {
+            return false;
+          } else {
+            return nextResult;
+          }
+        }
+      };
+    },
+    getChildren: function() {
+      return _children;
     }
   };
 }
@@ -5522,15 +5716,21 @@ function parseChordDefinitionsLine(singleLineString, voicings, scales, rhythmPat
     // try as a reference
     var chordDefinitions = referencResolver.resolveReference(token);
     if (Array.isArray(chordDefinitions)) {
-      // add all referenced chord definitions
-      chordDefObjects = chordDefObjects.concat(chordDefinitions);
+      // add all referenced chord definitions as a chord definition composit
+      chordDefObjects.push(createChordDefinitionComposit(chordDefinitions, token));
     }
   });
   return chordDefObjects;
 };
 
+function isChordDefinitionComposit(object) {
+  return typeof(object.createChordDefinitonIterator) === "function";
+}
+
 /**
- * The parsed thing of the created parser delegate is an array of chord definitions.
+ * The parsed thing of the created parser delegate is an array of chord definitions
+ * and chord definition composits. The parser delegate collects the result as one
+ * chordDefinitionComposit.
  */
 function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns) {
   var _voicings = voicings;
@@ -5539,7 +5739,7 @@ function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, 
   var _arpeggioPatterns = arpeggioPatterns;
 
   return {
-    chordDefinitions: [],
+    chordDefinitionComposit: createChordDefinitionComposit(),
     getName: function() {
       return "Chord Definitions";
     },
@@ -5548,19 +5748,21 @@ function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, 
     },
     addNoNameThing: function(chordDefinitions, referenceMap) {
       // all chord definitions without a name become part of the result
-      this.chordDefinitions = this.chordDefinitions.concat(chordDefinitions);
+      // add each line as an own composit, so the different lines can be differentiated later
+      var composit = createChordDefinitionComposit(chordDefinitions);
+      this.chordDefinitionComposit.addChild(composit);
     }
   };
 };
 
 /**
  * All lines of chord definitions which have no name are accumulated and are
- * returned.
+ * returned as a chord definition composit objects.
  */
 lib.parseChordDefinitions = function(multiLineString, voicings, scales, rhythmPatterns, arpeggioPatterns) {
   var parserDelegate = createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns);
   recursiveParser.parseThingsRecursive(multiLineString, parserDelegate);
-  return parserDelegate.chordDefinitions;
+  return parserDelegate.chordDefinitionComposit;
 }
 
 },{"../recursive_parser.js":15,"./voicing.js":25}],21:[function(require,module,exports){
@@ -5896,8 +6098,8 @@ function fix(chords) {
 /**
  * chordDefs[]  .. strings of chord definitions relating to the scale
  */
-lib.createChordProgression = function(scale, chordDefinitions) {
-  var _chordDefs = chordDefinitions;
+lib.createChordProgression = function(scale, chordDefinitionComposit) {
+  var _chordDefs = chordDefinitionComposit;
   var _chords;
   return {
     /**
@@ -5913,12 +6115,18 @@ lib.createChordProgression = function(scale, chordDefinitions) {
         return _chords;
       }
 
+      var iterator = _chordDefs.createChordDefinitonIterator();
+      var chordDef = iterator.next();
+      if (chordDef === false) {
+        _chords = [];
+        return _chords;
+      }
+
       var progression = [];
-      var previousChord = scale.createChord(_chordDefs[0]);
+      var previousChord = scale.createChord(chordDef);
       f.updateFingering(previousChord);
       progression.push(previousChord);
-      for (var i=1; i<_chordDefs.length; ++i) {
-        var chordDef = _chordDefs[i];
+      while ((chordDef = iterator.next()) !== false) {
         // get best diff of all the inversions (inversion=0 is in root position)
         var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
         var bestInversion = 0, bestTransposed = 0, transposed = 0;
@@ -5941,8 +6149,8 @@ lib.createChordProgression = function(scale, chordDefinitions) {
             bestTransposed = transposed;
           }
         }
-        _chordDefs[i].setInversion(bestInversion);
-        var previousChord = scale.createChord(_chordDefs[i]);
+        chordDef.setInversion(bestInversion);
+        var previousChord = scale.createChord(chordDef);
         previousChord.transpose(bestTransposed);
         f.updateFingering(previousChord);
         progression.push(previousChord);
