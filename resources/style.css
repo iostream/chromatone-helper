@@ -1,6 +1,7 @@
 :root {
   --main-background-color: #edfdf8;
   --form-element-background-color: #EEF5FD;
+  --chord-group-background-color: rgba(50, 165, 255, 0.06);
 }
 body {
   background-color: var(--main-background-color);
@@ -27,15 +28,20 @@ section#templates {
   margin-left: 8pt;
 }
 .result > .chord-reference-group {
-  border: none;
+  border: none !important;
   display: block;
-  border-bottom: solid 1pt black;
+  border-bottom: dashed 2pt black !important;;
+  background-color: transparent;
 }
 .chord-reference-group {
-  border: solid black 1pt;
+  border: dotted black 1pt;
   display: inline-block;
   padding: 2pt;
   margin: 2pt;
+  background-color: var(--chord-group-background-color);
+}
+.chord-reference-group:hover {
+  border: solid black 1pt;
 }
 .chromatic.keyboard {
   display: inline-block;
