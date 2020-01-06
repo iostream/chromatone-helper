@@ -324,7 +324,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp].forEach(function(element) {
+  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp, form.upload_to_daw].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -521,8 +521,17 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     // initialize the form and submit it
     form.reset(); // <- reset the form, so empty values are possible
     parameters.forEach(function(value, key) {
+      if (!form[key] || form[key].type === "button") {
+        return;
+      }
       form[key].value = value;
     });
+
+    // it is possible to append "&midi=1" to the URL to make a MIDI download link
+    if (parameters.get("midi") === "1" || parameters.get("midi") === "true") {
+      generateMidi = true;
+    }
+
     submitForm();
   }
 };
