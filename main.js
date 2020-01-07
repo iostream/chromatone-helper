@@ -38,12 +38,6 @@ g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns
 
   g.addChordsUsingChordDefinitionComposit(chords, chordDefinitionComposit, options.zebraRoot, resultSection);
 
-  // // but output the chords in groups (defined by comma):
-  // chordDefinitionGroups.forEach(function(group) {
-  //   var chordsOfGroup = [];
-  //   group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-  //   g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
-  // });
 }, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
 function buildGeneratorUrl(serializedForm) {
