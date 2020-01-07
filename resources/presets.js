@@ -30,15 +30,15 @@ module.exports.voicings = [
 
 module.exports.scales = [
 // 7 note scales
-  ["1 2 3  4 5 6  7"], // major
-  ["1 2 3  4 5 b6 7"], // harmonic major
-  ["1 2 b3 4 5 6  7"], // melodic minor
+  ["1 2 3 4 5 6 7"], // major
+  ["1 2 3 4 5 b6 7"], // harmonic major
+  ["1 2 b3 4 5 6 7"], // melodic minor
   ["1 2 b3 4 5 b6 7"], // harmonic minor
 // 8 note scales
   ["1 2 3 4 5 b6 6 7"],
   ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
 // 5/6 note scales
-  ["1 3   4 5 6"],
+  ["1 3 4 5 6"],
   ["1 2 3 b5 b6 b7"], // wholetone scale
   ["1 #2 3 5 #5 7"], // augmented scale
   ["1 b2 b3 4 5 b6"] // "by me"
@@ -52,6 +52,7 @@ module.exports.arpeggioPatterns = [
 module.exports.rhythmPatterns = [
   ["1"], // default rhythm
   ["8 8 8 8 8 8 8 8"], // 8 events
+  ["!1 1 !1 1 !1 1 !1 1"], // 8 events, but the first and every other event is a rest
   ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
 ];
