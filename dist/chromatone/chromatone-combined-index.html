@@ -390,12 +390,6 @@ g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns
 
   g.addChordsUsingChordDefinitionComposit(chords, chordDefinitionComposit, options.zebraRoot, resultSection);
 
-  // // but output the chords in groups (defined by comma):
-  // chordDefinitionGroups.forEach(function(group) {
-  //   var chordsOfGroup = [];
-  //   group.forEach(function() { chordsOfGroup.push(chords.shift()); });
-  //   g.addChordGroup(chordsOfGroup, null, resultSection, chords.length > 0 ? chords[0] : null, options.zebraRoot);
-  // });
 }, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
 function buildGeneratorUrl(serializedForm) {
@@ -418,7 +412,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":14,"./src/server/client.js":16,"./src/theory/arpeggio.js":18,"./src/theory/base.js":19,"./src/theory/progression.js":22}],2:[function(require,module,exports){
+},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":15,"./src/server/client.js":17,"./src/theory/arpeggio.js":19,"./src/theory/base.js":20,"./src/theory/progression.js":23}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -4026,15 +4020,15 @@ module.exports.voicings = [
 
 module.exports.scales = [
 // 7 note scales
-  ["1 2 3  4 5 6  7"], // major
-  ["1 2 3  4 5 b6 7"], // harmonic major
-  ["1 2 b3 4 5 6  7"], // melodic minor
+  ["1 2 3 4 5 6 7"], // major
+  ["1 2 3 4 5 b6 7"], // harmonic major
+  ["1 2 b3 4 5 6 7"], // melodic minor
   ["1 2 b3 4 5 b6 7"], // harmonic minor
 // 8 note scales
   ["1 2 3 4 5 b6 6 7"],
   ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
 // 5/6 note scales
-  ["1 3   4 5 6"],
+  ["1 3 4 5 6"],
   ["1 2 3 b5 b6 b7"], // wholetone scale
   ["1 #2 3 5 #5 7"], // augmented scale
   ["1 b2 b3 4 5 b6"] // "by me"
@@ -4048,6 +4042,7 @@ module.exports.arpeggioPatterns = [
 module.exports.rhythmPatterns = [
   ["1"], // default rhythm
   ["8 8 8 8 8 8 8 8"], // 8 events
+  ["!1 1 !1 1 !1 1 !1 1"], // 8 events, but the first and every other event is a rest
   ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
 ];
@@ -4102,7 +4097,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":19,"./theory/notes.js":21}],12:[function(require,module,exports){
+},{"./theory/base.js":20,"./theory/notes.js":22}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4111,6 +4106,7 @@ var tLib = require("../theory/base.js");
 var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
 var zebra = require("./zebra.js");
+var session = require("./session.js");
 
 /**
  * Basic lib stuff...
@@ -4435,6 +4431,21 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       setTimeout(function() { submitForm(); });
     });
   });
+  // activate the DAW update checkbox via session, so once it was set in a tab, it stays they same
+  if (session.isDAWUpdateActivated()) {
+    form.upload_to_daw.checked = true;
+  }
+  form.upload_to_daw.addEventListener("change", function() {
+    session.setDAWUpdateActivated(form.upload_to_daw.checked);
+    submitForm();
+  });
+  document.querySelectorAll("textarea").forEach(function(textAreaElement) {
+    var resizeObserver = new ResizeObserver(function () {
+      session.saveTextAreaSizes(textAreaElement);
+    });
+    resizeObserver.observe(textAreaElement);
+  });
+  session.restoreTextAreaSizes(form);
 
   function shiftScale(direction, element) {
     var scale = tLib.createScale(element.value);
@@ -4474,6 +4485,8 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     });
     // each scale comes with handy presets for jump starting everything:
     initPresets(scalePresets, c.preset, [c.input]);
+    // select nothing as preset, so each valid value is selectable from the start
+    c.preset.value = "";
     // update result after changing the scale text input
     c.input.addEventListener("change", submitForm);
   }
@@ -4624,15 +4637,100 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     }
 
     // initialize the form and submit it
-    form.reset(); // <- reset the form, so empty values are possible
+    // reset all form elements but the checkbox which activates the DAW update
+    var inputs = form.elements;
+    for (i = 0; i < inputs.length; i++) {
+      // setting button values makes no sense
+      // the state of upload_to_daw is controlled via the session, so do not overwrite this value
+      if (inputs[i].type !== "button" && inputs[i].name !== "upload_to_daw") {
+        // this also sets no value for all preset elements, which makes sense, so no actual value is initially selected
+        inputs[i].value = "";
+      }
+    }
+
     parameters.forEach(function(value, key) {
+      if (!form[key] || form[key].type === "button") {
+        // skip not existing form elements and buttons
+        return;
+      }
       form[key].value = value;
     });
+
+    // it is possible to append "&midi=1" to the URL to make a MIDI download link
+    if (parameters.get("midi") === "1" || parameters.get("midi") === "true") {
+      generateMidi = true;
+    }
+
     submitForm();
   }
 };
 
-},{"../theory/arpeggio.js":18,"../theory/base.js":19,"../theory/rhythm.js":23,"./zebra.js":13,"form-serialize":4}],13:[function(require,module,exports){
+},{"../theory/arpeggio.js":19,"../theory/base.js":20,"../theory/rhythm.js":24,"./session.js":13,"./zebra.js":14,"form-serialize":4}],13:[function(require,module,exports){
+var session = {};
+module.exports = session;
+
+function setSessionValue(key, value) {
+  if (!window.sessionStorage) {
+    return;
+  }
+  window.sessionStorage.setItem(key, value);
+}
+
+function getBooleanSessionValue(key, defaultValue) {
+  if (!window.sessionStorage) {
+    return defaultValue;
+  }
+  var item = window.sessionStorage.getItem(key);
+  if (item === "true") {
+    return true;
+  }
+  if (item === "false") {
+    return false;
+  }
+  return defaultValue;
+}
+
+/**
+ * callback(fullKeyWithoutPrefix, valueAsString);
+ */
+function forEachItemsByKeyPrefix(prefix, callback) {
+  var key;
+  var i = 0;
+  while ((key = window.sessionStorage.key(i++)) ) {
+    if (key.indexOf(prefix) === 0) {
+      var subKey = key.substr(prefix.length);
+      callback(subKey, window.sessionStorage.getItem(key));
+    }
+  }
+}
+
+var UPDATE_DAW_KEY = "update_daw";
+session.setDAWUpdateActivated = function(enabled) {
+  setSessionValue(UPDATE_DAW_KEY, !!enabled);
+}
+
+session.isDAWUpdateActivated = function() {
+  return getBooleanSessionValue(UPDATE_DAW_KEY, false);
+}
+
+var TEXT_AREAS_KEY_PREFIX = "text_area_sizes.";
+session.saveTextAreaSizes = function(textArea) {
+  var keyPrefix = TEXT_AREAS_KEY_PREFIX + textArea.name + ".";
+  setSessionValue(keyPrefix + "height", textArea.style.height);
+  setSessionValue(keyPrefix + "width", textArea.style.width);
+}
+
+session.restoreTextAreaSizes = function(form) {
+  forEachItemsByKeyPrefix(TEXT_AREAS_KEY_PREFIX, function(key, value) {
+    var keyParts = key.split(".");
+    if (keyParts < 2) {
+      return;
+    }
+    form[keyParts[0]].style[keyParts[1]] = value;
+  });
+}
+
+},{}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4752,7 +4850,7 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
   return construct(keyboard);
 }
 
-},{"../theory/base.js":19}],14:[function(require,module,exports){
+},{"../theory/base.js":20}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4806,7 +4904,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl, tonalKey) {
   return writer;
 }
 
-},{"midi-writer-js":6}],15:[function(require,module,exports){
+},{"midi-writer-js":6}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4890,7 +4988,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4963,13 +5061,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":17}],17:[function(require,module,exports){
+},{"./host.js":18}],18:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],18:[function(require,module,exports){
+},{}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5360,7 +5458,7 @@ lib.parseArpeggioPatterns = function(multiLineString) {
   return recursiveParser.parseThingsRecursive(multiLineString, arpeggioParserDelegate);
 };
 
-},{"../recursive_parser.js":15}],19:[function(require,module,exports){
+},{"../recursive_parser.js":16}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5375,7 +5473,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":20,"./notes.js":21,"./scale.js":24,"./voicing.js":25}],20:[function(require,module,exports){
+},{"./chord_definition.js":21,"./notes.js":22,"./scale.js":25,"./voicing.js":26}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5766,7 +5864,7 @@ lib.parseChordDefinitions = function(multiLineString, voicings, scales, rhythmPa
   return parserDelegate.chordDefinitionComposit;
 }
 
-},{"../recursive_parser.js":15,"./voicing.js":25}],21:[function(require,module,exports){
+},{"../recursive_parser.js":16,"./voicing.js":26}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -6035,7 +6133,7 @@ function parseNotes(notes, intervalNameMap, recursion) {
 }
 lib.parseNotes = parseNotes;
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -6162,7 +6260,7 @@ lib.createChordProgression = function(scale, chordDefinitionComposit) {
   }
 }
 
-},{"../fingering.js":11,"./base.js":19}],23:[function(require,module,exports){
+},{"../fingering.js":11,"./base.js":20}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6393,7 +6491,7 @@ lib.parseRhythmPatterns = function(multiLineString) {
   return map;
 };
 
-},{"../recursive_parser.js":15}],24:[function(require,module,exports){
+},{"../recursive_parser.js":16}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6662,7 +6760,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":21}],25:[function(require,module,exports){
+},{"./notes.js":22}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6768,7 +6866,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":15}]},{},[1]);
+},{"../recursive_parser.js":16}]},{},[1]);
 </script>
   </body>
 </html>
