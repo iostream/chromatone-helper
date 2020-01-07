@@ -6,6 +6,7 @@ var tLib = require("../theory/base.js");
 var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
 var zebra = require("./zebra.js");
+var session = require("./session.js");
 
 /**
  * Basic lib stuff...
@@ -324,12 +325,27 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp, form.upload_to_daw].forEach(function(element) {
+  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
     });
   });
+  // activate the DAW update checkbox via session, so once it was set in a tab, it stays they same
+  if (session.isDAWUpdateActivated()) {
+    form.upload_to_daw.checked = true;
+  }
+  form.upload_to_daw.addEventListener("change", function() {
+    session.setDAWUpdateActivated(form.upload_to_daw.checked);
+    submitForm();
+  });
+  document.querySelectorAll("textarea").forEach(function(textAreaElement) {
+    var resizeObserver = new ResizeObserver(function () {
+      session.saveTextAreaSizes(textAreaElement);
+    });
+    resizeObserver.observe(textAreaElement);
+  });
+  session.restoreTextAreaSizes(form);
 
   function shiftScale(direction, element) {
     var scale = tLib.createScale(element.value);
@@ -369,6 +385,8 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     });
     // each scale comes with handy presets for jump starting everything:
     initPresets(scalePresets, c.preset, [c.input]);
+    // select nothing as preset, so each valid value is selectable from the start
+    c.preset.value = "";
     // update result after changing the scale text input
     c.input.addEventListener("change", submitForm);
   }
@@ -519,9 +537,20 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     }
 
     // initialize the form and submit it
-    form.reset(); // <- reset the form, so empty values are possible
+    // reset all form elements but the checkbox which activates the DAW update
+    var inputs = form.elements;
+    for (i = 0; i < inputs.length; i++) {
+      // setting button values makes no sense
+      // the state of upload_to_daw is controlled via the session, so do not overwrite this value
+      if (inputs[i].type !== "button" && inputs[i].name !== "upload_to_daw") {
+        // this also sets no value for all preset elements, which makes sense, so no actual value is initially selected
+        inputs[i].value = "";
+      }
+    }
+
     parameters.forEach(function(value, key) {
       if (!form[key] || form[key].type === "button") {
+        // skip not existing form elements and buttons
         return;
       }
       form[key].value = value;
