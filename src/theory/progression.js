@@ -61,8 +61,8 @@ function fix(chords) {
 /**
  * chordDefs[]  .. strings of chord definitions relating to the scale
  */
-lib.createChordProgression = function(scale, chordDefinitionComposit) {
-  var _chordDefs = chordDefinitionComposit;
+lib.createChordProgression = function(scale, chordDefinitions) {
+  var _chordDefs = chordDefinitions;
   var _chords;
   return {
     /**
@@ -78,29 +78,25 @@ lib.createChordProgression = function(scale, chordDefinitionComposit) {
         return _chords;
       }
 
-      var iterator = _chordDefs.createChordDefinitonIterator();
-      var chordDef = iterator.next();
-      if (chordDef === false) {
-        _chords = [];
-        return _chords;
-      }
-
       var progression = [];
-      var previousChord = scale.createChord(chordDef);
+      var previousChord = scale.createChord(_chordDefs[0]);
       f.updateFingering(previousChord);
       progression.push(previousChord);
-      while ((chordDef = iterator.next()) !== false) {
+      for (var i=1; i<_chordDefs.length; ++i) {
+        var chordDef = _chordDefs[i];
+        var originalInversion = chordDef.getInversion();
         // get best diff of all the inversions (inversion=0 is in root position)
         var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
         var bestInversion = 0, bestTransposed = 0, transposed = 0;
         var voicingLength = chordDef.getVoicing().getVoices1().length;
         for (var inversion = 1; inversion < voicingLength; ++inversion) {
-          chordDef.setInversion(inversion);
+          chordDef.setInversion(originalInversion + inversion);
           var chord = scale.createChord(chordDef);
           // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
 
           // TODO this is not working too well!
-          if (previousChord.getNotes()[0].getPosition() < chordDef.getStep()) {
+          if (previousChord.getChordDefinition().getStep() < chordDef.getStep()) {
+          // if (previousChord.getNotes()[0].getPosition() < chord.getStep()) {
           // if (chordDefs[i - 1] < chordDef) {
             transposed = -12;
             chord.transpose(transposed);
@@ -112,8 +108,8 @@ lib.createChordProgression = function(scale, chordDefinitionComposit) {
             bestTransposed = transposed;
           }
         }
-        chordDef.setInversion(bestInversion);
-        var previousChord = scale.createChord(chordDef);
+        _chordDefs[i].setInversion(bestInversion);
+        var previousChord = scale.createChord(_chordDefs[i]);
         previousChord.transpose(bestTransposed);
         f.updateFingering(previousChord);
         progression.push(previousChord);

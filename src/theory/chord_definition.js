@@ -2,143 +2,24 @@ var lib = {};
 module.exports = lib;
 
 var voicingLib = require("./voicing.js");
-var recursiveParser = require("../recursive_parser.js");
+var compositeLib = require("../parser/composite.js");
+var compositeParser = require("../parser/composite_parser.js");
 
 var REGEX_COUNT_SCALE = /\*/g;
-
-function resolveRhythmPattern(rhythmReference, rhythmPatterns, chordDefString) {
-  if (!rhythmPatterns[rhythmReference]) {
-    console.warn("Unknown rhythm pattern reference \"" + rhythmReference + "\" used in chord definition \"" + chordDefString  + "\"");
-    return;
-  }
-  return rhythmPatterns[rhythmReference];
-}
-
-function resolveArpeggioPattern(arpeggioReference, arpeggioPatterns, chordDefString) {
-  if (!arpeggioPatterns[arpeggioReference]) {
-    console.warn("Unknown arpeggio pattern reference \"" + arpeggioReference + "\" used in chord definition \"" + chordDefString  + "\"");
-    return;
-  }
-  return arpeggioPatterns[arpeggioReference];
-}
 
 /**
  * Returns false if there is no valid chord definition to be parsed.
  */
-function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpeggioPatterns) {
-  var _step = parseInt(chordDef.trim());
-  if (isNaN(_step)) {
-    return false;
-  }
+function createChordDefinition(asString, step, inversion, transposition, voicing, scale, rhythmPattern, arpeggioPattern) {
+  var _step = step;
+  var _asString = asString;
 
   // make step 0 based
   --_step;
 
-  voicings = voicings || {defaultVoicing: "1 3 5"};
-  var defaultVoicing = voicings.defaultVoicing;
-  // parse shall return the chord definition, when chord defs are passed
-  if (typeof(chordDef.getInversion) === "function") {
-    // TODO FIXME shouldn't these functions return copies?
-    return chordDef;
-  }
-
-  /**
-   * returns an array of integers values used within the chord definition being parsed which have the given key.
-   *
-   * Example chord definition with an int parameter: 1
-   */
-  function parseIntParameters(key, defaultValue, description) {
-    var parameterValues = [];
-    var defaultValues = [defaultValue];
-
-    var searchIndex = 0;
-    while (chordDef.length > searchIndex) {
-      var index = chordDef.indexOf(key, searchIndex);
-      if (index === -1) {
-        // stop, there is nothing to see here
-        if (parameterValues.length === 0) {
-          return defaultValues;
-        }
-        return parameterValues;
-      }
-      var parameterValue = parseInt(chordDef.substring(index + 1));
-      if (isNaN(parameterValue)) {
-        console.error("parseChordDefinition.parseIntParameter() - Could not parse " + description + " out of: " + chordDef);
-        return defaultValues;
-      }
-      parameterValues.push(parameterValue);
-      searchIndex = index + 1;
-    }
-
-    if (parameterValues.length === 0) {
-      return defaultValues;
-    }
-
-    return parameterValues;
-  }
-
-  /**
-   * Some rules:
-   * - All string parameters must be at the end of the string.
-   * - keys must be in higher case
-   * - values must be in lowercase
-   *
-   * Examples: (key is "V")
-   *
-   * 1*t5VaVtension
-   * 1*t5VaVb7      // TODO maybe having them (b7, b5, b3 as defauls fallbacks available all time would be best! OR not! because it interfers with a1, a2; b1, b2, b3)
-   */
-  function parseStringParameters(key, defaultValue, description) {
-    var parameterValues = [];
-
-    var searchIndex = 0;
-    while (chordDef.length > searchIndex) {
-      searchIndex = chordDef.indexOf(key, searchIndex);
-      if (searchIndex === -1) {
-        // stop, there is nothing to see here
-        if (parameterValues.length === 0) {
-          return [defaultValue];
-        }
-        return parameterValues;
-      }
-
-      var valueStartIndex = searchIndex + 1;
-
-      // find end of value: everything which comes after the key as long as it is lower case
-      while (chordDef.length > (searchIndex + 1) && chordDef[searchIndex + 1].toLowerCase() === chordDef[searchIndex + 1]) {
-        ++searchIndex;
-      }
-
-      ++searchIndex;
-
-      var value = chordDef.substring(valueStartIndex, searchIndex);
-      if (value.length > 0) {
-        parameterValues.push(value);
-      }
-    }
-
-    return parameterValues;
-  }
-
-  var _chordDef = "" + chordDef;
-
-  // any parameter can be used multiple times and the result just gets
-  // reduced to one value, basically allows for easier input and also hopefully reading
-  function sum(a, b) { return a + b; };
-  var _inversion = parseIntParameters("i", 0, "inversion").reduce(sum, 0);
-  var _transposition = parseIntParameters("t", 0, "transposition").reduce(sum, 0);
-  var _scale;
-
-  // set scale reference...
-  var scaleIndex = (_chordDef.match(REGEX_COUNT_SCALE) || []).length;
-  if (scales.length > scaleIndex) {
-    _scale = scales[scaleIndex];
-  } else {
-    console.error("Cannot assign scale to chord definition \"" +  _chordDef + "\", because there are currently only " + scales.length + " scales available.");
-    if (scales.length > 0) {
-      _scale = scales[0];
-    }
-  }
+  var _inversion = inversion;
+  var _transposition = transposition;
+  var _scale = scale;
 
   function mergeVoices(combinedVoicing, voicing) {
     var voice;
@@ -151,77 +32,73 @@ function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpegg
     }
   }
 
-  var _rhythmPattern;
-  var rhythmPatternReferences = parseStringParameters("R", null, "rhythms");
-  if (rhythmPatternReferences.length == 1) {
-    if (rhythmPatternReferences[0] !== null) {
-      _rhythmPattern = resolveRhythmPattern(rhythmPatternReferences[0], rhythmPatterns, chordDef);
-    }
-  } else if (rhythmPatternReferences.length > 1) {
-    rhythmPatternReferences.forEach(function(patternReference) {
-      var pattern = resolveRhythmPattern(patternReference, rhythmPatterns, chordDef);
-      if (!pattern) {
-        return;
-      }
-      if (!_rhythmPattern) {
-        _rhythmPattern = pattern.clone();
-        return;
-      }
-      _rhythmPattern.addPattern(pattern);
-    });
-  }
+  var _rhythmPattern = rhythmPattern;
+  // var rhythmPatternReferences = parseStringParameters("R", null, "rhythms");
+  // if (rhythmPatternReferences.length == 1) {
+  //   if (rhythmPatternReferences[0] !== null) {
+  //     _rhythmPattern = resolveRhythmPattern(rhythmPatternReferences[0], rhythmPatterns, chordDef);
+  //   }
+  // } else if (rhythmPatternReferences.length > 1) {
+  //   rhythmPatternReferences.forEach(function(patternReference) {
+  //     var pattern = resolveRhythmPattern(patternReference, rhythmPatterns, chordDef);
+  //     if (!pattern) {
+  //       return;
+  //     }
+  //     if (!_rhythmPattern) {
+  //       _rhythmPattern = pattern.clone();
+  //       return;
+  //     }
+  //     _rhythmPattern.addPattern(pattern);
+  //   });
+  // }
 
-  var _arpeggioPattern;
-  var arpeggioPatternReferences = parseStringParameters("A", null, "arpeggios");
-  if (arpeggioPatternReferences.length == 1) {
-    if (arpeggioPatternReferences[0] !== null) {
-      _arpeggioPattern = resolveArpeggioPattern(arpeggioPatternReferences[0], arpeggioPatterns, chordDef);
-    }
-  } else if (arpeggioPatternReferences.length > 1) {
-    arpeggioPatternReferences.forEach(function(patternReference) {
-      var pattern = resolveArpeggioPattern(patternReference, arpeggioPatterns, chordDef);
-      if (!pattern) {
-        return;
-      }
-      if (!_arpeggioPattern) {
-        _arpeggioPattern = pattern.clone();
-        return;
-      }
-      _arpeggioPattern.addPattern(pattern);
-    });
-  }
-
-  var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
-    // map voicing references to actual voicings
-    .map(function(voicingReference) {
-      if (voicingLib.isVoicing(voicingReference)) {
-        return voicingReference;
-      }
-      if (Array.isArray(voicingReference)) {
-        return voicingReference;
-      }
-      if(voicings[voicingReference]) {
-        return voicings[voicingReference];
-      }
-      console.warn("Unknown voicing reference \"" + voicingReference + "\" used in chord definition \"" + chordDef  + "\"");
-      return defaultVoicing;
-    })
-    // if more than one voicing was used, they need to be merged
-    // TODO does this already work as expected?
-    .reduce(function(a, b) {
-      var combinedVoicing = {};
-      mergeVoices(combinedVoicing, a);
-      mergeVoices(combinedVoicing, b);
-      return combinedVoicing;
-    });
-
-  if (!_voicing) {
-    _voicing = defaultVoicing;
-  }
+  var _arpeggioPattern = arpeggioPattern;
+  // var arpeggioPatternReferences = parseStringParameters("A", null, "arpeggios");
+  // if (arpeggioPatternReferences.length == 1) {
+  //   if (arpeggioPatternReferences[0] !== null) {
+  //     _arpeggioPattern = resolveArpeggioPattern(arpeggioPatternReferences[0], arpeggioPatterns, chordDef);
+  //   }
+  // } else if (arpeggioPatternReferences.length > 1) {
+  //   arpeggioPatternReferences.forEach(function(patternReference) {
+  //     var pattern = resolveArpeggioPattern(patternReference, arpeggioPatterns, chordDef);
+  //     if (!pattern) {
+  //       return;
+  //     }
+  //     if (!_arpeggioPattern) {
+  //       _arpeggioPattern = pattern.clone();
+  //       return;
+  //     }
+  //     _arpeggioPattern.addPattern(pattern);
+  //   });
+  // }
+  var _voicing = voicing;
+  // var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
+  //   // map voicing references to actual voicings
+  //   .map(function(voicingReference) {
+  //     if (voicingLib.isVoicing(voicingReference)) {
+  //       return voicingReference;
+  //     }
+  //     if (Array.isArray(voicingReference)) {
+  //       return voicingReference;
+  //     }
+  //     if(voicings[voicingReference]) {
+  //       return voicings[voicingReference];
+  //     }
+  //     console.warn("Unknown voicing reference \"" + voicingReference + "\" used in chord definition \"" + chordDef  + "\"");
+  //     return defaultVoicing;
+  //   })
+  //   // if more than one voicing was used, they need to be merged
+  //   // TODO does this already work as expected?
+  //   .reduce(function(a, b) {
+  //     var combinedVoicing = {};
+  //     mergeVoices(combinedVoicing, a);
+  //     mergeVoices(combinedVoicing, b);
+  //     return combinedVoicing;
+  //   });
 
   return {
     toString: function() {
-      return _chordDef;
+      return _asString;
     },
     getStep: function() {
       return _step;
@@ -253,137 +130,181 @@ function parseChordDefinition(chordDef, voicings, scales, rhythmPatterns, arpegg
   };
 }
 
-function createChordDefinitionComposit(chordDefinitionsOrComposits, name) {
-  // each entry can be a chord definition of another composit
-  var _children = chordDefinitionsOrComposits || [];
-  var _name = name || "";
+
+var STEP_REGEX_STR = '\\d+';
+var SCALE_REGEX_STR = '\\**';
+function createParserDelegate() {
+  var parserDelegate = compositeLib.createCompositeParserDelegate();
+  parserDelegate.getRegexOfSubject = function() {
+    return new RegExp('^(' + STEP_REGEX_STR + ')(' + SCALE_REGEX_STR + ')');
+  };
+  return parserDelegate;
+}
+
+/**
+ * Returns an object with the properties:
+ * - errors
+ * - composite // a composite representing the parsed structure
+ * - list // an array of all created chord definitions which were created out of the parsed structure
+ */
+lib.parseChordDefinitions = function(multilineString, voicings, scales, rhythmPatterns, arpeggioPatterns) {
+  var variables = {};
+  var parserResult = compositeParser.parseComposite(multilineString, createParserDelegate(), variables);
+
+  var chordDefinitionBuilderFactory = createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, arpeggioPatterns, parserResult.getMessageContainer());
+  // XXX How to add builder errors ?
+  var list = parserResult.getComposite().createFlatSubjectList(chordDefinitionBuilderFactory);
 
   return {
-    addChild: function(chordDefinitionOrComposit) {
-      _children.push(chordDefinitionOrComposit);
-    },
-    getName: function() {
-      return _name;
-    },
-    createChordDefinitonIterator: function() {
-      // index within _children array
-      var __index = -1;
-      // current iterator, created using createChordDefinitonIterator() on a child
-      var __currentIterator;
+    getMessageContainer: function() { return parserResult.getMessageContainer(); },
+    getComposite: function() { return parserResult.getComposite(); },
+    getList: function() { return list; }
+  };
+}
 
-      /**
-       * Returns true if the next iterator was initialized or it returns the next
-       * chord definition. Returns false if there is nothing more to be iterated.
-       */
-      function nextIteratorOrChordDefinition() {
-        if (__currentIterator) {
-          return true;
+function resolveVariable(variableName, map, type, messages) {
+  if (typeof(map[variableName]) === 'undefined') {
+    messages.addWarning("Ignoring unknown " + type + " reference: " + variableName);
+    return false;
+  }
+  return map[variableName];
+}
+
+function resolveScale(scaleIndex, scales, messages) {
+  if (scaleIndex >= scales.length) {
+    messages.addWarning('Ignoring reference to scale ' + '*'.repeat(scaleIndex) + ', because there are only ' + scales.length + ' scales available.');
+    return false;
+  }
+  return scales[scaleIndex];
+}
+
+function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, arpeggioPatterns, messages) {
+  var _messages = messages;
+
+  /**
+   * subjectBuilderFactory is a f
+   * - createSubjectBuilder()
+   * which is expected to return a new object with the methods:
+   * - withMatch(match)
+   * - withOption(key, value, operator) // called for all options, from least specific to most specific
+   * - getResult() // returns the resulting subject
+   */
+  return function() {
+    // references
+    var _scales = scales;
+    var _voicings = voicings;
+    var _rhythmPatterns = rhythmPatterns;
+    var _arpeggioPatterns = arpeggioPatterns;
+
+    // chord definiton parameters
+    var _asString = '';
+    var _step;
+    var _inversion = 0;
+    var _transposition = 0;
+    var _scale = {subject: _scales[0], cloned: false};
+    var _voicing = {subject: _voicings.defaultVoicing, cloned: false};
+    var _rhythmPattern = {subject: _rhythmPatterns.defaultRhythmPattern, cloned: false};
+    var _arpeggioPattern = {subject: _arpeggioPatterns.defaultArpeggioPattern, cloned: false};
+
+    return {
+      withMatch: function(match) {
+        _step = parseInt(match[1]);
+        _scale = {subject: resolveScale(match[2].length, scales, _messages), cloned: false};
+        _asString = match[0];
+      },
+      withOption: function(key, value, operator) {
+        var subject;
+        switch (key) {
+          case 'i':
+            _inversion = setInteger(_inversion, value, operator, _messages);
+            break;
+          case 't':
+            _transposition = setInteger(_transposition, value, operator, _messages);
+            break;
+          case 's':
+            var subject = resolveScale(value, _scales, _messages);
+            _scale = setSubject(_scale, subject, operator, "scale", _messages);
+            break;
+          case 'V':
+            var subject = resolveVariable(value, _voicings, "voicing", _messages);
+            _voicing = setSubject(_voicing, subject, operator, "voicing", _messages);
+            break;
+          case 'R':
+            var subject = resolveVariable(value, rhythmPatterns, "rhythm pattern", _messages);
+            _rhythmPattern = setSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
+            break;
+          case 'A':
+            var subject = resolveVariable(value, arpeggioPatterns, "arpeggio pattern", _messages);
+            _arpeggioPattern = setSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
+            break;
+          default:
+            _messages.addWarning("Unknown option: " + key);
+            // do add nothing to _asString
+            return;
         }
-        ++__index;
-        if (__index >= _children.length) {
-          return false;
-        }
-        if (!isChordDefinitionComposit(_children[__index])) {
-          // return the actual chord definition
-          return _children[__index];
-        }
-        __currentIterator = _children[__index].createChordDefinitonIterator();
-        return true;
+
+        _asString += (" " + key + operator + value);
+      },
+      getResult: function() {
+        return createChordDefinition(_asString, _step, _inversion, _transposition, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
       }
-
-      return {
-        next: function() {
-          var nextResult = nextIteratorOrChordDefinition();
-          if (nextResult === true) {
-            // get next chord definition from the current iterator
-            var nextChordDef = __currentIterator.next();
-            if (nextChordDef !== false) {
-              return nextChordDef;
-            }
-            // the iterator has no items left, unset the iterator and try again
-            __currentIterator = false;
-            return this.next();
-          } else if (nextResult === false) {
-            return false;
-          } else {
-            return nextResult;
-          }
-        }
-      };
-    },
-    getChildren: function() {
-      return _children;
     }
   };
 }
 
 /**
- * Returns an array of chord definitions.
+ * Returns
  */
-function parseChordDefinitionsLine(singleLineString, voicings, scales, rhythmPatterns, arpeggioPatterns, referencResolver) {
-  var defaultVoicing = voicings.defaultVoicing;
-  if (typeof singleLineString !== "string") {
-    console.error("parseChordDefinitions() - Only strings can be parsed");
-    return [];
+function setInteger(existingValue, newValueAsString, operator, messages) {
+  var newValue = parseInt(newValueAsString);
+  if (isNaN(newValue)) {
+    messages.addWarning("Ignoring non integer value: " + newValue);
+    return existingValue;
+  }
+  switch (operator) {
+    case '=':
+      return newValue;
+    case '+=':
+      return existingValue + newValue;
+    case '-=':
+      return existingValue - newValue;
+    default:
+      messages.addWarning("Ignoring unknown operator: " + operator);
+      return existingValue;
+  }
+}
+
+/**
+ * once set,
+ */
+function setSubject(existingSubject, newSubject, operator, description, messages) {
+  if (operator === '=') {
+    return {subject: newSubject, cloned: false};
   }
 
-  var chordDefObjects = [];
-  singleLineString.trim().split(/\s+/).forEach(function(token) {
-    // try to parse as chord definition
-    var chordDef = parseChordDefinition(token, voicings, scales, rhythmPatterns, arpeggioPatterns);
-    if (chordDef !== false) {
-      chordDefObjects.push(chordDef);
-      return;
+  // all next operators change the subject, so clone the subject if needed in order
+  // to not to change other chord definition's subjects
+  if (existingSubject.subject !== false && !existingSubject.cloned) {
+    existingSubject.subject = existingSubject.subject.clone();
+    existingSubject.cloned = true;
+  }
+
+  if (operator === '-=') {
+    if (existingSubject.subject === false) {
+      return existingSubject;
     }
-    // try as a reference
-    var chordDefinitions = referencResolver.resolveReference(token);
-    if (Array.isArray(chordDefinitions)) {
-      // add all referenced chord definitions as a chord definition composit
-      chordDefObjects.push(createChordDefinitionComposit(chordDefinitions, token));
+    existingSubject.subject.removePattern(newSubject);
+    return existingSubject;
+  }
+
+  if (operator === '+=') {
+    if (existingSubject.subject === false) {
+      return existingSubject;
     }
-  });
-  return chordDefObjects;
-};
+    existingSubject.subject.addPattern(newSubject);
+    return existingSubject;
+  }
 
-function isChordDefinitionComposit(object) {
-  return typeof(object.createChordDefinitonIterator) === "function";
-}
-
-/**
- * The parsed thing of the created parser delegate is an array of chord definitions
- * and chord definition composits. The parser delegate collects the result as one
- * chordDefinitionComposit.
- */
-function createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns) {
-  var _voicings = voicings;
-  var _scales = scales;
-  var _rhythmPatterns = rhythmPatterns;
-  var _arpeggioPatterns = arpeggioPatterns;
-
-  return {
-    chordDefinitionComposit: createChordDefinitionComposit(),
-    getName: function() {
-      return "Chord Definitions";
-    },
-    parseThing: function(singleLineString, referencResolver) {
-      return parseChordDefinitionsLine(singleLineString, _voicings, _scales, _rhythmPatterns, _arpeggioPatterns, referencResolver);
-    },
-    addNoNameThing: function(chordDefinitions, referenceMap) {
-      // all chord definitions without a name become part of the result
-      // add each line as an own composit, so the different lines can be differentiated later
-      var composit = createChordDefinitionComposit(chordDefinitions);
-      this.chordDefinitionComposit.addChild(composit);
-    }
-  };
-};
-
-/**
- * All lines of chord definitions which have no name are accumulated and are
- * returned as a chord definition composit objects.
- */
-lib.parseChordDefinitions = function(multiLineString, voicings, scales, rhythmPatterns, arpeggioPatterns) {
-  multiLineString = multiLineString.split(",").join("\n"); // <- convert commas to new lines
-  var parserDelegate = createChordDefinitionsParserDelegate(voicings, scales, rhythmPatterns, arpeggioPatterns);
-  recursiveParser.parseThingsRecursive(multiLineString, parserDelegate);
-  return parserDelegate.chordDefinitionComposit;
+  messages.addWarning("Ignoring unknown " + description + " operator: " + operator);
+  return existingSubject;
 }

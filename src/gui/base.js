@@ -5,147 +5,21 @@ var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
 var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
+var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
 var session = require("./session.js");
+var pocketKnife = require("./pocketKnife.js");
 
-/**
- * Basic lib stuff...
- */
 function $_(id) { return document.getElementById(id); }
-
 /**
  * References to DOM elements...
  */
 var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
   chordReferenceGroupTemplate = $_("templates").getElementsByClassName("chord-reference-group")[0],
-  chromaticKeyboardTemplate = $_("templates").getElementsByClassName("chromatic")[0],
   interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
   chordSection = $_("chords"),
   interactiveSection = $_("interactive");
-
-/**
- *
- */
-function createChromaticKeyboard(rows, columns) {
-  var keyboard = chromaticKeyboardTemplate.cloneNode(true);
-  var keyArea = keyboard.getElementsByClassName("keys")[0];
-
-  var rowIteration = 0;
-  for (var row=0; row < rows; ++row) {
-    // the first shall never be a cross row (because of the cut out parts there)
-    var isCrossRow = !!(row % 2);
-    var rowEl = document.createElement("div");
-    var chromatic = 0;
-    // e.g. class="row x i1" -> second iteration of cross rows
-    if (isCrossRow) {
-      rowEl.className = "row i" + Math.floor(rowIteration) + " x";
-      chromatic = 1;
-    } else {
-      rowEl.className = "row i" + Math.floor(rowIteration);
-    }
-    var rowColumnCount = isCrossRow ? columns - 1 : columns;
-    for (var column = 0; column < rowColumnCount; ++column) {
-      var button = document.createElement("span");
-      // c<chromaticPosition>
-      // r<row>
-      button.className = "c" + chromatic;
-      rowEl.appendChild(button);
-      chromatic += 2;
-    }
-
-    keyArea.insertBefore(rowEl, keyArea.firstChild);
-
-    rowIteration += 0.5;
-  }
-
-  var debug = false;
-  function construct(keyboard) {
-    return {
-      getElement: function() {
-        return keyboard;
-      },
-      add: function(notes, description) {
-        var notes = tLib.parseNotes(notes);
-        if (debug) {
-          console.log("ChromaticKeyboard - Adding notes: ", notes.map(function(note){ return note.toString(); }));
-        }
-
-        // add each
-        var firstNoteIsOnCrossRow = notes.length > 0 && (notes[0].getPosition() % 2) === 1;
-        for (var i=0; i<notes.length; ++i) {
-          var note = notes[i];
-          var absoluteChromatic = note.getPosition();
-          var iteration = note.isUp() ? 1 : 0;
-          if (i !== 0 && firstNoteIsOnCrossRow && (absoluteChromatic % 2) === 0) {
-            ++iteration;
-          }
-
-          // find buttons to light
-          var query = ".row.i" + iteration + " span.c" + absoluteChromatic;
-          var noteEl = keyboard.querySelector(query);
-          if (noteEl === null || typeof noteEl === "undefined") {
-            console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
-            continue;
-          }
-          // add label
-          noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
-          noteEl.classList.add("selected");
-          // mark root
-          if (note.isRoot()) {
-            noteEl.classList.add("root");
-          }
-        }
-
-        // add description
-        if (typeof description !== "undefined") {
-          var descriptionEl = keyboard.getElementsByClassName("description");
-          if (descriptionEl.length > 0) {
-            descriptionEl[0].innerHTML = description;
-          }
-        }
-      },
-      addDiff: function(notes) {
-        notes = tLib.parseNotes(notes);
-        // get all selected notes
-        var noteEls = keyboard.getElementsByClassName("selected");
-        // query their positions and wrap them each together with their position in an array
-        var noteArrays = [];
-        for (var i=0; i<noteEls.length; ++i) {
-          noteArrays.push([noteEls[i], parseInt(noteEls[i].className.substring(1))]);
-        }
-        // order them
-        noteArrays.sort(function(a, b) { return b[1] - a[1]; });
-        // add the diffs
-        for (var i=0; i<notes.length; ++i) {
-          var el = noteArrays.pop();
-          if (!el) {
-            console.error("addDiff() - Missing note on keyboard for note " + notes[i].toString());
-            continue;
-          }
-          var diff = notes[i].getPosition() - el[1];
-          // do not mark no differences ... yet
-          if (diff === 0) {
-            continue;
-          }
-          // use half notes, because smaller numbers are faster to comprehend
-          var text = diff / 2;
-          // build and append dom element
-          var diffEl = document.createElement("div");
-          diffEl.className = "diff";
-          diffEl.appendChild(document.createTextNode(text));
-          el[0].appendChild(diffEl);
-        }
-      },
-      clone: function() {
-        return construct(keyboard.cloneNode(true));
-      }
-    };
-  }
-
-  return construct(keyboard);
-}
-lib.createKeyboard = createChromaticKeyboard;
 
 function addChord(chord, parent, zebraRoot, nextChord) {
   parent = parent || chordSection;
@@ -154,7 +28,7 @@ function addChord(chord, parent, zebraRoot, nextChord) {
   if (!isNaN(zebraRoot)) {
     k = zebra.createZebraKeyboard(chord.getHighestNote().getPosition() + 1, zebraRoot, chord.getFixedOffset());
   } else {
-    k = createChromaticKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
+    k = keyboard.createKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
   }
 
   var name;
@@ -308,6 +182,10 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
+function parseSubjectComposite(formElementName) {
+
+}
+
 /**
  * TODO This is very messy now!
  *
@@ -317,11 +195,15 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
   section = section || interactiveSection;
   var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0],
+    utilityForm = formGroupEl.querySelector("form.utility-form"),
     resultSection = formGroupEl.getElementsByClassName("result")[0],
     scaleElementTemplate = formGroupEl.getElementsByClassName("scale_container")[0],
     scalesElement = formGroupEl.getElementsByClassName("scales")[0];
 
+  formGroupEl.className += (' active');
   scaleElementTemplate.style = "display:none";
+
+  pocketKnife.initPocketKnife(utilityForm);
 
   function submitForm() { form.update.click(); }
 
@@ -339,13 +221,16 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     session.setDAWUpdateActivated(form.upload_to_daw.checked);
     submitForm();
   });
-  document.querySelectorAll("textarea").forEach(function(textAreaElement) {
-    var resizeObserver = new ResizeObserver(function () {
-      session.saveTextAreaSizes(textAreaElement);
+
+  if (window.ResizeObserver) {
+    document.querySelectorAll("textarea").forEach(function(textAreaElement) {
+      var resizeObserver = new ResizeObserver(function () {
+        session.saveTextAreaSizes(textAreaElement);
+      });
+      resizeObserver.observe(textAreaElement);
     });
-    resizeObserver.observe(textAreaElement);
-  });
-  session.restoreTextAreaSizes(form);
+    session.restoreTextAreaSizes(form);
+  }
 
   function shiftScale(direction, element) {
     var scale = tLib.createScale(element.value);
@@ -475,7 +360,10 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
     // repaint all
     resultSection.innerHTML = "";
-    submitFunction(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
+
+    var chordDefParserResult = parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
+
+    submitFunction(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
 
     serializedForm = newSerializedForm;
     updateSerializedFormOfLocation();
@@ -496,7 +384,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
         while (preset.length > scaleContainers.length) {
           addScaleGUI();
         }
-        // remove unneeded scales
+        // remove unneeded scales GUIs
         while (scaleContainers.length > preset.length) {
           popScaleGUI();
         }
@@ -543,7 +431,8 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       // setting button values makes no sense
       // the state of upload_to_daw is controlled via the session, so do not overwrite this value
       if (inputs[i].type !== "button" && inputs[i].name !== "upload_to_daw") {
-        // this also sets no value for all preset elements, which makes sense, so no actual value is initially selected
+        // this also sets no value for all preset elements, which makes sense,
+        // because this way initially there is no value selected which makes all options selectable
         inputs[i].value = "";
       }
     }
@@ -564,3 +453,29 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     submitForm();
   }
 };
+
+function addMessage(parentElement, type, message) {
+  var textMsg = message;
+  if (message.getMessage) {
+    textMsg = message.getMessage();
+  }
+  var el = document.createElement('div');
+  el.className = type;
+  var text = document.createTextNode(textMsg);
+  el.appendChild(text);
+  parentElement.appendChild(el);
+}
+
+function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns) {
+  var chordDefParserResult = tLib.parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
+  var messagesElement = document.querySelector(".interactive-form.active .form-element.chords .messages");
+  messagesElement.innerHTML = '';
+  chordDefParserResult.getMessageContainer().getErrors().forEach(function(msg) {
+    addMessage(messagesElement, 'error', msg);
+  });
+  chordDefParserResult.getMessageContainer().getWarnings().forEach(function(msg) {
+    addMessage(messagesElement, 'warning', msg);
+  });
+  // addMessage(messagesElement, 'information', chordDefParserResult.getComposite().asString());
+  return chordDefParserResult;
+}

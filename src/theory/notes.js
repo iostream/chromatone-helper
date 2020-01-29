@@ -113,6 +113,7 @@ function parseNote(noteDefinition, parsedInterval) {
   }
   var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
 
+  var _voice;
   return {
     getChromaticInterval: function () {
       return _chromaticInterval - _chromaticRoot;
@@ -172,11 +173,21 @@ function parseNote(noteDefinition, parsedInterval) {
       _chromaticInterval += semitones;
       _chromaticRoot += semitones;
     },
+    // Optionally a note can know its voice!
+    // TODO This could be used in an  alternative note naming mode: "voices"
+    // (instead of the interval)
+    getVoice: function() {
+      return _voice;
+    },
+    setVoice: function(voice)  {
+      _voice = voice;
+    },
     clone: function() {
       var copy = parseNote(this.toString());
       copy.setIntervalNameMap(intervalNameMap);
       copy.setChromaticRoot(this.getChromaticRoot());
       copy.setPosition(this.getPosition());
+      copy.setVoice(this.getVoice());
       return copy;
     }
   }

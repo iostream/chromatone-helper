@@ -30,10 +30,11 @@
 
       <div class="interactive-form">
         <form name="interactive" class="form">
-          <span class="form-element">
-            <label for="chords">chords</label>
+          <span class="chords form-element">
+            <label for="chords">progression</label>
             <select name="chords_preset" class="chords-preset preset"></select>
             <textarea name="chords" placeholder="chords"></textarea>
+            <div class="messages"></div>
           </span>
           <span class="scales form-element">
             <div class="scales-controls">
@@ -46,19 +47,23 @@
               <input type="text" name="scale" placeholder="scale" class="scale">
               <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left">
               <input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right">
+              <div class="messages"></div>
             </div>
           </span>
           <span class="form-element">
             <label for="voicing">voicings</label><select name="voicing_preset" class="voicing-preset preset"></select>
             <textarea name="voicing" placeholder="voicing" class="voicing"></textarea>
+            <div class="messages"></div>
           </span>
           <span class="form-element">
             <label for="rhythms">rhythms</label><select name="rhythms_preset" class="rhythms-preset preset"></select>
             <textarea name="rhythms" placeholder="rhythms" class="rhythms"></textarea>
+            <div class="messages"></div>
           </span>
           <span class="form-element">
             <label for="arpeggio patterns">arpeggio patterns</label><select name="arpeggio_patterns_preset" class="arpeggio-patterns-preset preset"></select>
             <textarea name="arp" placeholder="arpeggio patterns" class="arpeggio-patterns"></textarea>
+            <div class="messages"></div>
           </span>
 
           <div class="secondary-form-elements">
@@ -88,7 +93,7 @@
             </span>
           -->
             <span class="form-element">
-              <input type="button" value="💾" name="generate_midi" title="download midi out of the generated progression">
+              <input type="button" value="MIDI" name="generate_midi" title="download midi out of the generated progression">
             </span>
             <span class="form-element">
               <label for="upload_to_daw">Update DAW</label>
@@ -97,6 +102,15 @@
           </div>
           <input style="display:none" type="submit" value="⛵" name="update">
         </form>
+        <form class="utility-form">
+          <span class="form-element">
+            <select name="pocket_knife">
+              <option value="localhost">switch to localhost</option>
+              <option value="www">switch to www</option>
+              <option value="file">get local path</option>
+            </select>
+          </span>
+        </form>
         <div class="result">
         </div>
       </div>
@@ -104,7 +118,7 @@
 
     <section id="interactive">
     </section>
-    🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡🏡
+
     <section id="chords">
     </section>
 

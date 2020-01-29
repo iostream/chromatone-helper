@@ -1,17 +1,16 @@
 var g = require("./src/gui/base.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),
+ compositeParser = require("./src/parser/composite_parser.js"),
+ compositeLib = require("./src/parser/composite.js"),
  arpeggioLib = require("./src/theory/arpeggio.js"),
  midi = require("./src/midi.js"),
  serverClient = require("./src/server/client.js"),
  presets = require("./resources/presets.js");
 
-var k = g.createKeyboard(3, 7);
-
-// TODO move this code into an own file / layer:
-g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-  var chordDefinitionComposit = t.parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
-  var progression = p.createChordProgression(scales[0], chordDefinitionComposit);
+// TODO move this code into an own file / layer?
+g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
+  var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
   var chords = progression.getChords();
 
   if (options.uploadToDAW || options.uploadMidi || options.generateMidi) {
@@ -36,7 +35,7 @@ g.addForm(function(scales, chordDefs, voicings, rhythmPatterns, arpeggioPatterns
   progression.fixChords();
   var chords = progression.getChords();
 
-  g.addChordsUsingChordDefinitionComposit(chords, chordDefinitionComposit, options.zebraRoot, resultSection);
+  g.addChordsUsingChordDefinitionComposit(chords, chordDefParserResult.getComposite(), options.zebraRoot, resultSection);
 
 }, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 

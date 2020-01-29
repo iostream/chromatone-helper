@@ -212,8 +212,8 @@ var rhythmParserDelegate = {
   }
 };
 
-lib.parseRhythmPatterns = function(multiLineString) {
-  var map = recursiveParser.parseThingsRecursive(multiLineString, rhythmParserDelegate);
+lib.parseRhythmPatterns = function(multilineString) {
+  var map = recursiveParser.parseThingsRecursive(multilineString, rhythmParserDelegate);
   // assure a default rhythm pattern
   if (!map.defaultRhythmPattern) {
     // use the first named pattern

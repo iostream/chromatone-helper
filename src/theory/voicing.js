@@ -61,18 +61,139 @@ function parseVoicing(voicingString, referenceResolver) {
 function createVoicing(voices1, voices2) {
   var _voices1 = voices1;
   var _voices2 = voices2 || [];
+  var _normalizedVoices1;
+  var _dirty = true;
+
+  function init() {
+    _normalizedVoices1 = normalizeVoices(_voices1);
+    _dirty = false;
+  }
   return {
+    createNotes: function(scale, inversion) {
+      if (_dirty) { init(); }
+      var notes = createNotesByVoices(_normalizedVoices1, scale.getNotes());
+      if (inversion != 0) {
+        invertNotes(notes, inversion);
+      }
+      // TODO voices2 are added after inversion...!?
+      // XXX also see createArpeggioNotes() !
+
+      return notes;
+    },
+    createInvertedArpeggioNotes: function(scale, inversion) {
+      var notes = createNotesByVoices(_voices1, scale.getNotes());
+      if (inversion != 0) {
+        invertNotes(notes, inversion);
+      }
+      return notes;
+    },
+    /**
+     * These make the difference when using ">" in arpeggio patterns....
+     */
+    createArpeggioNotes: function(scale, inversion) {
+      // return this.createInvertedArpeggioNotes(scale, inversion);
+
+      // XXX
+      if (_dirty) { init(); }
+
+      var notes = this.createNotes(scale, inversion);
+
+      // create mapping between voices and notes, this works, because
+      // createNotes() uses the normalized voicing, so every voice is contained
+      // exactly one time within notes
+      var voiceToNoteMap = new Map();
+      notes.forEach(function(note) {
+        voiceToNoteMap.set(note.getVoice(), note);
+      });
+
+      var arpeggioNotes = [];
+      _voices1.forEach(function(voice) {
+        arpeggioNotes.push(voiceToNoteMap.get(voice));
+      });
+
+      return arpeggioNotes;
+    },
     getVoices1: function() { return _voices1; },
     getVoices2: function() { return _voices2; },
     // add one voice at a time...
-    addVoice1: function(voice1) { _voices1.push(voice1); },
-    addVoice2: function(voice2) { _voices2.push(voice2); },
+    addVoice1: function(voice1) { _voices1.push(voice1); _dirty = true; },
+    addVoice2: function(voice2) { _voices2.push(voice2); _dirty = true; },
     // add many voices at a time using (using this interface this can potentially be optimized/tweaked)
-    addVoicing1: function(voicing) { _voices1 = _voices1.concat(voicing.getVoices1()); },
-    addVoicing2: function(voicing) { _voices2 = _voices2.concat(voicing.getVoices2()); },
+    addVoicing1: function(voicing) { _voices1 = _voices1.concat(voicing.getVoices1()); _dirty = true; },
+    addVoicing2: function(voicing) { _voices2 = _voices2.concat(voicing.getVoices2()); _dirty = true; },
+    addPattern: function(voicing) { this.addVoicing1(voicing); this.addVoicing2(voicing); _dirty = true; },
     // for debugging:
-    asString: function() { return _voices1.join(" ") + (_voices2.length > 0 ? ", " : "") + _voices2.join(" "); }
+    asString: function() { return _voices1.join(" ") + (_voices2.length > 0 ? ", " : "") + _voices2.join(" "); },
+    clone: function() {
+      return createVoicing(_voices1, _voices2);
+    }
   };
+}
+
+function createNotesByVoices(voices, scaleNotes) {
+ var notes = [];
+ for (var i = 0; i < voices.length; ++i) {
+   // add cloned notes, so changing the chord's notes won't change the scale's notes
+   var noteIndex = voices[i] % scaleNotes.length;
+   var noteTransposition = Math.floor(voices[i] / scaleNotes.length) * 12;
+   var note = scaleNotes[noteIndex].clone();
+   note.setVoice(voices[i]);
+
+   if (noteTransposition !== 0) {
+     // transposition is required for extensions
+     note.transpose(noteTransposition);
+     // alter chromatic root, so the interval names also "change registers"
+     note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
+   }
+
+   notes.push(note);
+ }
+ return notes;
+}
+
+/**
+ * Voices can be used to make "free flowing" arpeggios, e.g. 8 3 8 5 1 5 8 3.
+ * This makes sense for using ">", ">*" in arpegguio patterns, but inverting
+ * these kind of voicings doesn't makes sense. This is "normalizing" for. The
+ * example output would be: 1 3 5 8. It is ordered and duplicates are removed.
+ */
+function normalizeVoices(voices) {
+  if (!Array.isArray(voices) || voices.length === 0) {
+    return [];
+  }
+  // like: sort | uniq (from https://stackoverflow.com/questions/11688692/how-to-create-a-list-of-unique-items-in-javascript)
+  return voices.slice(0).sort().filter(function(value, index, array) {
+      return (index === 0) || (value !== array[index - 1]);
+  });
+}
+
+/**
+ * notes is an in/out parameter.
+ * Inversions can be negative and there are more inversions than note count - 1.
+ */
+function invertNotes(notes, inversion) {
+  // simple and effective....
+  if (inversion > 0) {
+    var highestNote = notes[notes.length - 1];
+    for (var i = 0; i < inversion; ++i) {
+      var note = notes.shift();
+      while (note.getPosition() <= highestNote.getPosition()) {
+        note.transpose(12);
+      }
+      highestNote = note;
+      notes.push(note);
+    }
+  } else {
+    for (var i = inversion; i >= 0; --i) {
+      var note = notes.pop();
+      var lowestNote = notes[0];
+      while (note.getPosition() >= lowestNote.getPosition()) {
+        note.transpose(-12);
+      }
+      lowestNote = note;
+      notes.unshift(note);
+    }
+  }
 }
 
 var voicingParserDelegate = {
