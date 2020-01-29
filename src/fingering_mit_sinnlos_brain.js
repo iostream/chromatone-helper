@@ -1,7 +1,5 @@
 var ChromatoneLibFingering = {};
 (function(lib, tLib) {
-  console.log("    \"    \"  \"  ChromatoneLibFingering !");
-
   /** unconverted training data */
   var _data = {
     //"basic" : [ // testi testi....
@@ -39,20 +37,20 @@ var ChromatoneLibFingering = {};
       [1   , "3+", "b5+", "r6"],
       [1   , "2+" , "r4" , "b6" ],
       [1   , "rb3","b5+" , "b7" ]
-    ]  
+    ]
   };
-  
+
   var _netConfig = {
       binaryThresh: 0.5,     // ¯\_(ツ)_/¯
       hiddenLayers: [4,4],     // array of ints for the sizes of the hidden layers in the network
       activation: 'sigmoid'  // supported activation types: ['sigmoid', 'relu', 'leaky-relu', 'tanh']
   };
-  
+
   var _trainConfig = {
      errorThresh: 0.0005,
-     iterations: 20000 * 2, 
+     iterations: 20000 * 2,
   };
-  
+
   var _net;
 
   function convertNote(note) {
@@ -62,21 +60,21 @@ var ChromatoneLibFingering = {};
   /**
    * input
    * -----
-   * 
+   *
    * n0: convert(note[0])
    * n1: convert(note[1])
    * ...
-   * 
+   *
    * output
    * ------
    * i0: 0|1 (which iteration to use on the chromatic keyboard, basically isUp()...)
    * i1:  "
-   * ... 
-   * 
+   * ...
+   *
    */
   function convertTrainingData(data) {
     var res = [];
-    
+
     for (property in data) {
       if (!data.hasOwnProperty(property)) {continue;}
       var group = data[property];
@@ -96,7 +94,7 @@ var ChromatoneLibFingering = {};
         }
       });
     }
-    
+
     return res;
   }
 
@@ -105,51 +103,51 @@ var ChromatoneLibFingering = {};
     var notesArray = tLib.parseNotes(notes);
     var net = getNet();
     var input = {};
-    
+
     for (var i=0; i<notesArray.length; ++i) {
       input[i] = convertNote(notesArray[i]);
     }
-    
+
     if (notesArray.length > 0) {
       notesArray[0].setUp(false);
     }
-    
+
     var output = net.run(input);
-  
+
     // var likely = require('brain/likely');
     // var output = likely(input, net);
-    
+
     for (var i=1; i<notesArray.length; ++i) {
       if (typeof output[i] === "undefined") {
         console.error("updateFingering() - net did not return enough output.");
         continue;
       }
       notesArray[i].setUp(Math.round(output[i]) == 1);
-    } 
-    
+    }
+
     console.log("ChromatoneLibFingering.updateFingerings() ", notes, input, output);
   }*/
   function updateFingering(notes) {
     var notesArray = tLib.parseNotes(notes);
-    
+
     if (notesArray.length < 1) {
       return;
     }
-    
+
     notesArray[0].setUp(false);
-    
+
     if (notesArray.length < 2) {
       return;
-    }      
-    
+    }
+
     // second note is up, if it would be one the same row like the note before
     var isUp = notesArray[0].getChromaticInterval() % 2 === notesArray[1].getChromaticInterval() % 2;
     notesArray[1].setUp(isUp);
-    
+
     if (notesArray.length < 3) {
       return;
     }
-    
+
     if (isUp) {
       // third note would also stay up if it is on the same row like the note before
       isUp = notesArray[1].getChromaticInterval() % 2 === notesArray[2].getChromaticInterval() % 2;
@@ -157,20 +155,20 @@ var ChromatoneLibFingering = {};
       isUp = notesArray[1].getChromaticInterval() % 2 !== notesArray[2].getChromaticInterval() % 2;
     }
     notesArray[2].setUp(isUp);
-    
+
     if (notesArray.length < 4) {
       return;
     }
-    
+
     // fourth note always is down
     notesArray[3].setUp(false);
-    
+
     if (notesArray.length > 4) {
       console.warn("updateFingering() - only works with up to 4 notes!");
     }
   }
   lib.updateFingering = updateFingering;
-  
+
   /**
    * progression[] ... array of chords
    */
@@ -179,12 +177,12 @@ var ChromatoneLibFingering = {};
       // nothing to do
       return;
     }
-    
+
     for (var i=0; i<progression.length - 1; ++i) {
       var chord = progression[i];
       var nextChord = progression[i + 1];
-      
-      
+
+
     }
   }
   lib.optimizeVoiceLeading = optimizeVoiceLeading;
@@ -198,7 +196,7 @@ var ChromatoneLibFingering = {};
     _net = net;
   };
   lib.train = train;
-  
+
   function getNet() {
     if (typeof _net === "undefined") {
       train();
@@ -206,10 +204,10 @@ var ChromatoneLibFingering = {};
     return _net;
   }
   lib.getNet = getNet;
-  
+
   function getTrainingData() {
     return _data;
   }
   lib.getTrainingData = getTrainingData;
-     
+
 })(ChromatoneLibFingering, ChromatoneLibTheory);

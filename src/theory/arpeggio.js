@@ -71,6 +71,10 @@ function createArpeggioPattern(internalPitchIterators) {
         },
         /** Also returns the note */
         nextPitchByIndex: function(pitchIndex) {
+          if (pitchIndex < 0) {
+            // negative pitch indexes start from highest to lowest (-1, -2, ...)
+            pitchIndex = this.voicingIndexesByPitchIndex.length + (pitchIndex % this.voicingIndexesByPitchIndex.length);
+          }
           var voicingIndexes = this.voicingIndexesByPitchIndex[pitchIndex % this.voicingIndexesByPitchIndex.length];
           if (this.voicingIndex === -1) {
             // start with first note of voicing which has the pitch
@@ -267,8 +271,8 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
   return events;
 }
 
-function createPitch(note) {
-  var _pitch = note.getPosition();
+function createPitch(pitchPosition) {
+  var _pitch = pitchPosition;
   return {
       getPosition: function() {
         return _pitch;
@@ -280,7 +284,7 @@ var nextVoicingPitchStep = {
   getPitch: function(chord, status) {
     var notes = chord.getNotes();
     var voicingIndex = status.incrementVoicingIndex();
-    return createPitch(notes[voicingIndex]);
+    return createPitch(notes[voicingIndex].getPosition());
   }
 };
 
@@ -290,24 +294,108 @@ function getNextVoicingPitchStep() {
 
 /**
  * Returns undefined, if no valid string was passed to parse.
+ *
+ * pitchIndexOperation can contain - and + for minus and plus operations.
+ * after operation follows the unit, examples:
+ * 1+12t .. add 12 semitones
+ * 1+8d  .. add 8 diatonic steps
+ * 1+1d-1t .. add one diatonic step and remove one semitone
  */
-function createPitchByRelativePitchIndexStep(pitchIndex) {
-  var _pitchIndex = parseInt(pitchIndex);
-  if (isNaN(pitchIndex)) {
+function createPitchByRelativePitchIndexStep(pitchIndexOperation) {
+  var _pitchIndex = parseInt(pitchIndexOperation);
+  if (isNaN(_pitchIndex)) {
     return;
   }
-  // make index 0 based
-  --_pitchIndex;
+
+  if (_pitchIndex > 0) {
+    // make 0 based index, but let negative numbers as they are
+    --_pitchIndex;
+  }
+
   return {
     getPitch: function(chord, status) {
       var note = status.nextPitchByIndex(_pitchIndex);
-      return createPitch(note);
+      return createPitch(note.getPosition());
+    }
+  };
+}
+
+function createPitchStepOperation(inputString) {
+  var _childStep;
+  var _diatonicSteps = 0;
+  var _transposition = 0;
+
+  // replace occurances of "-" with "-+", but only if
+  //   - the "-" is not the first character of the string
+  //   - after the "-" not already follows a "+"
+  // (this makes the following operation simpler)
+  var operation = "";
+  var tokens = inputString.split("-");
+  tokens.forEach(function(token, i) {
+    if (i > 0 && i < tokens.length && tokens[i + 1] !== "+") {
+      operation += "+-";
+    } else if (i + 1 < tokens.length && i > 0) {
+      operation += "-";
+    }
+    operation += token;
+  });
+
+  operation.split("+").forEach(function(operationToken) {
+    if (!_childStep) {
+
+      if (operationToken.lastIndexOf("-") > 0) {
+
+      }
+      _childStep = createArpeggioStep(operationToken);
+      if (!_childStep) {
+        _childStep = createArpeggioStep(operationToken[0]);
+      }
+      if (!_childStep) {
+        console.warn("createPitchStepOperation() - Invalid child step: " + operationToken + " in arpeggio pattern step operation: " + token);
+      }
+      return;
+    }
+    var integerNumber = parseInt(operationToken);
+    if (isNaN(integerNumber)) {
+      console.warn("createPitchStepOperation() - Invalid operation number: " + operationToken + " in arpeggio pattern step operation: " + token);
+      return;
+    }
+
+    // assess type of operation
+    var lookupIndex = 0;
+    // XXX the tokens are now a bit all over here...
+    if (operationToken[lookupIndex] === "-" || operationToken[lookupIndex] === ">") {
+      ++lookupIndex;
+    }
+    while (lookupIndex < operationToken.length && !isNaN(parseInt(operationToken[lookupIndex]))) {
+      ++lookupIndex;
+    }
+    if (lookupIndex < operationToken.length) {
+      var operationType = operationToken[lookupIndex];
+      if (operationType === "d") {
+        _diatonicSteps += integerNumber;
+      } else if (operationType === "t") {
+        _transposition += integerNumber;
+      } else {
+        console.warn("createPitchByRelativePitchIndexStep() - Invalid arpeggio pattern step operation type: " + operationType + " in step: " + operationToken);
+      }
+    }
+  });
+
+  return {
+    getPitch: function(chord, status) {
+      var note = _childStep.getPitch(chord, status);
+      var transposition = _transposition;
+      note = createPitch(note.getPosition() + transposition);
+      return note;
     }
   };
 }
 
 function createArpeggioStep(token) {
-  if (token === ">") {
+  if (token.indexOf("+") !== -1 || token.lastIndexOf("-") > 0) {
+    return createPitchStepOperation(token);
+  } else if (token === ">") {
     return getNextVoicingPitchStep();
   } else {
     return createPitchByRelativePitchIndexStep(token);

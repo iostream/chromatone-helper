@@ -3,7 +3,6 @@ module.exports = lib;
 
 var recursiveParser = require("../recursive_parser.js");
 
-var LINES_REGEX = /[^\r\n]+/g;
 var WHITESPACE_REGEX = /\s+/;
 
 /**
