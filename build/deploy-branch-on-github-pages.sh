@@ -1,7 +1,6 @@
 #!/bin/sh
 
-# deploys to last combined build to the github page belonging to the current
-# branch
+# deploys last build result of the current branch to its github page
 
 destinationBranch="gh-pages"
 branch=`git rev-parse --abbrev-ref HEAD`
@@ -18,6 +17,6 @@ cp "$fileToDeploy" "$repoPath/$branch/index.html"
 # add changes
 cd "$repoPath"
 git add "$branch"
-# and commit them
+# and commit/push them
 git commit -m "Update build result of $branch"
 git push origin $destinationBranch
