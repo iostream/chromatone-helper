@@ -7,6 +7,8 @@ You can also use it offline in most web browsers, also on mobile devices! [Just 
 
 Example of the latest new feature, arpeggios (one feature still is missing), click the link and then click the save button to export as MIDI: [link](https://iostream.github.io/chromatone-helper/#chords=1t12Va+4Vb+6Vc+1t12Vd%2C%0D%0A6+5+1+2%0D%0A&voicing=a%3A+1+5+10+9+10+5+10+5%0D%0Ab%3A+5+10+15+14+15+10+15+10%0D%0Ac%3A+3+9+13+12+13+9+13+9%0D%0Ad%3A+1+8+10+9+10+8+10+8+1+8+10+9+10+8+10+7%0D%0Aa%0D%0A&zebra_root=-17&scale[0]=r1+2+3+4+5+6+7&rhythms=1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1&arp=>*)
 
+[Current development version](https://iostream.github.io/chromatone-helper/v2-dev/ "Chromatone Janko Tool v2 development by iostream")
+
 Voicings
 --------
 
@@ -63,10 +65,9 @@ Feature wishes
    * better/always working automatic chord transition inversion optimization
    * allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
    * add new mode: optimize for best voice leading
- 
+
 - Chord-Length (first only for MIDI generation)
    * default length of a chord is one bar
-   * change length examples: 
+   * change length examples:
       * 2 bars, a forth note: `1L2`, `1L1/4`
       * 2,5 bars: `1L2L1/2` or `1L2.5`
-      
