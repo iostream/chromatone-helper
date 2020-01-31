@@ -26,16 +26,7 @@ function calculateDiff(chord1, chord2) {
   return Math.abs(diff);
 }
 
-/**
- * Lowest note of progression gets the position 0.
- *
- * return array progression of chords = altered input
- */
-function fix(chords) {
-  if (chords.length < 2) {
-    return chords;
-  }
-
+function findLowestPosition(chords) {
   // find lowest note position
   var lowestPosition = chords[0].getLowestNote().getPosition();
   chords.forEach(function(chord) {
@@ -44,18 +35,7 @@ function fix(chords) {
       lowestPosition = lowestPosition2;
     }
   });
-
-  // already fixed
-  if (lowestPosition == 0) {
-    return chords;
-  }
-
-  // transpose the progression, so it's fixed
-  for (var i=0; i<chords.length; ++i) {
-    chords[i].fix(-lowestPosition);
-  }
-
-  return chords;
+  return lowestPosition;
 }
 
 /**
@@ -63,18 +43,23 @@ function fix(chords) {
  */
 lib.createChordProgression = function(scale, chordDefinitions) {
   var _chordDefs = chordDefinitions;
-  var _chords;
+  var _chords = false;
+  var _lowestPosition = false; // lowest chromatic position
   return {
     /**
      * XXX Once fixed they stay fixed.... so this becomes a thing of using it
      * in the right order! must return a copy instead!
      */
-    fixChords: function() {
-      _chords = fix(this.getChords());
+    getLowestPosition: function() {
+      // lazy init
+      if (_lowestPosition === false) {
+        _lowestPosition = findLowestPosition(_chords);
+      }
+      return _lowestPosition;
     },
     getChords: function() {
       // lazy init
-      if (Array.isArray(_chords)) {
+      if (_chords !== false) {
         return _chords;
       }
 

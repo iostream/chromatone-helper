@@ -142,8 +142,6 @@ function createNotesByVoices(voices, scaleNotes) {
    if (noteTransposition !== 0) {
      // transposition is required for extensions
      note.transpose(noteTransposition);
-     // alter chromatic root, so the interval names also "change registers"
-     note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
    }
 
    notes.push(note);

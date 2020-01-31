@@ -21,5 +21,5 @@ lib.generateMidi = function(scales, chords, voicings, chromaticRoot, comment) {
   var voicingObjects = t.parseVoicings(voicings);
   var chordDefinitions = tchords, voicingObjects, scaleObjects);
   var chordObjects = p.createChordProgression(scaleObjects[0], chordDefinitions).getChords();
-  return midi.createMidi(chordObjects, scaleObjects, comment, chromaticRoot);
+  return midi.createMidi(chordObjects, scaleObjects, comment);
 }

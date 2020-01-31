@@ -7,11 +7,21 @@ var chordLib = require("./chord.js");
 var WHITESPACE_REGEX = /\s+/;
 
 /**
- * @param String definition
+ * notesAfterShift is an in/out parameter.
+ */
+function transposeToMatchKey(notesBeforeShift, notesAfterShift) {
+
+}
+
+/**
+ * @param String|notesObject definition
  * @return scale
  */
 lib.createScale = function(definition) {
-  var _notes = notesLib.parseNotes(definition);
+  var notesObject = notesLib.parseNotesObject(definition);
+  var _notes = notesObject.getNotes();
+  var _keyPosition = notesObject.getKeyPosition();
+  var _keyName = notesObject.getKeyName();
 
   // the root can be anywhere in the scale:
   var _rootNoteIndex = _notes.findIndex(function(note) { return note.isRoot(); });
@@ -53,7 +63,6 @@ lib.createScale = function(definition) {
             note.transpose(12);
           } while(previousNote.getPosition() > note.getPosition());
           _notes.push(note);
-          lastNote = note;
         }
       } else {
         for (var i = 0; i < Math.abs(steps); ++i) {
@@ -69,15 +78,15 @@ lib.createScale = function(definition) {
       // set the new chromatic roots after transposing, so they are not affected by it
       rootNote = this.getRootNote();
       rootNote.setRoot(true);
-      newChromaticRoot = rootNote.getPosition();
-      this.setChromaticRoot(newChromaticRoot);
 
+      var rootPosition = _notes[0].getPosition();
+
+      // rewrite the chromatic intervals, so they make sense again
+      _notes.forEach(function (note) {
+        note.setChromaticInterval(note.getPosition() - rootPosition);
+        previousPosition = note.getPosition();
+      });
       // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
-    },
-    setChromaticRoot: function(newChromaticRoot) {
-      for (var i = 0; i < _notes.length; ++i) {
-        _notes[i].setChromaticRoot(newChromaticRoot);
-      }
     },
     transpose: function(semitones) {
       for (var i=0; i<_notes.length; ++i) {
@@ -85,18 +94,14 @@ lib.createScale = function(definition) {
       }
     },
     clone: function() {
-      var newNotes = [];
-      for (var i=0; i<_notes.length; ++i)  {
-        newNotes.push(_notes[i].clone());
-      }
-      return lib.createScale(newNotes);
+      return lib.createScale(notesLib.createNotesObject(_notes, _keyPosition, _keyName));
     },
     toString: function() {
       var str = "";
       for (var i=0; i<_notes.length; ++i) {
         str += (_notes[i].toString() + " ");
       }
-      return str.trim();
+      return str.trim() + ' k=' + _keyName;
     }
   };
 }

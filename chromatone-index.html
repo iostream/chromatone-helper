@@ -20,6 +20,11 @@
         <div class="description"></div>
       </div>
 
+      <div class="string_instrument">
+        <div class="strings"></div>
+        <div class="description"></div>
+      </div>
+
       <div class="chord-group">
         <h2 class="title"></h2>
       </div>
@@ -68,8 +73,12 @@
 
           <div class="secondary-form-elements">
             <span class="form-element">
-              <label for="zebra_root">zebra root</label>
-              <input type="text" id="zebra_root" name="zebra_root" placeholder="zebra" title="chromatic root for zebra keyboard mode, an integer value activates the zebra keyboard layout">
+              <label for="instrument">instrument</label>
+              <select name="instrument" title="the instrument type to be used to display the progression chords">
+                <option value="chromatic">Chromatone</option>
+                <option value="zebra">Zebra keyboard</option>
+                <option value="string instrument">String instrument</option>
+              </select>
             </span>
             <!--
             <span class="form-element">

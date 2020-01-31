@@ -11,7 +11,6 @@ lib.createChord = function(chordDef, defaultScale) {
   var _voicing = chordDef.getVoicing();
   var _inversion = chordDef.getInversion();
   var _transposition = chordDef.getTransposition();
-  var _fixedOffset = 0;
   var _chordDef = chordDef;
 
   if (_step > 0) {
@@ -90,23 +89,8 @@ lib.createChord = function(chordDef, defaultScale) {
         null
       );
     },
-    getFixedOffset: function() {
-      return _fixedOffset;
-    },
-    setFixedOffset: function(fixedOffset) {
-      _fixedOffset = fixedOffset;
-      setDirty();
-    },
     transpose: function(semitones) {
       _transposition += semitones;
-      setDirty();
-    },
-    /**
-     * "Fixing" is like transposing, but there is a remainder, what got transposed -> _fixedOffset
-     */
-    fix: function(semitones) {
-      this.transpose(semitones);
-      _fixedOffset = semitones;
       setDirty();
     },
     getName: function() {

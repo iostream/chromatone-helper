@@ -7,15 +7,11 @@ var tLib = require("../theory/base.js");
 var zebraKeyboardTemplate = document.getElementById("templates").getElementsByClassName("zebra")[0];
 
 /**
- * Should only be used with "fixed chords", so the lowest chromatic position always is 0.
  *
- * @param int columns chromatic, so e.g. 12 is one octave
- * @param int chromaticRoot chromatic root note, 0 based, C = 0, C# = 1, etc.
- * @param int chromaticLowestNote chromatic value of the lowest note of the keyboard
  */
-lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) {
+lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   function isDisplacedButton(chromatic) {
-    var relativePosition = (chromatic + chromaticRoot - chromaticRootOffset) % 12;
+    var relativePosition = chromatic % 12;
     while (relativePosition < 0) {
       relativePosition += 12;
     }
@@ -41,7 +37,7 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
   var keyboard = zebraKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
   var rowEl = document.createElement("div");
-  var chromatic = 0;
+  var chromatic = lowestPosition;
   rowEl.className = "row";
 
   // if the button before the first button is displaced
@@ -50,7 +46,7 @@ lib.createZebraKeyboard = function(columns, chromaticRoot, chromaticRootOffset) 
   if (isDisplacedButton(chromatic - 1) || isDisplacedButton(chromatic)) {
     rowEl.appendChild(createHalfButton(chromatic - 1));
   }
-  for (var column = 0; column < columns; ++column) {
+  while (chromatic <= highestPosition) {
     rowEl.appendChild(createButton(chromatic));
     chromatic += 1;
   }

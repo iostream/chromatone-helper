@@ -125,7 +125,7 @@ margin-top: 4pt;
 .interactive-form .scale_container label {
   display: inline-block;
 }
-.interactive-form input[name="zebra_root"] {
+.interactive-form input[name="instrument"] {
   width: 15pt;
 }
 .interactive-form .result {

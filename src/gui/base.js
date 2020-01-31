@@ -21,29 +21,34 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   chordSection = $_("chords"),
   interactiveSection = $_("interactive");
 
-function addChord(chord, parent, zebraRoot, nextChord) {
+function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
+  lowestPosition = lowestPosition || 0;
   parent = parent || chordSection;
-  var k; // <- keyboard
-  // currently only integer root notes work for zebra root notes:
-  if (!isNaN(zebraRoot)) {
-    k = zebra.createZebraKeyboard(chord.getHighestNote().getPosition() + 1, zebraRoot, chord.getFixedOffset());
+  var instrument;
+
+  if (instrumentType == 'zebra') {
+    instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
+  } else if (instrumentType == 'chromatic') {
+    // lowest position always is 0
+    instrument = keyboard.createKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
   } else {
-    k = keyboard.createKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
+    console.error("addChord() - Unknown instrument type: " + instrumentType);
+    return;
   }
 
   var name;
   if (typeof chord.getName !== "undefined") {
     name = chord.getName();
   }
-  k.add(chord, name);
+  instrument.add(chord, name);
 
   if (nextChord) {
-    k.addDiff(nextChord);
+    instrument.addDiff(nextChord);
   }
 
-  parent.appendChild(k.getElement());
+  parent.appendChild(instrument.getElement());
 
-  return k;
+  return instrument
 }
 lib.addChord = addChord;
 
@@ -57,7 +62,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
+function addChordGroup(chords, title, section, nextChordAfterGroup, instrumentType) {
   section = section || chordSection;
   nextChordAfterGroup = nextChordAfterGroup || null;
 
@@ -80,7 +85,7 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
 
   for (var i = 0; i < chords.length; ++i) {
     // add chord to the new keyboard
-    var keyboard = addChord(chords[i], groupEl, zebraRoot);
+    var keyboard = addChord(chords[i], groupEl, instrumentType);
     var nextChord = chords[(i + 1) % chords.length];
 
     // mark differences between voicings/notes, won't work all the time, because it's very simple:
@@ -93,25 +98,26 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, zebraRoot) {
 }
 lib.addChordGroup = addChordGroup;
 
-function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, zebraRoot) {
+function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, instrumentType, lowestPosition) {
   if (typeof chordDefinitionOrComposit.getChildren === "function") {
     var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), parentElement);
     chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, zebraRoot);
+      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, instrumentType, lowestPosition);
     });
     parentElement.appendChild(groupElement);
   } else {
     var chord = chords.shift();
     var nextChord = chords.length > 0 ? chords[0] : false;
-    addChord(chord, parentElement, zebraRoot, nextChord);
+    addChord(chord, parentElement, instrumentType, nextChord, lowestPosition);
   }
 }
 
-lib.addChordsUsingChordDefinitionComposit = function(chords, chordDefinitionComposit, zebraRoot, parentElement) {
+lib.addChordProgressionUsingChordDefinitionComposit = function(progression, chordDefinitionComposit, instrumentType, parentElement) {
+  var chords = progression.getChords();
   var chordsCopy = chords.slice();
   parentElement = parentElement || chordSection;
   chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, zebraRoot);
+    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, instrumentType, progression.getLowestPosition());
   });
 }
 
@@ -207,7 +213,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.zebra_root, form.rhythms, form.arp].forEach(function(element) {
+  [form.chords, form.voicing, form.instrument, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -347,9 +353,8 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       return;
     }
 
-    var zebraRoot = parseInt(form.zebra_root.value);
     var options = {
-      zebraRoot: zebraRoot,
+      instrument: form.instrument.value,
       generateMidi: generateMidi,
       uploadToDAW: form.upload_to_daw.checked,
       serializedForm: newSerializedForm

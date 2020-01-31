@@ -17,6 +17,51 @@ var majorNotes = [
 
 var WHITESPACE_REGEX = /\s+/;
 
+// mapping between letter and relative chromatic root
+var letterMap = {};
+['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(function(letter, index) {
+  letterMap[letter] = majorNotes[index];
+});
+var defaultRegister = 4;
+
+/**
+ * Returns the chromatic position of the tonic of the key.
+ */
+function parseKeyPosition(keyName) {
+  var register = defaultRegister;
+  var pos = 0;
+  var letter = keyName[pos].toLowerCase();
+  if (!letterMap.hasOwnProperty(letter)) {
+    console.error('parseKeyPosition() - Cannot parse unknown letter: ' + letter + ' (of ' + keyName + ')');
+    return 60;
+  }
+  var relativeRoot = letterMap[letter];
+
+  ++pos;
+  // apply flats and sharps and register
+  while (pos < keyName.length) {
+    var char = keyName[pos];
+    if (char == flat) {
+      relativeRoot -= 1;
+      ++pos;
+    } else if (char == sharp) {
+      relativeRoot += 1;
+      ++pos;
+    } else {
+      register = parseInt(keyName[pos]);
+      if (isNaN(register)) {
+        register = defaultRegister;
+        console.error('parseKeyPosition() - Cannot parse register: ' + keyName[pos] + ' (of ' + keyName + ')');
+      }
+      // whatever comes after the register would be ignored
+      break;
+    }
+  }
+
+  // c0 = 12
+  return 12 + (register * 12) + relativeRoot;
+}
+
 /**
  * TODO Make lookups in intervalNameMap and fallback also work for higher than contained intervals, e.g. if b3 is contained, also b11 should also work
  *
@@ -60,13 +105,16 @@ var sharp = "#";
 var flat = "b";
 
 /**
- * noteDefinition
+ * noteDefinition .. basically describes an interval
+ * rootPosition .. chromatic position of the key the note is in
  * parsedInterval .. optional {ref:"string"} output parameter; can be used to extract a shiny name out of the dirty noteDefinition
  * @return object note
  */
-function parseNote(noteDefinition, parsedInterval) {
-  var _chromaticRoot = 0,
-    intervalNameMap = {};
+function parseNote(noteDefinition, rootPosition, parsedInterval) {
+  // TODO refactor how the note names are determined, make and cleaner and more flexible!
+  var intervalNameMap = {};
+  var _position = rootPosition;
+  var _rootPosition = rootPosition;
 
   var note = noteDefinition;
   if (typeof(note) === "undefined") {
@@ -112,17 +160,21 @@ function parseNote(noteDefinition, parsedInterval) {
     console.error("parseNote() - I have no mapping for major note: " + interval);
   }
   var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
+  _position += _chromaticInterval;
 
   var _voice;
   return {
     getChromaticInterval: function () {
-      return _chromaticInterval - _chromaticRoot;
-    },
-    getPosition: function() {
       return _chromaticInterval;
     },
+    getPosition: function() {
+      return _position;
+    },
     setPosition: function(position) {
-      _chromaticInterval = position;
+      _position = position;
+    },
+    setChromaticInterval: function(chromaticInterval) {
+      _chromaticInterval = chromaticInterval;
     },
     isUp: function() {
       return _isUp;
@@ -162,16 +214,8 @@ function parseNote(noteDefinition, parsedInterval) {
     setRoot: function(isRoot) {
       _isRoot = isRoot;
     },
-    /** Needed for findIntervalName(), isRoot() marks the actual root! */
-    setChromaticRoot: function(chromaticRoot) {
-      _chromaticRoot = chromaticRoot;
-    },
-    getChromaticRoot: function() {
-      return _chromaticRoot;
-    },
     transpose: function(semitones) {
-      _chromaticInterval += semitones;
-      _chromaticRoot += semitones;
+      _position += semitones;
     },
     // Optionally a note can know its voice!
     // TODO This could be used in an  alternative note naming mode: "voices"
@@ -183,36 +227,93 @@ function parseNote(noteDefinition, parsedInterval) {
       _voice = voice;
     },
     clone: function() {
-      var copy = parseNote(this.toString());
+      var copy = parseNote(this.toString(), _rootPosition);
       copy.setIntervalNameMap(intervalNameMap);
-      copy.setChromaticRoot(this.getChromaticRoot());
-      copy.setPosition(this.getPosition());
       copy.setVoice(this.getVoice());
+      copy.setPosition(_position);
       return copy;
     }
   }
 }
 lib.parseNote = parseNote;
 
+lib.parseNotes = function(notes) {
+  if (typeof(notes.getNotes) === 'function') {
+    return notes.getNotes();
+  }
+  return lib.parseNotesObject(notes).getNotes();
+};
+
+function createNotesObject(notes, keyPosition, keyName) {
+  var _notes = notes;
+  var _keyPosition = keyPosition;
+  var _keyName = keyName;
+  return {
+    getNotes: function() { return _notes; },
+    getKeyPosition: function() { return _keyPosition; }, // <- returns the chromatic position
+    getKeyName: function() { return _keyName; }
+  };
+}
+
+lib.createNotesObject = createNotesObject;
+
+var defaultKeyName = 'C4';
+var defaultKeyPosition = parseKeyPosition(defaultKeyName);
 /**
   * TODO if notes is a chord, then altering the returned notes would alter the chord
   *
+  * using e.g. "k=d" or "k=eb" sets the key (root note of scale) using letter musical nomenclature.
+  * per default the register is 4 (c4 = middle c), but it can be changed using an
+  * integer at the end, e.g. "a#2".
+  *
   * @param notes valid input examples:
-  *          ["1 2 r4 6"]
   *          "1 2 r4 6"
-  *          ["1",  2 , "r4", "6"]
-  *          an object which has the function getNotes
-  *          ["1", "2", "r4", "6"]  (= output format)
+  *          "1 2 r4 6 k=c#3"
+  *          a note object    (-> it gets returned)
   * @param intervalNameMap optional out parameter @see findIntervalName()
   *
   * @return an array of note objects
   */
-function parseNotes(notes, intervalNameMap, recursion) {
+lib.parseNotesObject = function(notesLine, intervalNameMap) {
   intervalNameMap = intervalNameMap || {};
+  if (isNotesObject(notesLine)) {
+    return notesLine;
+  }
+  // TODO is this robust or masking possible errors?
+  if (typeof(notesLine) !== "string") {
+    console.error('parseNotesObject() - Cannot handle object type of line: ' + typeof(notesLine));
+    return createNotesObject("", defaultKeyPosition, defaultKeyName);
+  }
+  notesLine = notesLine.trim();
+  return parseLineOfNotes(notesLine);
 
-  function createNote(noteDef) {
+  function parseLineOfNotes(line) {
+    var parts = line.split(WHITESPACE_REGEX);
+    if (parts.length == 0) {
+      return [];
+    }
+    // middle default is middle c
+    var keyName = defaultKeyName
+    var keyPosition = defaultKeyPosition;
+    var option = parts[parts.length - 1].split('=');
+    if (option.length > 1) {
+      if (option[0] == 'k') {
+        keyName = option[1];
+        keyPosition = parseKeyPosition(keyName);
+        parts.pop();
+      } else {
+        console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
+      }
+    }
+    for (var i=0; i < parts.length; ++i) {
+      parts[i] = createNote(parts[i], keyPosition);
+    }
+    return createNotesObject(parts, keyPosition, keyName);
+  }
+
+  function createNote(noteDef, chromaticRoot) {
     var parsedName = {ref: ""};
-    var note = parseNote(noteDef, parsedName);
+    var note = parseNote(noteDef, chromaticRoot, parsedName);
 
     // TODO handle conflicts
     intervalNameMap[note.getChromaticInterval()] = parsedName.ref;
@@ -222,57 +323,8 @@ function parseNotes(notes, intervalNameMap, recursion) {
 
     return note;
   }
-
-  // this method is a mess!
-  recursion = recursion || false;
-  var c = notes;
-  if (typeof c === "undefined") {
-    return [];
-  }
-
-  // see TODO of function
-  //if (typeof c.getNotes === "function" && typeof c.clone === "function") {
-  //  return notes.clone().getNotes();
-  //}
-  if (typeof c.getNotes === "function") {
-    return notes.getNotes();
-  }
-
-  if (typeof c === "string") {
-    c = c.trim();
-    if (c === "") {
-      return [];
-    }
-    if (c.search(WHITESPACE_REGEX) !== -1) {
-      var parts = c.split(WHITESPACE_REGEX);
-      for (var i=0; i < parts.length; ++i) {
-        parts[i] = createNote(parts[i]);
-      }
-      return parts;
-    } else {
-      return [createNote(c)];
-    }
-  }
-
-  if (typeof c === "number") {
-    return parseNote(""+c);
-  }
-
-  if (Array.isArray(c) && !recursion) {
-    var outputNotes = [];
-
-    for (var i=0; i < c.length; ++i) {
-      outputNotes = outputNotes.concat(parseNotes(c[i], intervalNameMap, true));
-    }
-    return outputNotes;
-  }
-
-  // TODO is this actually needed?
-  var out = c;
-  if (recursion && !Array.isArray(c)) {
-    out = [c];
-  }
-
-  return out;
 }
-lib.parseNotes = parseNotes;
+
+function isNotesObject(object) {
+  return typeof(object.getKeyPosition) === 'function';
+}

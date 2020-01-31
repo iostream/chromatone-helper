@@ -8,15 +8,7 @@ const host = require("./host.js");
  * many lines each containing of:
  * <iPosOut> <endTime> <pitch>
  */
-function serializeProgressionForDAW(events, chords, scales, generatorUrl, tonalKey) {
-
-  // console.log("serializeProgressionForDAW()", events);
-
-  // TODO move this code to somewhere where it makes sense...
-  tonalKey = tonalKey || 0;
-  // middle c
-  var basePitch = 60;
-
+function serializeProgressionForDAW(events, chords, scales, generatorUrl) {
   var result = generatorUrl + "\n";
   var chordIPosOut = 0;
   events.forEach(function(event) {
@@ -24,7 +16,9 @@ function serializeProgressionForDAW(events, chords, scales, generatorUrl, tonalK
     if (!event.isRest()) {
       var pitchEndTime = chordIPosOut + eventLengthInQN;
       event.getPitches().forEach(function(note) {
-        var pitch = basePitch + tonalKey + note.getPosition();
+        // var pitch = note.getPosition();
+        // XXX This is a test...
+        var pitch = note.getPosition();
         result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
       });
     }
@@ -51,8 +45,8 @@ function upload(path, text) {
   request.send(text);
 }
 
-lib.uploadToDAW = function(events, chords, scales, generatorUrl, tonalKey) {
-  var text = serializeProgressionForDAW(events, chords, scales, generatorUrl, tonalKey);
+lib.uploadToDAW = function(events, chords, scales, generatorUrl) {
+  var text = serializeProgressionForDAW(events, chords, scales, generatorUrl);
   if (!text) {
     console.error("Skipping DAW upload, because the serialization into the DAW format did not work.");
     return;

@@ -12,11 +12,7 @@ function buildScalesDescription(scales) {
  *
  * @return MidiWriter object
  */
-lib.createMidi = function(events, chords, scales, generatorUrl, tonalKey) {
-  tonalKey = tonalKey || 0;
-  // middle c
-  var basePitch = 60;
-
+lib.createMidi = function(events, chords, scales, generatorUrl) {
   var MidiWriter = require("midi-writer-js");
 
   // Start with a new track
@@ -33,7 +29,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl, tonalKey) {
       restingTime += event.getLengthInQN();
     } else {
       var pitches = event.getPitches().map(function(note) {
-        return basePitch + tonalKey + note.getPosition();
+        return note.getPosition();
       });
       var noteData = {pitch: pitches, duration: eventDuration};
       if (restingTime > 0) {

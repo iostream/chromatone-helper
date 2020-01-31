@@ -18,11 +18,11 @@ g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeg
   }
 
   if (options.uploadToDAW) {
-    serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm), options.zebraRoot);
+    serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
   }
 
   if (options.uploadMidi || options.generateMidi) {
-    var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm), options.zebraRoot);
+    var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
     if (options.generateMidi) {
       downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
     }
@@ -31,11 +31,7 @@ g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeg
     }
   }
 
-  // fix chords after arpeggiating them; fixed chords are for visualiziation
-  progression.fixChords();
-  var chords = progression.getChords();
-
-  g.addChordsUsingChordDefinitionComposit(chords, chordDefParserResult.getComposite(), options.zebraRoot, resultSection);
+  g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrument, resultSection);
 
 }, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
