@@ -1,33 +1,44 @@
 /** Zebra keyboard layout style */
 .string-instrument {
   display: inline-block;
-  margin-right: 15pt;
+  margin-right: 20pt;
+  margin-bottom: 25pt;
 }
 
 /* string */
 .string-instrument .strings > div {
-  display: flex;
 }
 
-/* fret */
+/* open string frets */
+.string-instrument .strings > div > span:first-child {
+  width: 10pt;
+  background-color: black;
+}
+/* all frets */
 .string-instrument .strings > div > span {
   width: 25pt;
-  height: 10pt;
+  height: 15pt;
   border: solid 1pt black;
   background-color: brown;
   display: inline-block;
   vertical-align: top;
+  text-align: center;
 }
-.string-instrument .strings > div > span.selected {
+.string-instrument .strings > div > span.selected p {
   background-color: red;
 }
-.string-instrument .strings > div > span.selected.root {
+.string-instrument .strings > div > span.selected.root p {
   background-color: yellow;
 }
+.string-instrument .strings > div > span.ignore p,
+.string-instrument .strings > div > span.selected.root.ignore p {
+  background-color: brown;
+  color: brown;
+}
 .string-instrument .note-text {
-  position: absolute;
-  width: inherit;
-  margin-top: 1pt;
+  display:inline-block;
   font-size: 9pt;
-  text-align: center;
+  min-width: 12pt;
+  margin: 0;
+  border-radius: 50%;
 }

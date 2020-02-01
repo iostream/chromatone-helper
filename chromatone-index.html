@@ -78,9 +78,15 @@
               <select name="instrument" title="the instrument type to be used to display the progression chords">
                 <option value="chromatic">Chromatone</option>
                 <option value="zebra">Zebra keyboard</option>
-                <option value="guitar">Guitar</option>
-                <option value="bass_guitar">Bass guitar</option>
+                <option class="stringed" value="guitar">Guitar</option>
+                <option class="stringed" value="bass_guitar">Bass guitar</option>
+                <option class="stringed" value="concert_ukulele">Concert ukulele</option>
               </select>
+            </span>
+            <span class="form-element stringed-option">
+              <label for="all_registers">highlight all registers</label>
+              <input type="checkbox" name="show_all_registers" title="also highlight pitches in different registers, also if they are not part of the chord">
+              </input>
             </span>
             <!--
             <span class="form-element">

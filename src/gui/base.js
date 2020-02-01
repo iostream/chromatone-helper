@@ -154,12 +154,23 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.instrument, form.rhythms, form.arp].forEach(function(element) {
+  [form.chords, form.voicing, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
     });
   });
+
+  var stringedOptions = formGroupEl.getElementsByClassName("stringed-option");
+  form.instrument.addEventListener("change", function() {
+    if (form.instrument.options[form.instrument.selectedIndex].classList.contains('stringed')) {
+      alert("yes");
+    } else {
+      alert("no");
+    }
+    setTimeout(function() { submitForm(); });
+  });
+
   // activate the DAW update checkbox via session, so once it was set in a tab, it stays they same
   if (session.isDAWUpdateActivated()) {
     form.upload_to_daw.checked = true;
