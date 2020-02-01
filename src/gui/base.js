@@ -8,8 +8,9 @@ var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
+var stringInstrument = require("./string_instrument.js");
 var session = require("./session.js");
-var pocketKnife = require("./pocketKnife.js");
+var pocketKnife = require("./pocket_knife.js");
 
 function $_(id) { return document.getElementById(id); }
 /**
@@ -27,11 +28,16 @@ function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
   parent = parent || chordSection;
   var instrument;
 
+  instrumentType = instrumentType || 'chromatic';
   if (instrumentType == 'zebra') {
     instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
   } else if (instrumentType == 'chromatic') {
     instrument = keyboard.createKeyboard(lowestPosition, chord.getHighestNote().getPosition(), 4);
   } else {
+    instrument = stringInstrument.createStringInstrumentByType(instrumentType);
+  }
+
+  if (!instrument) {
     console.error("addChord() - Unknown instrument type: " + instrumentType);
     return;
   }

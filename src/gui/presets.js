@@ -13,7 +13,8 @@ lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
   }
 
   presetSelectElements.forEach(function(presetEl) {
-    for (var i=0; i<presets.length; ++i) {
+    // initialize the preset select box
+    for (var i = 0; i < presets.length; ++i) {
       var preset = presets[i];
       var option = presetEl.appendChild(document.createElement("option"));
       option.value = i;
@@ -24,6 +25,7 @@ lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
         .join(" -> ");
     }
     presetEl.addEventListener("change", function(event) {
+      // Apply the selected preset to the element or elements
       var preset = presets[presetEl.value];
       for (var i=0; i < elements.length; ++i) {
         var elementOrElements = elements[i];

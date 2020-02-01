@@ -300,12 +300,12 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       if (option[0] == 'k') {
         keyName = option[1];
         keyPosition = parseKeyPosition(keyName);
-        parts.pop();
       } else {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
+      parts.pop();
     }
-    for (var i=0; i < parts.length; ++i) {
+    for (var i = 0; i < parts.length; ++i) {
       parts[i] = createNote(parts[i], keyPosition);
     }
     return createNotesObject(parts, keyPosition, keyName);

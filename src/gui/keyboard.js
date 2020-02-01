@@ -41,7 +41,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
     rowIteration += 0.5;
   }
 
-  var debug = true;
+  var debug = false;
   function construct(keyboard) {
     return {
       getElement: function() {
