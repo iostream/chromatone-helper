@@ -175,6 +175,9 @@ margin-top: 4pt;
 .secondary-form-elements .form-element {
   display: block;
 }
+.hidden {
+  display: none;
+}
 </style>
 <style>
 /** Zebra keyboard layout style */
@@ -251,6 +254,76 @@ margin-top: 4pt;
   --border-color: var(--key-root-color);
 }
 </style>
+<style>
+/** Zebra keyboard layout style */
+.string-instrument {
+  display: inline-block;
+  margin-right: 20pt;
+  margin-bottom: 25pt;
+}
+/* all frets */
+.string-instrument .frets .fret {
+  /* the width gets set via JS */
+  display: inline-block;
+  background-color: brown;
+  border-right: 1px solid black;
+  position: relative;
+}
+/* open string frets */
+.string-instrument .frets > .fret:first-child {
+  width: 10pt;
+  background-color: black;
+}
+.string-instrument .frets > .fret > .mark,
+.string-instrument .frets > .fret > .mark2 {
+  position: absolute;
+  bottom: 50%;
+  background-color: black;
+  width: 6pt;
+  height: 6pt;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.string-instrument .frets > .fret > .mark2 {
+  box-shadow: 0px 50px 0px 0px;
+  bottom: calc(50% + 50px / 2 );
+}
+
+/* string */
+.string-instrument .frets > .fret > p {
+  /* http://png-pixel.com/ */
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=);
+  background-repeat: repeat-x;
+  background-position: center;
+  width: inherit;
+  height: 15pt;
+  margin: 0;
+  display: inline-block;
+  vertical-align: top;
+  text-align: center;
+}
+.string-instrument .note-text {
+  display: inline-block;
+  z-index: 1;
+  position: relative;
+  font-size: 9pt;
+  min-width: 12pt;
+  margin: 0;
+  border-radius: 50%;
+}
+.string-instrument .frets > .fret > p.selected > .note-text {
+  background-color: red;
+}
+.string-instrument .frets > .fret > p.selected.root > .note-text {
+  background-color: yellow;
+}
+.string-instrument .frets > .fret > p.ignore > .note-text,
+.string-instrument .frets > .fret > p.selected.root.ignore > .note-text {
+  background-color: brown;
+  color: brown;
+}
+</style>
   </head>
   <body>
     <section id="templates">
@@ -266,8 +339,8 @@ margin-top: 4pt;
         <div class="description"></div>
       </div>
 
-      <div class="string_instrument">
-        <div class="strings"></div>
+      <div class="string-instrument">
+        <div class="frets"></div>
         <div class="description"></div>
       </div>
 
@@ -323,8 +396,15 @@ margin-top: 4pt;
               <select name="instrument" title="the instrument type to be used to display the progression chords">
                 <option value="chromatic">Chromatone</option>
                 <option value="zebra">Zebra keyboard</option>
-                <option value="string instrument">String instrument</option>
+                <option class="stringed" value="guitar">Guitar</option>
+                <option class="stringed" value="bass_guitar">Bass guitar</option>
+                <option class="stringed" value="concert_ukulele">Concert ukulele</option>
               </select>
+            </span>
+            <span class="form-element stringed-option">
+              <label for="all_registers">highlight all registers</label>
+              <input type="checkbox" name="show_all_registers" title="also highlight pitches in different registers, also if they are not part of the chord">
+              </input>
             </span>
             <!--
             <span class="form-element">
@@ -437,7 +517,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":18,"./src/parser/composite.js":20,"./src/parser/composite_parser.js":21,"./src/server/client.js":24,"./src/theory/arpeggio.js":26,"./src/theory/base.js":27,"./src/theory/progression.js":31}],2:[function(require,module,exports){
+},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":19,"./src/parser/composite.js":21,"./src/parser/composite_parser.js":22,"./src/server/client.js":25,"./src/theory/arpeggio.js":27,"./src/theory/base.js":28,"./src/theory/progression.js":32}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -4122,7 +4202,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":27,"./theory/notes.js":30}],12:[function(require,module,exports){
+},{"./theory/base.js":28,"./theory/notes.js":31}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4133,8 +4213,9 @@ var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
+var stringInstrument = require("./string_instrument.js");
 var session = require("./session.js");
-var pocketKnife = require("./pocketKnife.js");
+var pocketKnife = require("./pocket_knife.js");
 
 function $_(id) { return document.getElementById(id); }
 /**
@@ -4152,11 +4233,16 @@ function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
   parent = parent || chordSection;
   var instrument;
 
+  instrumentType = instrumentType || 'chromatic';
   if (instrumentType == 'zebra') {
     instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
   } else if (instrumentType == 'chromatic') {
     instrument = keyboard.createKeyboard(lowestPosition, chord.getHighestNote().getPosition(), 4);
   } else {
+    instrument = stringInstrument.createStringInstrumentByType(instrumentType);
+  }
+
+  if (!instrument) {
     console.error("addChord() - Unknown instrument type: " + instrumentType);
     return;
   }
@@ -4273,12 +4359,23 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.instrument, form.rhythms, form.arp].forEach(function(element) {
+  [form.chords, form.voicing, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
     });
   });
+
+  var stringedOptions = formGroupEl.getElementsByClassName("stringed-option");
+  form.instrument.addEventListener("change", function() {
+    if (form.instrument.options[form.instrument.selectedIndex].classList.contains('stringed')) {
+      alert("yes");
+    } else {
+      alert("no");
+    }
+    setTimeout(function() { submitForm(); });
+  });
+
   // activate the DAW update checkbox via session, so once it was set in a tab, it stays they same
   if (session.isDAWUpdateActivated()) {
     form.upload_to_daw.checked = true;
@@ -4545,7 +4642,7 @@ function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpe
   return chordDefParserResult;
 }
 
-},{"../theory/arpeggio.js":26,"../theory/base.js":27,"../theory/rhythm.js":32,"./keyboard.js":13,"./pocketKnife.js":14,"./presets.js":15,"./session.js":16,"./zebra.js":17,"form-serialize":4}],13:[function(require,module,exports){
+},{"../theory/arpeggio.js":27,"../theory/base.js":28,"../theory/rhythm.js":33,"./keyboard.js":13,"./pocket_knife.js":14,"./presets.js":15,"./session.js":16,"./string_instrument.js":17,"./zebra.js":18,"form-serialize":4}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4589,7 +4686,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
     rowIteration += 0.5;
   }
 
-  var debug = true;
+  var debug = false;
   function construct(keyboard) {
     return {
       getElement: function() {
@@ -4677,7 +4774,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../theory/base.js":27}],14:[function(require,module,exports){
+},{"../theory/base.js":28}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4731,7 +4828,8 @@ lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
   }
 
   presetSelectElements.forEach(function(presetEl) {
-    for (var i=0; i<presets.length; ++i) {
+    // initialize the preset select box
+    for (var i = 0; i < presets.length; ++i) {
       var preset = presets[i];
       var option = presetEl.appendChild(document.createElement("option"));
       option.value = i;
@@ -4742,6 +4840,7 @@ lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
         .join(" -> ");
     }
     presetEl.addEventListener("change", function(event) {
+      // Apply the selected preset to the element or elements
       var preset = presets[presetEl.value];
       for (var i=0; i < elements.length; ++i) {
         var elementOrElements = elements[i];
@@ -4846,6 +4945,171 @@ session.restoreTextAreaSizes = function(form) {
 }
 
 },{}],17:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+// TODO include hiding of notes in different register:
+function hideNotesOfDifferentRegister(hide) {
+  var els = document.querySelectorAll(".selected.alt");
+  for (var i = 0; i < els.length; ++i) {
+    if (hide) {
+      if (!els[i].classList.contains('ignore')) {
+        els[i].className += " ignore";
+      }
+    } else {
+      if (els[i].classList.contains('ignore')) {
+        els[i].classList.remove('ignore');
+      }
+    }
+
+  }
+}
+
+var notesLib = require("../theory/notes.js");
+
+var stringInstrumentTemplate = document.getElementById("templates").getElementsByClassName("string-instrument")[0];
+
+var types = {
+  // name: [stringBaseNotes, fretCount]
+  guitar: [notesLib.parseNotes('1 4 b7 b10 12 15 k=E3').reverse(), 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
+  bass_guitar: [notesLib.parseNotes('1 4 b7 b10 k=E2').reverse(), 17],
+  concert_ukulele: [notesLib.parseNotes('8 4 6 10 k=G4').reverse(), 11],
+};
+
+/**
+ * Returns false if the type is unknown.
+ */
+lib.createStringInstrumentByType = function(typeName) {
+  if (types.hasOwnProperty(typeName)) {
+    return lib.createStringInstrument.apply(null, types[typeName]);
+  }
+  return false;
+};
+
+var debug = false;
+/**
+ * An array of pitches/notes provide the base pitches (object.getPosition())
+ * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10
+ */
+lib.createStringInstrument = function(stringBaseNotes, fretCount) {
+  var _stringPitches = stringBaseNotes;
+  var _container = stringInstrumentTemplate.cloneNode(true);
+  var _fretBoard = _container.getElementsByClassName('frets')[0];
+  var _fretCount = fretCount;
+  var _frets = [];
+
+  var instrument = {
+    getElement: function() {
+      return _container;
+    },
+    add: function(notes, description) {
+      var notes = notesLib.parseNotes(notes);
+      if (debug) {
+        console.log("StringInstrument - Adding notes: ", notes.map(function(note){ return note.toString(); }));
+      }
+
+      // highlight each pitch which actually exists on the board while also
+      // highlighting the pitches which are in a different register
+      // (this is brute force, but works for all kinds of fretted string instruments with constant fret count (no banjo))
+      _stringPitches.forEach(function(stringPitch, stringIndex) {
+        var relativeStringPosition = stringPitch.getPosition() % 12;
+        notes.forEach(function(pitchToAdd) {
+          var position = pitchToAdd.getPosition();
+          // check for all registers
+          var stringRegister = -1;
+          var relativePosition = position % 12;
+          for (;;) {
+            stringRegister += 1;
+            positionOnString = (relativePosition - relativeStringPosition) + stringRegister * 12;
+            if (positionOnString < 0) {
+              continue;
+            }
+            if (_fretCount <= positionOnString) {
+              break;
+            }
+
+            var isDifferentRegister = position !== stringPitch.getPosition() + positionOnString;
+            markNoteElement(_frets[positionOnString].getElementsByTagName('p')[stringIndex], pitchToAdd, isDifferentRegister);
+          }
+        });
+      });
+      // also mark notes which are in different registers....
+    },
+    addDiff: function(notes) {
+      // noop
+    },
+    clone: function() {
+      console.error("StringInstrument.clone() is not implemented");
+      // TODO return construct(keyboard.cloneNode(true));
+    }
+  };
+
+  var string;
+  var stringCount = _stringPitches.length;
+  for (var i = 0; i < fretCount; ++i) {
+    var fret = createFret(i);
+    _frets.push(fret);
+    for (var j = 0; j < stringCount; ++j) {
+      fret.appendChild(createString());
+    }
+    _fretBoard.appendChild(fret);
+  }
+  return instrument;
+}
+
+function createString() {
+  var el = document.createElement("p");
+  return el;
+}
+
+var markingsPerFret = {
+  // fret index => count of markings
+  0: 2, 3: 1, 5: 1, 7: 1, 9: 1
+};
+function createFret(index) {
+  var el = document.createElement("span");
+  el.className = 'fret';
+  if (index > 0) {
+    // XXX Does this makes sense enough?
+    el.style.width = 40 - ((index ) * 1.7) + "px";
+
+    if (markingsPerFret.hasOwnProperty(index % 12)) {
+      var marking = document.createElement("span");
+      if (markingsPerFret[index % 12] > 1) {
+        marking.className = "mark2";
+      } else {
+        marking.className = "mark";
+      }
+      el.appendChild(marking);
+    }
+  }
+  return el;
+}
+
+function markNoteElement(noteEl, note, isDifferentRegister) {
+  if (isDifferentRegister && noteEl.classList.contains('selected')) {
+    // do nothing, if this is a different register and the note is already
+    // marked
+    return;
+  }
+
+  // add label
+  var name = note.findIntervalName();
+  if (isDifferentRegister) {
+    name = '(' + name + ')';
+    noteEl.classList.add("alt");
+  }
+  noteEl.setAttribute("title", name);
+  noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
+  noteEl.classList.add("selected");
+
+  // mark root
+  if (note.isRoot()) {
+    noteEl.classList.add("root");
+  }
+}
+
+},{"../theory/notes.js":31}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4957,7 +5221,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../theory/base.js":27}],18:[function(require,module,exports){
+},{"../theory/base.js":28}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5007,7 +5271,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":6}],19:[function(require,module,exports){
+},{"midi-writer-js":6}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5336,7 +5600,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5615,7 +5879,7 @@ function createOptions() {
   };
 }
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5777,7 +6041,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":19,"./message.js":22}],22:[function(require,module,exports){
+},{"./async_lexer.js":20,"./message.js":23}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5809,7 +6073,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5893,7 +6157,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5960,13 +6224,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":25}],25:[function(require,module,exports){
+},{"./host.js":26}],26:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6464,7 +6728,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":23}],27:[function(require,module,exports){
+},{"../recursive_parser.js":24}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6479,7 +6743,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":29,"./notes.js":30,"./scale.js":33,"./voicing.js":34}],28:[function(require,module,exports){
+},{"./chord_definition.js":30,"./notes.js":31,"./scale.js":34,"./voicing.js":35}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6590,7 +6854,7 @@ lib.createChord = function(chordDef, defaultScale) {
   return chord;
 };
 
-},{}],29:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6902,7 +7166,7 @@ function setSubject(existingSubject, newSubject, operator, description, messages
   return existingSubject;
 }
 
-},{"../parser/composite.js":20,"../parser/composite_parser.js":21,"./voicing.js":34}],30:[function(require,module,exports){
+},{"../parser/composite.js":21,"../parser/composite_parser.js":22,"./voicing.js":35}],31:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -7205,12 +7469,12 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       if (option[0] == 'k') {
         keyName = option[1];
         keyPosition = parseKeyPosition(keyName);
-        parts.pop();
       } else {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
+      parts.pop();
     }
-    for (var i=0; i < parts.length; ++i) {
+    for (var i = 0; i < parts.length; ++i) {
       parts[i] = createNote(parts[i], keyPosition);
     }
     return createNotesObject(parts, keyPosition, keyName);
@@ -7234,7 +7498,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -7343,7 +7607,7 @@ lib.createChordProgression = function(scale, chordDefinitions) {
   }
 }
 
-},{"../fingering.js":11,"./base.js":27}],32:[function(require,module,exports){
+},{"../fingering.js":11,"./base.js":28}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7574,7 +7838,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":23}],33:[function(require,module,exports){
+},{"../recursive_parser.js":24}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7696,7 +7960,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./chord.js":28,"./notes.js":30}],34:[function(require,module,exports){
+},{"./chord.js":29,"./notes.js":31}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7920,7 +8184,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":23}]},{},[1]);
+},{"../recursive_parser.js":24}]},{},[1]);
 </script>
   </body>
 </html>
