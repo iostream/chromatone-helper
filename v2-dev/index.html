@@ -437,7 +437,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":17,"./src/parser/composite.js":19,"./src/parser/composite_parser.js":20,"./src/server/client.js":23,"./src/theory/arpeggio.js":25,"./src/theory/base.js":26,"./src/theory/progression.js":30}],2:[function(require,module,exports){
+},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":18,"./src/parser/composite.js":20,"./src/parser/composite_parser.js":21,"./src/server/client.js":24,"./src/theory/arpeggio.js":26,"./src/theory/base.js":27,"./src/theory/progression.js":31}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -4093,7 +4093,7 @@ function updateFingering(notes) {
   }
 
   // second note is up, if it would be on the same row like the note before
-  var isUp = notesArray[0].getChromaticInterval() % 2 === notesArray[1].getChromaticInterval() % 2;
+  var isUp = notesArray[0].getPosition() % 2 === notesArray[1].getPosition() % 2;
   notesArray[1].setUp(isUp);
 
   if (notesArray.length < 3) {
@@ -4102,9 +4102,9 @@ function updateFingering(notes) {
 
   if (isUp) {
     // third note would also stay up if it is on the same row like the note before
-    isUp = notesArray[1].getChromaticInterval() % 2 === notesArray[2].getChromaticInterval() % 2;
+    isUp = notesArray[1].getPosition() % 2 === notesArray[2].getPosition() % 2;
   } else {
-    isUp = notesArray[1].getChromaticInterval() % 2 !== notesArray[2].getChromaticInterval() % 2;
+    isUp = notesArray[1].getPosition() % 2 !== notesArray[2].getPosition() % 2;
   }
   notesArray[2].setUp(isUp);
 
@@ -4122,12 +4122,13 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":26,"./theory/notes.js":29}],12:[function(require,module,exports){
+},{"./theory/base.js":27,"./theory/notes.js":30}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
+var presetLib = require("./presets.js");
 var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
 var keyboard = require("./keyboard.js");
@@ -4154,8 +4155,7 @@ function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
   if (instrumentType == 'zebra') {
     instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
   } else if (instrumentType == 'chromatic') {
-    // lowest position always is 0
-    instrument = keyboard.createKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
+    instrument = keyboard.createKeyboard(lowestPosition, chord.getHighestNote().getPosition(), 4);
   } else {
     console.error("addChord() - Unknown instrument type: " + instrumentType);
     return;
@@ -4253,71 +4253,6 @@ function addBreak(section) {
 lib.addBreak = addBreak;
 
 /**
- * presets[]                        .. the presets to be initialized
- * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
- * elements[]                       .. the elements, the preset values get assigned to when a preset is selected
- */
-function initPresets(presets, presetSelectElementOrElements, elements) {
-  var presetSelectElements = presetSelectElementOrElements;
-  if (!Array.isArray(presetSelectElements)) {
-    presetSelectElements = [presetSelectElements];
-  }
-
-  presetSelectElements.forEach(function(presetEl) {
-    for (var i=0; i<presets.length; ++i) {
-      var preset = presets[i];
-      var option = presetEl.appendChild(document.createElement("option"));
-      option.value = i;
-      option.innerHTML = preset
-        .map(function(v){
-          return Array.isArray(v) ? v.join(", ") : v;
-        })
-        .join(" -> ");
-    }
-    presetEl.addEventListener("change", function(event) {
-      var preset = presets[presetEl.value];
-      for (var i=0; i < elements.length; ++i) {
-        var elementOrElements = elements[i];
-        if (typeof elementOrElements === "function") {
-          elementOrElements = elementOrElements(preset[i]);
-        }
-        if (Array.isArray(elementOrElements)) {
-          if (!Array.isArray(preset[i])) {
-            console.error("initPresets () - Preset not set up right!");
-            continue;
-          }
-          var index = 0;
-          preset[i].forEach(function(presetValue) {
-            if (typeof elementOrElements[index] === "undefined") {
-              console.error("initPresets () - Preset not set up right: " + (index + 1));
-            } else {
-              applyPresetValue(elementOrElements[index], presetValue);
-            }
-            ++index;
-          });
-
-        } else {
-          applyPresetValue(elementOrElements, preset[i]);
-        }
-      }
-      presetEl.form.update.click();
-    });
-  });
-}
-
-function applyPresetValue(element, presetValue) {
-  if (typeof(presetValue) === "undefined") {
-    element.value = "";
-    return;
-  }
-  element.value = presetValue;
-}
-
-function parseSubjectComposite(formElementName) {
-
-}
-
-/**
  * TODO This is very messy now!
  *
  * presets .. array of arrays
@@ -4400,7 +4335,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       }
     });
     // each scale comes with handy presets for jump starting everything:
-    initPresets(scalePresets, c.preset, [c.input]);
+    presetLib.initPresets(scalePresets, c.preset, [c.input]);
     // select nothing as preset, so each valid value is selectable from the start
     c.preset.value = "";
     // update result after changing the scale text input
@@ -4505,7 +4440,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     document.location.href = url;
   }
 
-  initPresets(
+  presetLib.initPresets(
     presets,
     form.preset,
     [
@@ -4524,10 +4459,10 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       form.voicing
     ]
   );
-  initPresets(chordPresets, form.chords_preset, [form.chords]);
-  initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
-  initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
-  initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
+  presetLib.initPresets(chordPresets, form.chords_preset, [form.chords]);
+  presetLib.initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
+  presetLib.initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
+  presetLib.initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
 
   document.addEventListener('DOMContentLoaded', function(event) {
     updateGUIByUrl();
@@ -4610,7 +4545,7 @@ function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpe
   return chordDefParserResult;
 }
 
-},{"../theory/arpeggio.js":25,"../theory/base.js":26,"../theory/rhythm.js":31,"./keyboard.js":13,"./pocketKnife.js":14,"./session.js":15,"./zebra.js":16,"form-serialize":4}],13:[function(require,module,exports){
+},{"../theory/arpeggio.js":26,"../theory/base.js":27,"../theory/rhythm.js":32,"./keyboard.js":13,"./pocketKnife.js":14,"./presets.js":15,"./session.js":16,"./zebra.js":17,"form-serialize":4}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4618,27 +4553,28 @@ var tLib = require("../theory/base.js");
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
-/**
- *
- */
-function createChromaticKeyboard(rows, columns) {
+function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
   var keyboard = chromaticKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
 
   var rowIteration = 0;
-  for (var row=0; row < rows; ++row) {
+  var baseRowColumnCount = Math.ceil((highestPosition - lowestPosition) / 2 + 1);
+  for (var row = 0; row < rowCount; ++row) {
     // the first shall never be a cross row (because of the cut out parts there)
     var isCrossRow = !!(row % 2);
     var rowEl = document.createElement("div");
-    var chromatic = 0;
+    var chromatic = lowestPosition;
     // e.g. class="row x i1" -> second iteration of cross rows
     if (isCrossRow) {
       rowEl.className = "row i" + Math.floor(rowIteration) + " x";
-      chromatic = 1;
+      chromatic += 1;
     } else {
       rowEl.className = "row i" + Math.floor(rowIteration);
     }
-    var rowColumnCount = isCrossRow ? columns - 1 : columns;
+    var rowColumnCount = baseRowColumnCount;
+    if (isCrossRow) {
+      rowColumnCount -= 1;
+    }
     for (var column = 0; column < rowColumnCount; ++column) {
       var button = document.createElement("span");
       // c<chromaticPosition>
@@ -4741,7 +4677,7 @@ function createChromaticKeyboard(rows, columns) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../theory/base.js":26}],14:[function(require,module,exports){
+},{"../theory/base.js":27}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4780,6 +4716,71 @@ function handleUrlAction(value) {
 }
 
 },{}],15:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+/**
+ * presets[]                        .. the presets to be initialized
+ * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
+ * elements[]                       .. the elements, the preset values get assigned to when a preset is selected
+ */
+lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
+  var presetSelectElements = presetSelectElementOrElements;
+  if (!Array.isArray(presetSelectElements)) {
+    presetSelectElements = [presetSelectElements];
+  }
+
+  presetSelectElements.forEach(function(presetEl) {
+    for (var i=0; i<presets.length; ++i) {
+      var preset = presets[i];
+      var option = presetEl.appendChild(document.createElement("option"));
+      option.value = i;
+      option.innerHTML = preset
+        .map(function(v){
+          return Array.isArray(v) ? v.join(", ") : v;
+        })
+        .join(" -> ");
+    }
+    presetEl.addEventListener("change", function(event) {
+      var preset = presets[presetEl.value];
+      for (var i=0; i < elements.length; ++i) {
+        var elementOrElements = elements[i];
+        if (typeof elementOrElements === "function") {
+          elementOrElements = elementOrElements(preset[i]);
+        }
+        if (Array.isArray(elementOrElements)) {
+          if (!Array.isArray(preset[i])) {
+            console.error("initPresets () - Preset not set up right!");
+            continue;
+          }
+          var index = 0;
+          preset[i].forEach(function(presetValue) {
+            if (typeof elementOrElements[index] === "undefined") {
+              console.error("initPresets () - Preset not set up right: " + (index + 1));
+            } else {
+              applyPresetValue(elementOrElements[index], presetValue);
+            }
+            ++index;
+          });
+
+        } else {
+          applyPresetValue(elementOrElements, preset[i]);
+        }
+      }
+      presetEl.form.update.click();
+    });
+  });
+}
+
+function applyPresetValue(element, presetValue) {
+  if (typeof(presetValue) === "undefined") {
+    element.value = "";
+    return;
+  }
+  element.value = presetValue;
+}
+
+},{}],16:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -4844,18 +4845,14 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var tLib = require("../theory/base.js");
 
-
 var zebraKeyboardTemplate = document.getElementById("templates").getElementsByClassName("zebra")[0];
 
-/**
- *
- */
 lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   function isDisplacedButton(chromatic) {
     var relativePosition = chromatic % 12;
@@ -4960,7 +4957,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../theory/base.js":26}],17:[function(require,module,exports){
+},{"../theory/base.js":27}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5010,7 +5007,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":6}],18:[function(require,module,exports){
+},{"midi-writer-js":6}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5339,7 +5336,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],19:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5618,7 +5615,7 @@ function createOptions() {
   };
 }
 
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5780,7 +5777,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":18,"./message.js":21}],21:[function(require,module,exports){
+},{"./async_lexer.js":19,"./message.js":22}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5812,7 +5809,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5896,7 +5893,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5963,13 +5960,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":24}],24:[function(require,module,exports){
+},{"./host.js":25}],25:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6467,7 +6464,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":22}],26:[function(require,module,exports){
+},{"../recursive_parser.js":23}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6482,7 +6479,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":28,"./notes.js":29,"./scale.js":32,"./voicing.js":33}],27:[function(require,module,exports){
+},{"./chord_definition.js":29,"./notes.js":30,"./scale.js":33,"./voicing.js":34}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6490,6 +6487,7 @@ module.exports = lib;
  * @param chordDef
  */
 lib.createChord = function(chordDef, defaultScale) {
+  // TODO this is now kind of a mess here!?
   var _scale = chordDef.getScale() || defaultScale;
   var _step = chordDef.getStep();
   var _voicing = chordDef.getVoicing();
@@ -6499,7 +6497,7 @@ lib.createChord = function(chordDef, defaultScale) {
 
   if (_step > 0) {
     var _scale = _scale.clone()
-    _scale.shift(_step);
+    _scale.shift(_step, true);
   }
 
   var _name = chordDef.toString();
@@ -6537,9 +6535,6 @@ lib.createChord = function(chordDef, defaultScale) {
       }
       return _arpeggioNotes;
     },
-    // TODO Resolve the problem: how to also have the free flowing arpeggios kind of like before?
-    // XXX Maybe just have an option which offsets the first note depending on the current inversion
-    // to mimic the older behavior, where the inversion also offset the arpeggio pattern (when using > in arp. pattern)
     getInvertedArpeggioNotes: function() {
       if (_invertedArpeggioNotes === false) {
         _invertedArpeggioNotes = _voicing.createInvertedArpeggioNotes(_scale, _inversion);
@@ -6595,7 +6590,7 @@ lib.createChord = function(chordDef, defaultScale) {
   return chord;
 };
 
-},{}],28:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6907,7 +6902,7 @@ function setSubject(existingSubject, newSubject, operator, description, messages
   return existingSubject;
 }
 
-},{"../parser/composite.js":19,"../parser/composite_parser.js":20,"./voicing.js":33}],29:[function(require,module,exports){
+},{"../parser/composite.js":20,"../parser/composite_parser.js":21,"./voicing.js":34}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -6934,6 +6929,9 @@ var letterMap = {};
 });
 var defaultRegister = 4;
 
+/**
+ * Returns the chromatic position of the tonic of the key.
+ */
 function parseKeyPosition(keyName) {
   var register = defaultRegister;
   var pos = 0;
@@ -7012,16 +7010,16 @@ var sharp = "#";
 var flat = "b";
 
 /**
- * noteDefinition
- * chromaticRoot the
+ * noteDefinition .. basically describes an interval
+ * rootPosition .. chromatic position of the key the note is in
  * parsedInterval .. optional {ref:"string"} output parameter; can be used to extract a shiny name out of the dirty noteDefinition
  * @return object note
  */
 function parseNote(noteDefinition, rootPosition, parsedInterval) {
   // TODO refactor how the note names are determined, make and cleaner and more flexible!
-  var _chromaticRoot = 0,
-    intervalNameMap = {},
-    _rootPosition = rootPosition || 60;
+  var intervalNameMap = {};
+  var _position = rootPosition;
+  var _rootPosition = rootPosition;
 
   var note = noteDefinition;
   if (typeof(note) === "undefined") {
@@ -7067,6 +7065,7 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
     console.error("parseNote() - I have no mapping for major note: " + interval);
   }
   var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
+  _position += _chromaticInterval;
 
   var _voice;
   return {
@@ -7074,7 +7073,10 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
       return _chromaticInterval;
     },
     getPosition: function() {
-      return _rootPosition + _chromaticInterval;
+      return _position;
+    },
+    setPosition: function(position) {
+      _position = position;
     },
     setChromaticInterval: function(chromaticInterval) {
       _chromaticInterval = chromaticInterval;
@@ -7117,16 +7119,8 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
     setRoot: function(isRoot) {
       _isRoot = isRoot;
     },
-    /** Needed for findIntervalName(), isRoot() marks the actual root! */
-    setChromaticRoot: function(chromaticRoot) {
-      _chromaticRoot = chromaticRoot;
-    },
-    getChromaticRoot: function() {
-      return _chromaticRoot;
-    },
     transpose: function(semitones) {
-      _chromaticInterval += semitones;
-      _chromaticRoot += semitones;
+      _position += semitones;
     },
     // Optionally a note can know its voice!
     // TODO This could be used in an  alternative note naming mode: "voices"
@@ -7140,9 +7134,8 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
     clone: function() {
       var copy = parseNote(this.toString(), _rootPosition);
       copy.setIntervalNameMap(intervalNameMap);
-      copy.setChromaticRoot(_chromaticRoot);
-      copy.setChromaticInterval(_chromaticInterval);
       copy.setVoice(this.getVoice());
+      copy.setPosition(_position);
       return copy;
     }
   }
@@ -7212,6 +7205,7 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       if (option[0] == 'k') {
         keyName = option[1];
         keyPosition = parseKeyPosition(keyName);
+        parts.pop();
       } else {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
@@ -7240,7 +7234,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -7323,7 +7317,8 @@ lib.createChordProgression = function(scale, chordDefinitions) {
           // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
 
           // TODO this is not working too well!
-          if (previousChord.getChordDefinition().getStep() < chordDef.getStep()) {
+          // if (previousChord.getChordDefinition().getStep() < chordDef.getStep()) {
+          if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
           // if (previousChord.getNotes()[0].getPosition() < chord.getStep()) {
           // if (chordDefs[i - 1] < chordDef) {
             transposed = -12;
@@ -7348,7 +7343,7 @@ lib.createChordProgression = function(scale, chordDefinitions) {
   }
 }
 
-},{"../fingering.js":11,"./base.js":26}],31:[function(require,module,exports){
+},{"../fingering.js":11,"./base.js":27}],32:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7579,7 +7574,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":22}],32:[function(require,module,exports){
+},{"../recursive_parser.js":23}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7587,6 +7582,13 @@ var notesLib = require("./notes.js");
 var chordLib = require("./chord.js");
 
 var WHITESPACE_REGEX = /\s+/;
+
+/**
+ * notesAfterShift is an in/out parameter.
+ */
+function transposeToMatchKey(notesBeforeShift, notesAfterShift) {
+
+}
 
 /**
  * @param String|notesObject definition
@@ -7621,13 +7623,16 @@ lib.createScale = function(definition) {
     createChord: function(chordDef) {
       return chordLib.createChord(chordDef, this);
     },
-    shift: function(steps) {
+    shift: function(steps, invert) {
+      var invert = invert || false;
       if (steps == 0) {
         return;
       }
 
       // also the root notes of all notes get shifted
       this.getRootNote().setRoot(false);
+
+      var firstPositionBeforeShifting = _notes[0].getPosition();
 
       // do the shift
       if (steps > 0) {
@@ -7638,7 +7643,6 @@ lib.createScale = function(definition) {
             note.transpose(12);
           } while(previousNote.getPosition() > note.getPosition());
           _notes.push(note);
-          lastNote = note;
         }
       } else {
         for (var i = 0; i < Math.abs(steps); ++i) {
@@ -7654,15 +7658,22 @@ lib.createScale = function(definition) {
       // set the new chromatic roots after transposing, so they are not affected by it
       rootNote = this.getRootNote();
       rootNote.setRoot(true);
-      newChromaticRoot = rootNote.getPosition();
-      this.setChromaticRoot(newChromaticRoot);
 
-      // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
-    },
-    setChromaticRoot: function(newChromaticRoot) {
-      for (var i = 0; i < _notes.length; ++i) {
-        _notes[i].setChromaticRoot(newChromaticRoot);
+      // rewrite the chromatic intervals, so they make sense again
+      var rootPosition = _notes[0].getPosition();
+      _notes.forEach(function (note) {
+        note.setChromaticInterval(note.getPosition() - rootPosition);
+        previousPosition = note.getPosition();
+      });
+
+      // rewrite the positions, so the root has the same position like before
+      if (!invert) {
+        var positionDifference = firstPositionBeforeShifting - _notes[0].getPosition();
+        _notes.forEach(function (note) {
+          note.setPosition(note.getPosition() + positionDifference);
+        });
       }
+      // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
     },
     transpose: function(semitones) {
       for (var i=0; i<_notes.length; ++i) {
@@ -7670,7 +7681,10 @@ lib.createScale = function(definition) {
       }
     },
     clone: function() {
-      return lib.createScale(notesLib.createNotesObject(_notes, _keyPosition, _keyName));
+      var newNotes = _notes.map(function(note) {
+        return note.clone();
+      });
+      return lib.createScale(notesLib.createNotesObject(newNotes, _keyPosition, _keyName));
     },
     toString: function() {
       var str = "";
@@ -7682,7 +7696,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./chord.js":27,"./notes.js":29}],33:[function(require,module,exports){
+},{"./chord.js":28,"./notes.js":30}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7827,8 +7841,6 @@ function createNotesByVoices(voices, scaleNotes) {
    if (noteTransposition !== 0) {
      // transposition is required for extensions
      note.transpose(noteTransposition);
-     // alter chromatic root, so the interval names also "change registers"
-     note.setChromaticRoot(note.getChromaticRoot() - noteTransposition);
    }
 
    notes.push(note);
@@ -7908,7 +7920,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":22}]},{},[1]);
+},{"../recursive_parser.js":23}]},{},[1]);
 </script>
   </body>
 </html>
