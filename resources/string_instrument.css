@@ -4,41 +4,65 @@
   margin-right: 20pt;
   margin-bottom: 25pt;
 }
-
-/* string */
-.string-instrument .strings > div {
+/* all frets */
+.string-instrument .frets .fret {
+  /* the width gets set via JS */
+  display: inline-block;
+  background-color: brown;
+  border-right: 1px solid black;
+  position: relative;
 }
-
 /* open string frets */
-.string-instrument .strings > div > span:first-child {
+.string-instrument .frets > .fret:first-child {
   width: 10pt;
   background-color: black;
 }
-/* all frets */
-.string-instrument .strings > div > span {
-  width: 25pt;
+.string-instrument .frets > .fret > .mark,
+.string-instrument .frets > .fret > .mark2 {
+  position: absolute;
+  bottom: 50%;
+  background-color: black;
+  width: 6pt;
+  height: 6pt;
+  display: inline-block;
+  border-radius: 50%;
+}
+
+.string-instrument .frets > .fret > .mark2 {
+  box-shadow: 0px 50px 0px 0px;
+  bottom: calc(50% + 50px / 2 );
+}
+
+/* string */
+.string-instrument .frets > .fret > p {
+  /* http://png-pixel.com/ */
+  background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=);
+  background-repeat: repeat-x;
+  background-position: center;
+  width: inherit;
   height: 15pt;
-  border: solid 1pt black;
-  background-color: brown;
+  margin: 0;
   display: inline-block;
   vertical-align: top;
   text-align: center;
 }
-.string-instrument .strings > div > span.selected p {
-  background-color: red;
-}
-.string-instrument .strings > div > span.selected.root p {
-  background-color: yellow;
-}
-.string-instrument .strings > div > span.ignore p,
-.string-instrument .strings > div > span.selected.root.ignore p {
-  background-color: brown;
-  color: brown;
-}
 .string-instrument .note-text {
-  display:inline-block;
+  display: inline-block;
+  z-index: 1;
+  position: relative;
   font-size: 9pt;
   min-width: 12pt;
   margin: 0;
   border-radius: 50%;
+}
+.string-instrument .frets > .fret > p.selected > .note-text {
+  background-color: red;
+}
+.string-instrument .frets > .fret > p.selected.root > .note-text {
+  background-color: yellow;
+}
+.string-instrument .frets > .fret > p.ignore > .note-text,
+.string-instrument .frets > .fret > p.selected.root.ignore > .note-text {
+  background-color: brown;
+  color: brown;
 }

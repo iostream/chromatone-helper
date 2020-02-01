@@ -47,8 +47,9 @@ var debug = false;
 lib.createStringInstrument = function(stringBaseNotes, fretCount) {
   var _stringPitches = stringBaseNotes;
   var _container = stringInstrumentTemplate.cloneNode(true);
-  var _fretBoard = _container.getElementsByClassName("strings")[0];
+  var _fretBoard = _container.getElementsByClassName('frets')[0];
   var _fretCount = fretCount;
+  var _frets = [];
 
   var instrument = {
     getElement: function() {
@@ -63,9 +64,8 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
       // highlight each pitch which actually exists on the board while also
       // highlighting the pitches which are in a different register
       // (this is brute force, but works for all kinds of fretted string instruments with constant fret count (no banjo))
-      _stringPitches.forEach(function(stringPitch) {
-        var stringPosition = stringPitch.getPosition();
-        var relativeStringPosition = stringPosition % 12;
+      _stringPitches.forEach(function(stringPitch, stringIndex) {
+        var relativeStringPosition = stringPitch.getPosition() % 12;
         notes.forEach(function(pitchToAdd) {
           var position = pitchToAdd.getPosition();
           // check for all registers
@@ -80,10 +80,9 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
             if (_fretCount <= positionOnString) {
               break;
             }
-            if (!addNote(pitchToAdd, _fretBoard, stringPosition + positionOnString)) {
-              console.error("Could not find button (which should be impossible to happen!!) to light by note \"" + note.toString() + "\" (position=" + note.getPosition() + ")");
-            }
 
+            var isDifferentRegister = position !== stringPitch.getPosition() + positionOnString;
+            markNoteElement(_frets[positionOnString].getElementsByTagName('p')[stringIndex], pitchToAdd, isDifferentRegister);
           }
         });
       });
@@ -98,44 +97,46 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
     }
   };
 
-  _stringPitches.forEach(function(pitch) {
-    var string = createString();
-    _fretBoard.appendChild(string);
-    var chromatic = pitch.getPosition();
-    for (var i = 0; i < fretCount; ++i) {
-      string.appendChild(createFret(chromatic++));
+  var string;
+  var stringCount = _stringPitches.length;
+  for (var i = 0; i < fretCount; ++i) {
+    var fret = createFret(i);
+    _frets.push(fret);
+    for (var j = 0; j < stringCount; ++j) {
+      fret.appendChild(createString());
     }
-  });
-
+    _fretBoard.appendChild(fret);
+  }
   return instrument;
 }
 
 function createString() {
-  var string = document.createElement("div");
-  return string;
+  var el = document.createElement("p");
+  return el;
 }
 
-function createFret(chromatic) {
-  var fret = document.createElement("span");
-  // c<chromaticPosition>
-  fret.className = "c" + chromatic;
-  return fret;
-}
+var markingsPerFret = {
+  // fret index => count of markings
+  0: 2, 3: 1, 5: 1, 7: 1, 9: 1
+};
+function createFret(index) {
+  var el = document.createElement("span");
+  el.className = 'fret';
+  if (index > 0) {
+    // XXX Does this makes sense enough?
+    el.style.width = 40 - ((index ) * 1.7) + "px";
 
-function addNote(note, fretBoard, alternativePosition) {
-  var position = alternativePosition || note.getPosition();
-  var isDifferentRegister = position !==  note.getPosition();
-
-  // find buttons to light
-  var className = "c" + position;
-  var noteEls = fretBoard.getElementsByClassName(className);
-  if (noteEls.length === 0) {
-    return false;
+    if (markingsPerFret.hasOwnProperty(index % 12)) {
+      var marking = document.createElement("span");
+      if (markingsPerFret[index % 12] > 1) {
+        marking.className = "mark2";
+      } else {
+        marking.className = "mark";
+      }
+      el.appendChild(marking);
+    }
   }
-  for (var j = 0; j < noteEls.length; ++j) {
-    markNoteElement(noteEls[j], note, isDifferentRegister);
-  }
-  return true;
+  return el;
 }
 
 function markNoteElement(noteEl, note, isDifferentRegister) {
@@ -152,7 +153,7 @@ function markNoteElement(noteEl, note, isDifferentRegister) {
     noteEl.classList.add("alt");
   }
   noteEl.setAttribute("title", name);
-  noteEl.innerHTML = '<p class="note-text">' + name + "</p>";
+  noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
   noteEl.classList.add("selected");
 
   // mark root
