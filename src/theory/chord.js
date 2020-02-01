@@ -15,7 +15,7 @@ lib.createChord = function(chordDef, defaultScale) {
 
   if (_step > 0) {
     var _scale = _scale.clone()
-    _scale.shift(_step);
+    _scale.shift(_step, true);
   }
 
   var _name = chordDef.toString();

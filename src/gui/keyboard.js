@@ -5,27 +5,28 @@ var tLib = require("../theory/base.js");
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
-/**
- *
- */
-function createChromaticKeyboard(rows, columns) {
+function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
   var keyboard = chromaticKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
 
   var rowIteration = 0;
-  for (var row=0; row < rows; ++row) {
+  var baseRowColumnCount = Math.ceil((highestPosition - lowestPosition) / 2 + 1);
+  for (var row = 0; row < rowCount; ++row) {
     // the first shall never be a cross row (because of the cut out parts there)
     var isCrossRow = !!(row % 2);
     var rowEl = document.createElement("div");
-    var chromatic = 0;
+    var chromatic = lowestPosition;
     // e.g. class="row x i1" -> second iteration of cross rows
     if (isCrossRow) {
       rowEl.className = "row i" + Math.floor(rowIteration) + " x";
-      chromatic = 1;
+      chromatic += 1;
     } else {
       rowEl.className = "row i" + Math.floor(rowIteration);
     }
-    var rowColumnCount = isCrossRow ? columns - 1 : columns;
+    var rowColumnCount = baseRowColumnCount;
+    if (isCrossRow) {
+      rowColumnCount -= 1;
+    }
     for (var column = 0; column < rowColumnCount; ++column) {
       var button = document.createElement("span");
       // c<chromaticPosition>

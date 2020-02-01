@@ -3,6 +3,7 @@ module.exports = lib;
 
 var formSerialize = require('form-serialize');
 var tLib = require("../theory/base.js");
+var presetLib = require("./presets.js");
 var rhythmLib = require("../theory/rhythm.js");
 var arpeggioLib = require("../theory/arpeggio.js");
 var keyboard = require("./keyboard.js");
@@ -29,8 +30,7 @@ function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
   if (instrumentType == 'zebra') {
     instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
   } else if (instrumentType == 'chromatic') {
-    // lowest position always is 0
-    instrument = keyboard.createKeyboard(4, Math.ceil(chord.getHighestNote().getPosition() / 2 + 1));
+    instrument = keyboard.createKeyboard(lowestPosition, chord.getHighestNote().getPosition(), 4);
   } else {
     console.error("addChord() - Unknown instrument type: " + instrumentType);
     return;
@@ -128,71 +128,6 @@ function addBreak(section) {
 lib.addBreak = addBreak;
 
 /**
- * presets[]                        .. the presets to be initialized
- * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
- * elements[]                       .. the elements, the preset values get assigned to when a preset is selected
- */
-function initPresets(presets, presetSelectElementOrElements, elements) {
-  var presetSelectElements = presetSelectElementOrElements;
-  if (!Array.isArray(presetSelectElements)) {
-    presetSelectElements = [presetSelectElements];
-  }
-
-  presetSelectElements.forEach(function(presetEl) {
-    for (var i=0; i<presets.length; ++i) {
-      var preset = presets[i];
-      var option = presetEl.appendChild(document.createElement("option"));
-      option.value = i;
-      option.innerHTML = preset
-        .map(function(v){
-          return Array.isArray(v) ? v.join(", ") : v;
-        })
-        .join(" -> ");
-    }
-    presetEl.addEventListener("change", function(event) {
-      var preset = presets[presetEl.value];
-      for (var i=0; i < elements.length; ++i) {
-        var elementOrElements = elements[i];
-        if (typeof elementOrElements === "function") {
-          elementOrElements = elementOrElements(preset[i]);
-        }
-        if (Array.isArray(elementOrElements)) {
-          if (!Array.isArray(preset[i])) {
-            console.error("initPresets () - Preset not set up right!");
-            continue;
-          }
-          var index = 0;
-          preset[i].forEach(function(presetValue) {
-            if (typeof elementOrElements[index] === "undefined") {
-              console.error("initPresets () - Preset not set up right: " + (index + 1));
-            } else {
-              applyPresetValue(elementOrElements[index], presetValue);
-            }
-            ++index;
-          });
-
-        } else {
-          applyPresetValue(elementOrElements, preset[i]);
-        }
-      }
-      presetEl.form.update.click();
-    });
-  });
-}
-
-function applyPresetValue(element, presetValue) {
-  if (typeof(presetValue) === "undefined") {
-    element.value = "";
-    return;
-  }
-  element.value = presetValue;
-}
-
-function parseSubjectComposite(formElementName) {
-
-}
-
-/**
  * TODO This is very messy now!
  *
  * presets .. array of arrays
@@ -275,7 +210,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       }
     });
     // each scale comes with handy presets for jump starting everything:
-    initPresets(scalePresets, c.preset, [c.input]);
+    presetLib.initPresets(scalePresets, c.preset, [c.input]);
     // select nothing as preset, so each valid value is selectable from the start
     c.preset.value = "";
     // update result after changing the scale text input
@@ -380,7 +315,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     document.location.href = url;
   }
 
-  initPresets(
+  presetLib.initPresets(
     presets,
     form.preset,
     [
@@ -399,10 +334,10 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
       form.voicing
     ]
   );
-  initPresets(chordPresets, form.chords_preset, [form.chords]);
-  initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
-  initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
-  initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
+  presetLib.initPresets(chordPresets, form.chords_preset, [form.chords]);
+  presetLib.initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
+  presetLib.initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
+  presetLib.initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
 
   document.addEventListener('DOMContentLoaded', function(event) {
     updateGUIByUrl();

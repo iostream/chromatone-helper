@@ -3,12 +3,8 @@ module.exports = lib;
 
 var tLib = require("../theory/base.js");
 
-
 var zebraKeyboardTemplate = document.getElementById("templates").getElementsByClassName("zebra")[0];
 
-/**
- *
- */
 lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   function isDisplacedButton(chromatic) {
     var relativePosition = chromatic % 12;

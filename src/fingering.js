@@ -18,7 +18,7 @@ function updateFingering(notes) {
   }
 
   // second note is up, if it would be on the same row like the note before
-  var isUp = notesArray[0].getChromaticInterval() % 2 === notesArray[1].getChromaticInterval() % 2;
+  var isUp = notesArray[0].getPosition() % 2 === notesArray[1].getPosition() % 2;
   notesArray[1].setUp(isUp);
 
   if (notesArray.length < 3) {
@@ -27,9 +27,9 @@ function updateFingering(notes) {
 
   if (isUp) {
     // third note would also stay up if it is on the same row like the note before
-    isUp = notesArray[1].getChromaticInterval() % 2 === notesArray[2].getChromaticInterval() % 2;
+    isUp = notesArray[1].getPosition() % 2 === notesArray[2].getPosition() % 2;
   } else {
-    isUp = notesArray[1].getChromaticInterval() % 2 !== notesArray[2].getChromaticInterval() % 2;
+    isUp = notesArray[1].getPosition() % 2 !== notesArray[2].getPosition() % 2;
   }
   notesArray[2].setUp(isUp);
 

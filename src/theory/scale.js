@@ -46,13 +46,16 @@ lib.createScale = function(definition) {
     createChord: function(chordDef) {
       return chordLib.createChord(chordDef, this);
     },
-    shift: function(steps) {
+    shift: function(steps, invert) {
+      var invert = invert || false;
       if (steps == 0) {
         return;
       }
 
       // also the root notes of all notes get shifted
       this.getRootNote().setRoot(false);
+
+      var firstPositionBeforeShifting = _notes[0].getPosition();
 
       // do the shift
       if (steps > 0) {
@@ -79,13 +82,20 @@ lib.createScale = function(definition) {
       rootNote = this.getRootNote();
       rootNote.setRoot(true);
 
-      var rootPosition = _notes[0].getPosition();
-
       // rewrite the chromatic intervals, so they make sense again
+      var rootPosition = _notes[0].getPosition();
       _notes.forEach(function (note) {
         note.setChromaticInterval(note.getPosition() - rootPosition);
         previousPosition = note.getPosition();
       });
+
+      // rewrite the positions, so the root has the same position like before
+      if (!invert) {
+        var positionDifference = firstPositionBeforeShifting - _notes[0].getPosition();
+        _notes.forEach(function (note) {
+          note.setPosition(note.getPosition() + positionDifference);
+        });
+      }
       // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
     },
     transpose: function(semitones) {
@@ -94,7 +104,10 @@ lib.createScale = function(definition) {
       }
     },
     clone: function() {
-      return lib.createScale(notesLib.createNotesObject(_notes, _keyPosition, _keyName));
+      var newNotes = _notes.map(function(note) {
+        return note.clone();
+      });
+      return lib.createScale(notesLib.createNotesObject(newNotes, _keyPosition, _keyName));
     },
     toString: function() {
       var str = "";
