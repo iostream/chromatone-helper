@@ -1,6 +1,7 @@
 #!/bin/sh
 
-# deploys last build result of the current branch to its github page
+# Copies last build result of the current branch to its github page directory,
+# so it gets deployed to its GitHub page automatically by the GitHub pipeline.
 
 destinationBranch="gh-pages"
 branch=`git rev-parse --abbrev-ref HEAD`
