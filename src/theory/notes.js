@@ -293,9 +293,10 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       return [];
     }
     // middle default is middle c
-    var keyName = defaultKeyName
+    var keyName = defaultKeyName;
     var keyPosition = defaultKeyPosition;
-    var option = parts[parts.length - 1].split('=');
+    var lastPart = parts[parts.length - 1];
+    var option = lastPart.split('=');
     if (option.length > 1) {
       if (option[0] == 'k') {
         keyName = option[1];
@@ -304,6 +305,11 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
       parts.pop();
+    } else if (isNaN(parseInt(lastPart))) {
+      // alternative for k=E#, just write the key after the notes, like:
+      // 1 2 3 4 5 6 7 E#
+      keyName = lastPart;
+      keyPosition = parseKeyPosition(lastPart);
     }
     for (var i = 0; i < parts.length; ++i) {
       parts[i] = createNote(parts[i], keyPosition);
