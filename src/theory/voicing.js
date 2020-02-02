@@ -140,8 +140,8 @@ function createNotesByVoices(voices, scaleNotes) {
    note.setVoice(voices[i]);
 
    if (noteTransposition !== 0) {
-     // transposition is required for extensions
      note.transpose(noteTransposition);
+     note.setChromaticInterval(note.getChromaticInterval() + noteTransposition);
    }
 
    notes.push(note);
