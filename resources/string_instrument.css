@@ -20,17 +20,18 @@
 .string-instrument .frets > .fret > .mark,
 .string-instrument .frets > .fret > .mark2 {
   position: absolute;
-  bottom: 50%;
+  bottom: calc(50% - 3pt);
   background-color: black;
   width: 6pt;
   height: 6pt;
   display: inline-block;
   border-radius: 50%;
+  margin-left: calc(50% - 3pt);
 }
 
 .string-instrument .frets > .fret > .mark2 {
   box-shadow: 0px 50px 0px 0px;
-  bottom: calc(50% + 50px / 2 );
+  bottom: calc(50% + 50px / 2 - 3pt);
 }
 
 /* string */
@@ -38,6 +39,7 @@
   /* http://png-pixel.com/ */
   background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=);
   background-repeat: repeat-x;
+  /* clip-path: inset(45% 0 45% 0); */
   background-position: center;
   width: inherit;
   height: 15pt;

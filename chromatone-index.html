@@ -83,14 +83,14 @@
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
               </select>
             </span>
-            <span class="stringed-options">
+            <span class="stringed-options hidden">
               <span class="form-element">
                 <label for="all_registers">all registers</label>
                 <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
-              </span>
-              <span class="form-element">
                 <label for="all_intervals">all intervals</label>
                 <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
+                <label for="chord_mode">chord mode</label>
+                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be player at once. If chord mode is off, then all existing pitches are shown."></input>
               </span>
             </span>
             <!--
