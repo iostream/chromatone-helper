@@ -310,6 +310,7 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       // 1 2 3 4 5 6 7 E#
       keyName = lastPart;
       keyPosition = parseKeyPosition(lastPart);
+      parts.pop();
     }
     for (var i = 0; i < parts.length; ++i) {
       parts[i] = createNote(parts[i], keyPosition);
