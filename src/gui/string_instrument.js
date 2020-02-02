@@ -44,6 +44,14 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
         console.log("StringInstrument - Adding notes: ", notes.map(function(note){ return note.toString(); }));
       }
 
+      // add description
+      if (typeof description !== "undefined") {
+        var descriptionEl = _container.getElementsByClassName("description");
+        if (descriptionEl.length > 0) {
+          descriptionEl[0].innerHTML = description;
+        }
+      }
+
       // highlight each pitch which actually exists on the board while also
       // highlighting the pitches which are in a different register
       // (this is brute force, but works for all kinds of fretted string instruments with constant fret count (no banjo))
