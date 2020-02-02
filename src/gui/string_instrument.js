@@ -1,23 +1,6 @@
 var lib = {};
 module.exports = lib;
 
-// TODO include hiding of notes in different register:
-function hideNotesOfDifferentRegister(hide) {
-  var els = document.querySelectorAll(".selected.alt");
-  for (var i = 0; i < els.length; ++i) {
-    if (hide) {
-      if (!els[i].classList.contains('ignore')) {
-        els[i].className += " ignore";
-      }
-    } else {
-      if (els[i].classList.contains('ignore')) {
-        els[i].classList.remove('ignore');
-      }
-    }
-
-  }
-}
-
 var notesLib = require("../theory/notes.js");
 
 var stringInstrumentTemplate = document.getElementById("templates").getElementsByClassName("string-instrument")[0];
@@ -55,7 +38,7 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
     getElement: function() {
       return _container;
     },
-    add: function(notes, description) {
+    add: function(notes, description, options) {
       var notes = notesLib.parseNotes(notes);
       if (debug) {
         console.log("StringInstrument - Adding notes: ", notes.map(function(note){ return note.toString(); }));
@@ -82,7 +65,9 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
             }
 
             var isDifferentRegister = position !== stringPitch.getPosition() + positionOnString;
-            markNoteElement(_frets[positionOnString].getElementsByTagName('p')[stringIndex], pitchToAdd, isDifferentRegister);
+            if (options.all_registers || !isDifferentRegister) {
+              markNoteElement(_frets[positionOnString].getElementsByTagName('p')[stringIndex], pitchToAdd, isDifferentRegister, options.all_intervals);
+            }
           }
         });
       });
@@ -123,9 +108,11 @@ function createFret(index) {
   var el = document.createElement("span");
   el.className = 'fret';
   if (index > 0) {
+    // Change width depending on position of the fret
     // XXX Does this makes sense enough?
     el.style.width = 40 - ((index ) * 1.7) + "px";
 
+    // mark some frets
     if (markingsPerFret.hasOwnProperty(index % 12)) {
       var marking = document.createElement("span");
       if (markingsPerFret[index % 12] > 1) {
@@ -139,8 +126,9 @@ function createFret(index) {
   return el;
 }
 
-function markNoteElement(noteEl, note, isDifferentRegister) {
-  if (isDifferentRegister && noteEl.classList.contains('selected')) {
+function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
+  var selected = noteEl.classList.contains('selected');
+  if (isDifferentRegister && selected && !allIntervals) {
     // do nothing, if this is a different register and the note is already
     // marked
     return;
@@ -150,8 +138,14 @@ function markNoteElement(noteEl, note, isDifferentRegister) {
   var name = note.findIntervalName();
   if (isDifferentRegister) {
     name = '(' + name + ')';
-    noteEl.classList.add("alt");
   }
+
+  if (selected && allIntervals) {
+    // append to existing name
+    var existingName = noteEl.getAttribute("title");
+    name = existingName + "/" + name;
+  }
+
   noteEl.setAttribute("title", name);
   noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
   noteEl.classList.add("selected");

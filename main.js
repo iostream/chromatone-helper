@@ -1,4 +1,5 @@
 var g = require("./src/gui/base.js"),
+ formLib = require("./src/gui/form.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),
  compositeParser = require("./src/parser/composite_parser.js"),
@@ -9,7 +10,7 @@ var g = require("./src/gui/base.js"),
  presets = require("./resources/presets.js");
 
 // TODO move this code into an own file / layer?
-g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
+formLib.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
   var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
   var chords = progression.getChords();
 
@@ -31,7 +32,7 @@ g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeg
     }
   }
 
-  g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrument, resultSection);
+  g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrumentOptions, resultSection);
 
 }, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 

@@ -83,10 +83,15 @@
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
               </select>
             </span>
-            <span class="form-element stringed-option">
-              <label for="all_registers">highlight all registers</label>
-              <input type="checkbox" name="show_all_registers" title="also highlight pitches in different registers, also if they are not part of the chord">
-              </input>
+            <span class="stringed-options">
+              <span class="form-element">
+                <label for="all_registers">all registers</label>
+                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
+              </span>
+              <span class="form-element">
+                <label for="all_intervals">all intervals</label>
+                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
+              </span>
             </span>
             <!--
             <span class="form-element">
@@ -94,12 +99,12 @@
               <input type="checkbox" name="auto_invert" title="activate automatic inversion optimization" checked="checked">
             </span>
           -->
+          </div>
+          <div class="secondary-form-elements">
             <span class="form-element">
               <label for="preset">preset</label>
               <select class="preset" name="preset"></select>
             </span>
-          </div>
-          <div class="secondary-form-elements">
             <!--
             <span class="form-element">
               <label for="interval_naming">interval naming</label>

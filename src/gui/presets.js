@@ -1,6 +1,13 @@
 var lib = {};
 module.exports = lib;
 
+lib.enablePresets = function(form, enabled) {
+  var presetElements = form.querySelectorAll(".preset");
+  presetElements.forEach(function(element) {
+    element.disabled = !enabled;
+  });
+}
+
 /**
  * presets[]                        .. the presets to be initialized
  * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
