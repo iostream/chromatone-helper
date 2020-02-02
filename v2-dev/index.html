@@ -277,17 +277,18 @@ margin-top: 4pt;
 .string-instrument .frets > .fret > .mark,
 .string-instrument .frets > .fret > .mark2 {
   position: absolute;
-  bottom: 50%;
+  bottom: calc(50% - 3pt);
   background-color: black;
   width: 6pt;
   height: 6pt;
   display: inline-block;
   border-radius: 50%;
+  margin-left: calc(50% - 3pt);
 }
 
 .string-instrument .frets > .fret > .mark2 {
   box-shadow: 0px 50px 0px 0px;
-  bottom: calc(50% + 50px / 2 );
+  bottom: calc(50% + 50px / 2 - 3pt);
 }
 
 /* string */
@@ -295,6 +296,7 @@ margin-top: 4pt;
   /* http://png-pixel.com/ */
   background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=);
   background-repeat: repeat-x;
+  /* clip-path: inset(45% 0 45% 0); */
   background-position: center;
   width: inherit;
   height: 15pt;
@@ -401,10 +403,15 @@ margin-top: 4pt;
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
               </select>
             </span>
-            <span class="form-element stringed-option">
-              <label for="all_registers">highlight all registers</label>
-              <input type="checkbox" name="show_all_registers" title="also highlight pitches in different registers, also if they are not part of the chord">
-              </input>
+            <span class="stringed-options hidden">
+              <span class="form-element">
+                <label for="all_registers">all registers</label>
+                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
+                <label for="all_intervals">all intervals</label>
+                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
+                <label for="chord_mode">chord mode</label>
+                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be player at once. If chord mode is off, then all existing pitches are shown."></input>
+              </span>
             </span>
             <!--
             <span class="form-element">
@@ -412,12 +419,12 @@ margin-top: 4pt;
               <input type="checkbox" name="auto_invert" title="activate automatic inversion optimization" checked="checked">
             </span>
           -->
+          </div>
+          <div class="secondary-form-elements">
             <span class="form-element">
               <label for="preset">preset</label>
               <select class="preset" name="preset"></select>
             </span>
-          </div>
-          <div class="secondary-form-elements">
             <!--
             <span class="form-element">
               <label for="interval_naming">interval naming</label>
@@ -461,6 +468,7 @@ margin-top: 4pt;
 <script>
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
 var g = require("./src/gui/base.js"),
+ formLib = require("./src/gui/form.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),
  compositeParser = require("./src/parser/composite_parser.js"),
@@ -471,7 +479,7 @@ var g = require("./src/gui/base.js"),
  presets = require("./resources/presets.js");
 
 // TODO move this code into an own file / layer?
-g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
+formLib.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
   var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
   var chords = progression.getChords();
 
@@ -493,7 +501,7 @@ g.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeg
     }
   }
 
-  g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrument, resultSection);
+  g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrumentOptions, resultSection);
 
 }, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
 
@@ -517,7 +525,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/midi.js":19,"./src/parser/composite.js":21,"./src/parser/composite_parser.js":22,"./src/server/client.js":25,"./src/theory/arpeggio.js":27,"./src/theory/base.js":28,"./src/theory/progression.js":32}],2:[function(require,module,exports){
+},{"./resources/presets.js":10,"./src/gui/base.js":12,"./src/gui/form.js":13,"./src/midi.js":20,"./src/parser/composite.js":22,"./src/parser/composite_parser.js":23,"./src/server/client.js":26,"./src/theory/arpeggio.js":28,"./src/theory/base.js":29,"./src/theory/progression.js":33}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -4202,20 +4210,13 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":28,"./theory/notes.js":31}],12:[function(require,module,exports){
+},{"./theory/base.js":29,"./theory/notes.js":32}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var formSerialize = require('form-serialize');
-var tLib = require("../theory/base.js");
-var presetLib = require("./presets.js");
-var rhythmLib = require("../theory/rhythm.js");
-var arpeggioLib = require("../theory/arpeggio.js");
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
 var stringInstrument = require("./string_instrument.js");
-var session = require("./session.js");
-var pocketKnife = require("./pocket_knife.js");
 
 function $_(id) { return document.getElementById(id); }
 /**
@@ -4224,16 +4225,14 @@ function $_(id) { return document.getElementById(id); }
 var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
   chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
   chordReferenceGroupTemplate = $_("templates").getElementsByClassName("chord-reference-group")[0],
-  interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
-  chordSection = $_("chords"),
-  interactiveSection = $_("interactive");
+  chordSection = $_("chords");
 
-function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
+function addChord(chord, parent, instrumentOptions, nextChord, lowestPosition) {
   lowestPosition = lowestPosition || 0;
   parent = parent || chordSection;
   var instrument;
 
-  instrumentType = instrumentType || 'chromatic';
+  instrumentType = instrumentOptions.type || 'chromatic';
   if (instrumentType == 'zebra') {
     instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
   } else if (instrumentType == 'chromatic') {
@@ -4251,7 +4250,7 @@ function addChord(chord, parent, instrumentType, nextChord, lowestPosition) {
   if (typeof chord.getName !== "undefined") {
     name = chord.getName();
   }
-  instrument.add(chord, name);
+  instrument.add(chord, name, instrumentOptions);
 
   if (nextChord) {
     instrument.addDiff(nextChord);
@@ -4273,7 +4272,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-function addChordGroup(chords, title, section, nextChordAfterGroup, instrumentType) {
+function addChordGroup(chords, title, section, nextChordAfterGroup, instrumentOptions) {
   section = section || chordSection;
   nextChordAfterGroup = nextChordAfterGroup || null;
 
@@ -4296,7 +4295,7 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, instrumentTy
 
   for (var i = 0; i < chords.length; ++i) {
     // add chord to the new keyboard
-    var keyboard = addChord(chords[i], groupEl, instrumentType);
+    var keyboard = addChord(chords[i], groupEl, instrumentOptions);
     var nextChord = chords[(i + 1) % chords.length];
 
     // mark differences between voicings/notes, won't work all the time, because it's very simple:
@@ -4309,26 +4308,26 @@ function addChordGroup(chords, title, section, nextChordAfterGroup, instrumentTy
 }
 lib.addChordGroup = addChordGroup;
 
-function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, instrumentType, lowestPosition) {
+function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, instrumentOptions, lowestPosition) {
   if (typeof chordDefinitionOrComposit.getChildren === "function") {
     var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), parentElement);
     chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, instrumentType, lowestPosition);
+      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, instrumentOptions, lowestPosition);
     });
     parentElement.appendChild(groupElement);
   } else {
     var chord = chords.shift();
     var nextChord = chords.length > 0 ? chords[0] : false;
-    addChord(chord, parentElement, instrumentType, nextChord, lowestPosition);
+    addChord(chord, parentElement, instrumentOptions, nextChord, lowestPosition);
   }
 }
 
-lib.addChordProgressionUsingChordDefinitionComposit = function(progression, chordDefinitionComposit, instrumentType, parentElement) {
+lib.addChordProgressionUsingChordDefinitionComposit = function(progression, chordDefinitionComposit, instrumentOptions, parentElement) {
   var chords = progression.getChords();
   var chordsCopy = chords.slice();
   parentElement = parentElement || chordSection;
   chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, instrumentType, progression.getLowestPosition());
+    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, instrumentOptions, progression.getLowestPosition());
   });
 }
 
@@ -4337,6 +4336,25 @@ function addBreak(section) {
   section.appendChild(document.createElement("br"));
 }
 lib.addBreak = addBreak;
+
+},{"./keyboard.js":14,"./string_instrument.js":18,"./zebra.js":19}],13:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var formSerialize = require('form-serialize');
+
+var session = require("./session.js");
+var presetLib = require("./presets.js");
+var pocketKnife = require("./pocket_knife.js");
+
+var tLib = require("../theory/base.js");
+var rhythmLib = require("../theory/rhythm.js");
+var arpeggioLib = require("../theory/arpeggio.js");
+
+function $_(id) { return document.getElementById(id); }
+
+var interactiveFormTemplate = $_("templates").getElementsByClassName("interactive-form")[0],
+  interactiveSection = $_("interactive");
 
 /**
  * TODO This is very messy now!
@@ -4357,23 +4375,16 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
   pocketKnife.initPocketKnife(utilityForm);
 
+  var stringedOptionsGroup = formGroupEl.getElementsByClassName("stringed-options")[0];
+  var stringedOptionElements = stringedOptionsGroup.getElementsByTagName("input");
+
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.rhythms, form.arp].forEach(function(element) {
+  [form.chords, form.voicing, form.rhythms, form.arp, form.instrument, stringedOptionElements[0], stringedOptionElements[1]].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
     });
-  });
-
-  var stringedOptions = formGroupEl.getElementsByClassName("stringed-option");
-  form.instrument.addEventListener("change", function() {
-    if (form.instrument.options[form.instrument.selectedIndex].classList.contains('stringed')) {
-      alert("yes");
-    } else {
-      alert("no");
-    }
-    setTimeout(function() { submitForm(); });
   });
 
   // activate the DAW update checkbox via session, so once it was set in a tab, it stays they same
@@ -4462,22 +4473,23 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     submitForm();
   });
 
-  var presetElements = form.querySelectorAll(".preset");
-  function enablePresets(enabled) {
-    presetElements.forEach(function(element) {
-      element.disabled = !enabled;
-    });
-  }
-
   var serializedForm = null;
   form.addEventListener("submit", function(event) {
     event.preventDefault();
 
-    // disable the preset elements while serializing, so they are ignored for serializing
-    enablePresets(false);
-    var newSerializedForm = formSerialize(form);
-    enablePresets(true);
+    // show/hide the string instrument options before validation
+    if (form.instrument.options[form.instrument.selectedIndex].classList.contains("stringed")) {
+      stringedOptionsGroup.classList.remove("hidden");
+    } else {
+      stringedOptionsGroup.classList.add("hidden");
+    }
 
+    // disable the preset elements while serializing, so they are ignored for serializing
+    presetLib.enablePresets(form, false);
+    var newSerializedForm = formSerialize(form);
+    presetLib.enablePresets(form, true);
+
+    // Parse everything...
     var scales = [];
     scaleContainers.forEach(function(c) {
       var scale = tLib.createScale(c.input.value);
@@ -4507,11 +4519,14 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
     // validate inputs aka only submit valid data
     if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
+
       return;
     }
 
+    var chordDefParserResult = parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
+
     var options = {
-      instrument: form.instrument.value,
+      instrumentOptions: collectInstrumentOptions(form, stringedOptionElements),
       generateMidi: generateMidi,
       uploadToDAW: form.upload_to_daw.checked,
       serializedForm: newSerializedForm
@@ -4522,8 +4537,6 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
 
     // repaint all
     resultSection.innerHTML = "";
-
-    var chordDefParserResult = parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
 
     submitFunction(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
 
@@ -4642,7 +4655,17 @@ function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpe
   return chordDefParserResult;
 }
 
-},{"../theory/arpeggio.js":27,"../theory/base.js":28,"../theory/rhythm.js":33,"./keyboard.js":13,"./pocket_knife.js":14,"./presets.js":15,"./session.js":16,"./string_instrument.js":17,"./zebra.js":18,"form-serialize":4}],13:[function(require,module,exports){
+function collectInstrumentOptions(form, stringedOptionElements) {
+  // XXX Am I writing my own form serialize (to hash)?
+  var options = { type: form.instrument.value };
+  for (var i = 0; i < stringedOptionElements.length; ++i) {
+    var el = stringedOptionElements[i];
+    options[el.name] = el.checked;
+  }
+  return options;
+}
+
+},{"../theory/arpeggio.js":28,"../theory/base.js":29,"../theory/rhythm.js":34,"./pocket_knife.js":15,"./presets.js":16,"./session.js":17,"form-serialize":4}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4774,7 +4797,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../theory/base.js":28}],14:[function(require,module,exports){
+},{"../theory/base.js":29}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -4812,9 +4835,16 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],15:[function(require,module,exports){
+},{}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
+
+lib.enablePresets = function(form, enabled) {
+  var presetElements = form.querySelectorAll(".preset");
+  presetElements.forEach(function(element) {
+    element.disabled = !enabled;
+  });
+}
 
 /**
  * presets[]                        .. the presets to be initialized
@@ -4879,7 +4909,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],16:[function(require,module,exports){
+},{}],17:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -4944,26 +4974,9 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],17:[function(require,module,exports){
+},{}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
-
-// TODO include hiding of notes in different register:
-function hideNotesOfDifferentRegister(hide) {
-  var els = document.querySelectorAll(".selected.alt");
-  for (var i = 0; i < els.length; ++i) {
-    if (hide) {
-      if (!els[i].classList.contains('ignore')) {
-        els[i].className += " ignore";
-      }
-    } else {
-      if (els[i].classList.contains('ignore')) {
-        els[i].classList.remove('ignore');
-      }
-    }
-
-  }
-}
 
 var notesLib = require("../theory/notes.js");
 
@@ -4973,7 +4986,7 @@ var types = {
   // name: [stringBaseNotes, fretCount]
   guitar: [notesLib.parseNotes('1 4 b7 b10 12 15 k=E3').reverse(), 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
   bass_guitar: [notesLib.parseNotes('1 4 b7 b10 k=E2').reverse(), 17],
-  concert_ukulele: [notesLib.parseNotes('8 4 6 10 k=G4').reverse(), 11],
+  concert_ukulele: [notesLib.parseNotes('8 4 6 10 k=G4').reverse(), 11], // XXX or better use a C6 chord ?
 };
 
 /**
@@ -5002,7 +5015,7 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
     getElement: function() {
       return _container;
     },
-    add: function(notes, description) {
+    add: function(notes, description, options) {
       var notes = notesLib.parseNotes(notes);
       if (debug) {
         console.log("StringInstrument - Adding notes: ", notes.map(function(note){ return note.toString(); }));
@@ -5029,7 +5042,9 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
             }
 
             var isDifferentRegister = position !== stringPitch.getPosition() + positionOnString;
-            markNoteElement(_frets[positionOnString].getElementsByTagName('p')[stringIndex], pitchToAdd, isDifferentRegister);
+            if (options.all_registers || !isDifferentRegister) {
+              markNoteElement(_frets[positionOnString].getElementsByTagName('p')[stringIndex], pitchToAdd, isDifferentRegister, options.all_intervals);
+            }
           }
         });
       });
@@ -5070,9 +5085,11 @@ function createFret(index) {
   var el = document.createElement("span");
   el.className = 'fret';
   if (index > 0) {
+    // Change width depending on position of the fret
     // XXX Does this makes sense enough?
     el.style.width = 40 - ((index ) * 1.7) + "px";
 
+    // mark some frets
     if (markingsPerFret.hasOwnProperty(index % 12)) {
       var marking = document.createElement("span");
       if (markingsPerFret[index % 12] > 1) {
@@ -5086,8 +5103,9 @@ function createFret(index) {
   return el;
 }
 
-function markNoteElement(noteEl, note, isDifferentRegister) {
-  if (isDifferentRegister && noteEl.classList.contains('selected')) {
+function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
+  var selected = noteEl.classList.contains('selected');
+  if (isDifferentRegister && selected && !allIntervals) {
     // do nothing, if this is a different register and the note is already
     // marked
     return;
@@ -5097,8 +5115,14 @@ function markNoteElement(noteEl, note, isDifferentRegister) {
   var name = note.findIntervalName();
   if (isDifferentRegister) {
     name = '(' + name + ')';
-    noteEl.classList.add("alt");
   }
+
+  if (selected && allIntervals) {
+    // append to existing name
+    var existingName = noteEl.getAttribute("title");
+    name = existingName + "/" + name;
+  }
+
   noteEl.setAttribute("title", name);
   noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
   noteEl.classList.add("selected");
@@ -5109,7 +5133,7 @@ function markNoteElement(noteEl, note, isDifferentRegister) {
   }
 }
 
-},{"../theory/notes.js":31}],18:[function(require,module,exports){
+},{"../theory/notes.js":32}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5221,7 +5245,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../theory/base.js":28}],19:[function(require,module,exports){
+},{"../theory/base.js":29}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5271,7 +5295,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":6}],20:[function(require,module,exports){
+},{"midi-writer-js":6}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5600,7 +5624,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],21:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5879,7 +5903,7 @@ function createOptions() {
   };
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6041,7 +6065,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":20,"./message.js":23}],23:[function(require,module,exports){
+},{"./async_lexer.js":21,"./message.js":24}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6073,7 +6097,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],24:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6157,7 +6181,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],25:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6224,13 +6248,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":26}],26:[function(require,module,exports){
+},{"./host.js":27}],27:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6728,7 +6752,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":24}],28:[function(require,module,exports){
+},{"../recursive_parser.js":25}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6743,7 +6767,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":30,"./notes.js":31,"./scale.js":34,"./voicing.js":35}],29:[function(require,module,exports){
+},{"./chord_definition.js":31,"./notes.js":32,"./scale.js":35,"./voicing.js":36}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6854,7 +6878,7 @@ lib.createChord = function(chordDef, defaultScale) {
   return chord;
 };
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7166,7 +7190,7 @@ function setSubject(existingSubject, newSubject, operator, description, messages
   return existingSubject;
 }
 
-},{"../parser/composite.js":21,"../parser/composite_parser.js":22,"./voicing.js":35}],31:[function(require,module,exports){
+},{"../parser/composite.js":22,"../parser/composite_parser.js":23,"./voicing.js":36}],32:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -7498,7 +7522,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],32:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -7607,7 +7631,7 @@ lib.createChordProgression = function(scale, chordDefinitions) {
   }
 }
 
-},{"../fingering.js":11,"./base.js":28}],33:[function(require,module,exports){
+},{"../fingering.js":11,"./base.js":29}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7838,7 +7862,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":24}],34:[function(require,module,exports){
+},{"../recursive_parser.js":25}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7960,7 +7984,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./chord.js":29,"./notes.js":31}],35:[function(require,module,exports){
+},{"./chord.js":30,"./notes.js":32}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8184,7 +8208,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":24}]},{},[1]);
+},{"../recursive_parser.js":25}]},{},[1]);
 </script>
   </body>
 </html>
