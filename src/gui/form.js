@@ -138,7 +138,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     event.preventDefault();
 
     // show/hide the string instrument options before validation
-    if (form.instrument.options[form.instrument.selectedIndex].classList.contains("stringed")) {
+    if (form.instrument.selectedIndex > -1 && form.instrument.options[form.instrument.selectedIndex].classList.contains("stringed")) {
       stringedOptionsGroup.classList.remove("hidden");
     } else {
       stringedOptionsGroup.classList.add("hidden");
