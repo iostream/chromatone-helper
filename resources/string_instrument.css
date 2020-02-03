@@ -1,5 +1,6 @@
 /** Zebra keyboard layout style */
 .string-instrument {
+  --fretboard-color: burlywood;
   display: inline-block;
   margin-right: 20pt;
   margin-bottom: 25pt;
@@ -8,7 +9,7 @@
 .string-instrument .frets .fret {
   /* the width gets set via JS */
   display: inline-block;
-  background-color: brown;
+  background-color: var(--fretboard-color);
   border-right: 1px solid black;
   position: relative;
 }
@@ -65,6 +66,6 @@
 }
 .string-instrument .frets > .fret > p.ignore > .note-text,
 .string-instrument .frets > .fret > p.selected.root.ignore > .note-text {
-  background-color: brown;
-  color: brown;
+  background-color: var(--fretboard-color);
+  color: var(--fretboard-color);
 }

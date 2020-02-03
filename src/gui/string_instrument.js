@@ -7,9 +7,9 @@ var stringInstrumentTemplate = document.getElementById("templates").getElementsB
 
 var types = {
   // name: [stringBaseNotes, fretCount]
-  guitar: [notesLib.parseNotes('1 4 b7 b10 12 15 k=E3').reverse(), 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
-  bass_guitar: [notesLib.parseNotes('1 4 b7 b10 k=E2').reverse(), 17],
-  concert_ukulele: [notesLib.parseNotes('8 4 6 10 k=G4').reverse(), 11],
+  guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
+  bass_guitar: [notesLib.parseNotes('b10 b7 4 1 E1'), [.045, .06, .08 , .1], 17],
+  concert_ukulele: [notesLib.parseNotes('10 6 4 8 G4'), [.022, .026, .029, .024], 11],
 };
 
 /**
@@ -22,17 +22,42 @@ lib.createStringInstrumentByType = function(typeName) {
   return false;
 };
 
+// TODO refactor this, so this is not needed! E.g. first create an instrument
+// template and then add chords to it, which creates the user interface then....
+var initializedStyles = {};
+
 var debug = false;
 /**
  * An array of pitches/notes provide the base pitches (object.getPosition())
- * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10
+ * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10.
+ *
+ * Each string has also a gauge/thickness (in inch) which is just for better immersion.
  */
-lib.createStringInstrument = function(stringBaseNotes, fretCount) {
+lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
   var _stringPitches = stringBaseNotes;
   var _container = stringInstrumentTemplate.cloneNode(true);
   var _fretBoard = _container.getElementsByClassName('frets')[0];
   var _fretCount = fretCount;
   var _frets = [];
+  // all chords get a style applied using this class; its name contains
+  // everything which makes the style unique
+  var _className = 's' + gauges.join("-").replace(/\./g, '');
+  _container.classList.add(_className);
+  if (!initializedStyles.hasOwnProperty(_className)) {
+    // initialize style only once
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    var head = document.head || document.getElementsByTagName('head')[0];
+    head.append(style);
+    var css = "";
+    gauges.forEach(function(gauge, string) {
+      css += "." + _className + " .fret p:nth-last-child(" + (gauges.length - string) + ") { "
+        + "background-size: 1px " + gauge + "in;"
+      + "}\n";
+    });
+    style.appendChild(document.createTextNode(css));
+    initializedStyles[_className] = true;
+  }
 
   var instrument = {
     getElement: function() {
