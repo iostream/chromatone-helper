@@ -257,6 +257,7 @@ margin-top: 4pt;
 <style>
 /** Zebra keyboard layout style */
 .string-instrument {
+  --fretboard-color: burlywood;
   display: inline-block;
   margin-right: 20pt;
   margin-bottom: 25pt;
@@ -265,7 +266,7 @@ margin-top: 4pt;
 .string-instrument .frets .fret {
   /* the width gets set via JS */
   display: inline-block;
-  background-color: brown;
+  background-color: var(--fretboard-color);
   border-right: 1px solid black;
   position: relative;
 }
@@ -322,8 +323,8 @@ margin-top: 4pt;
 }
 .string-instrument .frets > .fret > p.ignore > .note-text,
 .string-instrument .frets > .fret > p.selected.root.ignore > .note-text {
-  background-color: brown;
-  color: brown;
+  background-color: var(--fretboard-color);
+  color: var(--fretboard-color);
 }
 </style>
   </head>
@@ -4478,7 +4479,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
     event.preventDefault();
 
     // show/hide the string instrument options before validation
-    if (form.instrument.options[form.instrument.selectedIndex].classList.contains("stringed")) {
+    if (form.instrument.selectedIndex > -1 && form.instrument.options[form.instrument.selectedIndex].classList.contains("stringed")) {
       stringedOptionsGroup.classList.remove("hidden");
     } else {
       stringedOptionsGroup.classList.add("hidden");
@@ -4984,9 +4985,9 @@ var stringInstrumentTemplate = document.getElementById("templates").getElementsB
 
 var types = {
   // name: [stringBaseNotes, fretCount]
-  guitar: [notesLib.parseNotes('1 4 b7 b10 12 15 k=E3').reverse(), 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
-  bass_guitar: [notesLib.parseNotes('1 4 b7 b10 k=E2').reverse(), 17],
-  concert_ukulele: [notesLib.parseNotes('8 4 6 10 k=G4').reverse(), 11], // XXX or better use a C6 chord ?
+  guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
+  bass_guitar: [notesLib.parseNotes('b10 b7 4 1 E1'), [.045, .06, .08 , .1], 17],
+  concert_ukulele: [notesLib.parseNotes('10 6 4 8 G4'), [.022, .026, .029, .024], 11],
 };
 
 /**
@@ -4999,17 +5000,42 @@ lib.createStringInstrumentByType = function(typeName) {
   return false;
 };
 
+// TODO refactor this, so this is not needed! E.g. first create an instrument
+// template and then add chords to it, which creates the user interface then....
+var initializedStyles = {};
+
 var debug = false;
 /**
  * An array of pitches/notes provide the base pitches (object.getPosition())
- * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10
+ * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10.
+ *
+ * Each string has also a gauge/thickness (in inch) which is just for better immersion.
  */
-lib.createStringInstrument = function(stringBaseNotes, fretCount) {
+lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
   var _stringPitches = stringBaseNotes;
   var _container = stringInstrumentTemplate.cloneNode(true);
   var _fretBoard = _container.getElementsByClassName('frets')[0];
   var _fretCount = fretCount;
   var _frets = [];
+  // all chords get a style applied using this class; its name contains
+  // everything which makes the style unique
+  var _className = 's' + gauges.join("-").replace(/\./g, '');
+  _container.classList.add(_className);
+  if (!initializedStyles.hasOwnProperty(_className)) {
+    // initialize style only once
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    var head = document.head || document.getElementsByTagName('head')[0];
+    head.append(style);
+    var css = "";
+    gauges.forEach(function(gauge, string) {
+      css += "." + _className + " .fret p:nth-last-child(" + (gauges.length - string) + ") { "
+        + "background-size: 1px " + gauge + "in;"
+      + "}\n";
+    });
+    style.appendChild(document.createTextNode(css));
+    initializedStyles[_className] = true;
+  }
 
   var instrument = {
     getElement: function() {
@@ -5019,6 +5045,14 @@ lib.createStringInstrument = function(stringBaseNotes, fretCount) {
       var notes = notesLib.parseNotes(notes);
       if (debug) {
         console.log("StringInstrument - Adding notes: ", notes.map(function(note){ return note.toString(); }));
+      }
+
+      // add description
+      if (typeof description !== "undefined") {
+        var descriptionEl = _container.getElementsByClassName("description");
+        if (descriptionEl.length > 0) {
+          descriptionEl[0].innerHTML = description;
+        }
       }
 
       // highlight each pitch which actually exists on the board while also
@@ -7486,9 +7520,10 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       return [];
     }
     // middle default is middle c
-    var keyName = defaultKeyName
+    var keyName = defaultKeyName;
     var keyPosition = defaultKeyPosition;
-    var option = parts[parts.length - 1].split('=');
+    var lastPart = parts[parts.length - 1];
+    var option = lastPart.split('=');
     if (option.length > 1) {
       if (option[0] == 'k') {
         keyName = option[1];
@@ -7496,6 +7531,12 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
       } else {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
+      parts.pop();
+    } else if (isNaN(parseInt(lastPart))) {
+      // alternative for k=E#, just write the key after the notes, like:
+      // 1 2 3 4 5 6 7 E#
+      keyName = lastPart;
+      keyPosition = parseKeyPosition(lastPart);
       parts.pop();
     }
     for (var i = 0; i < parts.length; ++i) {
@@ -8127,8 +8168,8 @@ function createNotesByVoices(voices, scaleNotes) {
    note.setVoice(voices[i]);
 
    if (noteTransposition !== 0) {
-     // transposition is required for extensions
      note.transpose(noteTransposition);
+     note.setChromaticInterval(note.getChromaticInterval() + noteTransposition);
    }
 
    notes.push(note);
