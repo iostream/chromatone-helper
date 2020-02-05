@@ -31,6 +31,18 @@ npm run watch
 
 Then open `chromatone-index.html` in your web browser and reload it everytime you changed any source code to see the effects. There is no server side code. The tool runs completely in the web browser.
 
+How to develop while using the Reaper-DAW integration
+-----------------------------------------------------
+
+When using the Reaper-DAW integration while development, the application needs to be served via localhost, hence another file watch is needed for development. After initial setup, run:
+
+```
+npm run build_watch
+```
+
+It will trigger the build everytime a Javascript file was changed (the trigger does not work for the other files). This way you only need to reload the page after changing the source to see the effect.
+
+
 How to build
 ------------
 
@@ -38,7 +50,7 @@ How to build
 npm run build
 ```
 
-Creates `dist/chromatone/chromatone-combined-index.html` which contains everything in one file. This way the tool also works on mobile web browsers!
+Creates `dist/chromatone/chromatone-combined-index.html` which contains everything in one file. This way the tool also works on mobile web browsers.
 
 Features
 --------
