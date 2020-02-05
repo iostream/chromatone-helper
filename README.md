@@ -17,7 +17,7 @@ Features
   - rhythms, e.g. `1 1 3 1 2` (optional)
   - arpeggio patterns, e.g. `-1 1 -2 2 -3 3` (optional)
   - chord definitions, combined to a progression, e.g. `2 5 1` (which can reference all of the above)
-- Chords are visualized for Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
+- Chords are visualized to be played on Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
 - Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
 Development
