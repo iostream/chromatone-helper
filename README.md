@@ -7,7 +7,7 @@ You can also use it offline in most web browsers, also on mobile devices! [Just 
 
 Example of one of the latest new features, arpeggios, click the link and then click the save button to export as MIDI: [link](https://iostream.github.io/chromatone-helper/#chords=1t12Va+4Vb+6Vc+1t12Vd%2C%0D%0A6+5+1+2%0D%0A&voicing=a%3A+1+5+10+9+10+5+10+5%0D%0Ab%3A+5+10+15+14+15+10+15+10%0D%0Ac%3A+3+9+13+12+13+9+13+9%0D%0Ad%3A+1+8+10+9+10+8+10+8+1+8+10+9+10+8+10+7%0D%0Aa%0D%0A&zebra_root=-17&scale[0]=r1+2+3+4+5+6+7&rhythms=1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1&arp=>*)
 
-The [Current development version](https://iostream.github.io/chromatone-helper/v2-dev/ "Chromatone Janko Tool v2 development by iostream") includes many new features, including a new bracket syntax (documentation will follow) for definining chord definitions and new instruments like guitar and ukulele.
+The [Current development version / latest version](https://iostream.github.io/chromatone-helper/v2-dev/ "Chromatone Janko Tool v2 development by iostream") includes many new features, including a new bracket syntax (documentation will follow) for definining chord definitions and new instruments like guitar and ukulele.
 
 Features
 --------
@@ -34,18 +34,18 @@ For development, run:
 npm run watch
 ```
 
-Then open `chromatone-index.html` in your web browser and reload it everytime you changed any source code to see the effects. There is no server side code. The tool runs completely in the web browser.
+Then open `chromatone-index.html` in your web browser and reload it everytime any source code changed to see the effects. There is no server side code. The tool runs completely in the web browser.
 
 How to develop while using the Reaper-DAW integration
 -----------------------------------------------------
 
-When using the Reaper-DAW integration while development, the application needs to be served via localhost, hence another file watch is needed for development. After initial setup, run:
+When using the Reaper-DAW integration while development, the application needs to be served via localhost (because of CORS), hence another file watch becomes handy. After initial setup, run:
 
 ```
 npm run build_watch
 ```
 
-It will trigger the build everytime a Javascript file was changed (the trigger does not work for the other files). This way you only need to reload the page after changing the source to see the effect.
+It will trigger the build everytime a Javascript file was changed (the trigger does not work for the other source files). This way you only need to reload the page after changing the source to see the effect.
 
 
 How to build
@@ -59,6 +59,9 @@ Creates `dist/chromatone/chromatone-combined-index.html` which contains everythi
 
 Feature wishes
 --------------
+
+**outdated**
+
 - Actual user reference
 - Voicings
    * allow usage of accidentals in voicings
