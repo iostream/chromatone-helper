@@ -9,11 +9,16 @@ Example of one of the latest new features, arpeggios, click the link and then cl
 
 The [Current development version](https://iostream.github.io/chromatone-helper/v2-dev/ "Chromatone Janko Tool v2 development by iostream") includes many new features, including a new bracket syntax (documentation will follow) for definining chord definitions and new instruments like guitar and ukulele.
 
-Voicings
+Features
 --------
-
-* the last voicing which has no name, becomes the default voicing
-
+- Declarative DSL for creating chord progressions and arpeggios, using:
+  - scales (in the latest version also using a key)
+  - voicings
+  - rhythms (optional)
+  - arpeggio patterns (optional)
+  - chord definitions (which reference all of the above)
+- Chords are visualized for Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
+- Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
 Development
 ===========
@@ -51,12 +56,6 @@ npm run build
 ```
 
 Creates `dist/chromatone/chromatone-combined-index.html` which contains everything in one file. This way the tool also works on mobile web browsers.
-
-Features
---------
-- Declarative DSL for creating chord progressions and arpeggios
-- Chords are visualized for Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
-- Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
 Feature wishes
 --------------
