@@ -12,11 +12,11 @@ The [Current development version / latest version](https://iostream.github.io/ch
 Features
 --------
 - Declarative DSL for creating chord progressions and arpeggios, using:
-  - scales (in the latest version also using a key)
-  - voicings
-  - rhythms (optional)
-  - arpeggio patterns (optional)
-  - chord definitions (which reference all of the above)
+  - scales, e.g. `1 2 b3 4 5 b6 b7` (in the latest version also using a key)
+  - voicings, e.g. `1 3 5 7`
+  - rhythms, e.g. `1 1 3 1 2` (optional)
+  - arpeggio patterns, e.g. `-1 1 -2 2 -3 3` (optional)
+  - chord definitions, combined to a progression, e.g. `2 5 1` (which reference all of the above)
 - Chords are visualized for Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
 - Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
