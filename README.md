@@ -40,10 +40,15 @@ npm run build
 
 Creates `dist/chromatone/chromatone-combined-index.html` which contains everything in one file. This way the tool also works on mobile web browsers!
 
+Features
+--------
+- Declarative DSL for creating chord progressions and arpeggios
+- Chords are visualized for Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
+- Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
+
 Feature wishes
 --------------
 - Actual user reference
-- Reaper-DAW integration
 - Voicings
    * allow usage of accidentals in voicings
    * allow usage of all chord modifiers also in voicings
