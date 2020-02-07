@@ -3,7 +3,7 @@ module.exports = lib;
 
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
-var stringInstrument = require("./string_instrument.js");
+var stringInstrument = require("./string_instrument_canvas.js");
 
 function $_(id) { return document.getElementById(id); }
 /**
