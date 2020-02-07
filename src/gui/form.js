@@ -21,7 +21,7 @@ var interactiveFormTemplate = $_("templates").getElementsByClassName("interactiv
  *
  * presets .. array of arrays
  */
-lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
+lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
   section = section || interactiveSection;
   var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0],
@@ -34,6 +34,7 @@ lib.addForm = function(submitFunction, presets, chordPresets, voicingPresets, sc
   scaleElementTemplate.style = "display:none";
 
   pocketKnife.initPocketKnife(utilityForm);
+  initFunction(collectControlElements(form));
 
   var stringedOptionsGroup = formGroupEl.getElementsByClassName("stringed-options")[0];
   var stringedOptionElements = stringedOptionsGroup.getElementsByTagName("input");
@@ -323,4 +324,11 @@ function collectInstrumentOptions(form, stringedOptionElements) {
     options[el.name] = el.checked;
   }
   return options;
+}
+
+function collectControlElements(form) {
+  return {
+    play: form.play,
+    stop: form.stop
+  };
 }

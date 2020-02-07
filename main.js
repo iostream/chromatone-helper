@@ -7,34 +7,51 @@ var g = require("./src/gui/base.js"),
  arpeggioLib = require("./src/theory/arpeggio.js"),
  midi = require("./src/midi.js"),
  serverClient = require("./src/server/client.js"),
- presets = require("./resources/presets.js");
+ presets = require("./resources/presets.js"),
+ gmPlayerLib = require("./src/gm_player.js");
+
+var gmPlayer = gmPlayerLib.createGmPlayer();
+
+// these get played when the user clicks on play
+var _lastGeneratedEvents;
 
 // TODO move this code into an own file / layer?
-formLib.addForm(function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-  var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
-  var chords = progression.getChords();
+formLib.addForm(
+  function(controls) {
+    controls.play.addEventListener("click", function() {
+      if (_lastGeneratedEvents && _lastGeneratedEvents.length > 0) {
+        gmPlayer.stop();
+        gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
+      }
+    });
+    controls.stop.addEventListener("click", function() {
+      gmPlayer.stop();
+    });
+  },
+  function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
+    var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
+    var chords = progression.getChords();
 
-  if (options.uploadToDAW || options.uploadMidi || options.generateMidi) {
-    events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-  }
+    _lastGeneratedEvents = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
 
-  if (options.uploadToDAW) {
-    serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-  }
-
-  if (options.uploadMidi || options.generateMidi) {
-    var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-    if (options.generateMidi) {
-      downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
+    if (options.uploadToDAW) {
+      serverClient.uploadToDAW(_lastGeneratedEvents, chords, scales, buildGeneratorUrl(options.serializedForm));
     }
-    if (options.uploadMidi) {
-      serverClient.uploadMidi(midiWriter.dataUri());
+
+    if (options.uploadMidi || options.generateMidi) {
+      var midiWriter = midi.createMidi(_lastGeneratedEvents, chords, scales, buildGeneratorUrl(options.serializedForm));
+      if (options.generateMidi) {
+        downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
+      }
+      if (options.uploadMidi) {
+        serverClient.uploadMidi(midiWriter.dataUri());
+      }
     }
-  }
 
-  g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrumentOptions, resultSection);
-
-}, presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns);
+    g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrumentOptions, resultSection);
+  },
+  presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
+);
 
 function buildGeneratorUrl(serializedForm) {
   var url = new URL("#" + serializedForm, document.location.href);
