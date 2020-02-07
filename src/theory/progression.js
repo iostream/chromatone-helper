@@ -79,10 +79,9 @@ lib.createChordProgression = function(scale, chordDefinitions) {
           chord = makeNearestChord(chordDef, previousChord, scale);
         }
 
-        var previousChord = scale.createChord(_chordDefs[i]);
-
-        f.updateFingering(previousChord);
-        progression.push(previousChord);
+        f.updateFingering(chord);
+        progression.push(chord);
+        previousChord = chord;
       }
       _chords = progression;
       return _chords;
@@ -121,4 +120,6 @@ function makeNearestChord(chordDef, previousChord, scale) {
   chordDef.setInversion(bestInversion);
   var chord = scale.createChord(chordDef)
   chord.transpose(bestTransposed);
+
+  return chord;
 }
