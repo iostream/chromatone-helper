@@ -90,7 +90,17 @@ var arpeggioParserDelegate = {
 };
 
 lib.parseArpeggioPatterns = function(multilineString) {
-  return recursiveParser.parseThingsRecursive(multilineString, arpeggioParserDelegate);
+  var patterns = recursiveParser.parseThingsRecursive(multilineString, arpeggioParserDelegate);
+  // assure defaultArpeggioPattern 
+  if (!patterns.defaultArpeggioPattern) {
+    for (var p in patterns) {
+      if (patterns.hasOwnProperty(p)) {
+        patterns.defaultArpeggioPattern = patterns[p];
+        break;
+      }
+    }
+  }
+  return patterns;
 };
 
 function createArpeggioPattern(internalPitchIterators) {
@@ -362,6 +372,7 @@ function getNextVoicingPitchStep() {
 }
 
 var nextVoicingPitchStep2 = {
+  // XXX Implement me or remove me!
   getPitch: function(status) {
     var notes = status.getNotes();
     var voicingIndex = status.incrementVoicingIndex();
@@ -402,6 +413,7 @@ function createPitchByRelativePitchIndexStep(pitchIndexOperation) {
   };
 }
 
+// XXX Should be replaced:
 function createPitchStepOperation(inputString) {
   var _childStep;
   var _diatonicSteps = 0;
