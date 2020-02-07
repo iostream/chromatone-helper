@@ -102,11 +102,7 @@ function makeNearestChord(chordDef, previousChord, scale) {
     var chord = scale.createChord(chordDef);
     // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
 
-    // TODO this is not working too well!
-    // if (previousChord.getChordDefinition().getStep() < chordDef.getStep()) {
     if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
-    // if (previousChord.getNotes()[0].getPosition() < chord.getStep()) {
-    // if (chordDefs[i - 1] < chordDef) {
       transposed = -12;
       chord.transpose(transposed);
     }
