@@ -69,34 +69,18 @@ lib.createChordProgression = function(scale, chordDefinitions) {
       progression.push(previousChord);
       for (var i=1; i<_chordDefs.length; ++i) {
         var chordDef = _chordDefs[i];
-        var originalInversion = chordDef.getInversion();
-        // get best diff of all the inversions (inversion=0 is in root position)
-        var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
-        var bestInversion = 0, bestTransposed = 0, transposed = 0;
-        var voicingLength = chordDef.getVoicing().getVoices1().length;
-        for (var inversion = 1; inversion < voicingLength; ++inversion) {
-          chordDef.setInversion(originalInversion + inversion);
-          var chord = scale.createChord(chordDef);
-          // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
-
-          // TODO this is not working too well!
-          // if (previousChord.getChordDefinition().getStep() < chordDef.getStep()) {
-          if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
-          // if (previousChord.getNotes()[0].getPosition() < chord.getStep()) {
-          // if (chordDefs[i - 1] < chordDef) {
-            transposed = -12;
-            chord.transpose(transposed);
-          }
-          var diff = calculateDiff(previousChord, chord);
-          if (diff < minDiff) {
-            minDiff = diff;
-            bestInversion = inversion;
-            bestTransposed = transposed;
-          }
+        var chord;
+        var explicitInversion = chordDef.getInversion();
+        if (explicitInversion > -1) {
+          // use the explicitely set inversion
+          chord = scale.createChord(chordDef);
+        } else {
+          // choose inversion automatically
+          chord = makeNearestChord(chordDef, previousChord, scale);
         }
-        _chordDefs[i].setInversion(bestInversion);
+
         var previousChord = scale.createChord(_chordDefs[i]);
-        previousChord.transpose(bestTransposed);
+
         f.updateFingering(previousChord);
         progression.push(previousChord);
       }
@@ -104,4 +88,37 @@ lib.createChordProgression = function(scale, chordDefinitions) {
       return _chords;
     }
   }
+}
+
+function makeNearestChord(chordDef, previousChord, scale) {
+  // XXX TODO This should not alter the chord definition, but this makes no difference right now
+  // chordDef = chordDef.clone();
+
+  // get best diff of all the inversions (inversion=0 is in root position)
+  var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
+  var bestInversion = 0, bestTransposed = 0, transposed = 0;
+  var voicingLength = chordDef.getVoicing().getVoices1().length;
+  for (var inversion = 1; inversion < voicingLength; ++inversion) {
+    chordDef.setInversion(inversion);
+    var chord = scale.createChord(chordDef);
+    // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
+
+    // TODO this is not working too well!
+    // if (previousChord.getChordDefinition().getStep() < chordDef.getStep()) {
+    if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
+    // if (previousChord.getNotes()[0].getPosition() < chord.getStep()) {
+    // if (chordDefs[i - 1] < chordDef) {
+      transposed = -12;
+      chord.transpose(transposed);
+    }
+    var diff = calculateDiff(previousChord, chord);
+    if (diff < minDiff) {
+      minDiff = diff;
+      bestInversion = inversion;
+      bestTransposed = transposed;
+    }
+  }
+  chordDef.setInversion(bestInversion);
+  var chord = scale.createChord(chordDef)
+  chord.transpose(bestTransposed);
 }

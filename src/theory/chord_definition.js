@@ -180,6 +180,10 @@ function resolveScale(scaleIndex, scales, messages) {
 
 function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, arpeggioPatterns, messages) {
   var _messages = messages;
+  var _scales = scales;
+  var _voicings = voicings;
+  var _rhythmPatterns = rhythmPatterns;
+  var _arpeggioPatterns = arpeggioPatterns;
 
   /**
    * subjectBuilderFactory is a f
@@ -190,16 +194,11 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
    * - getResult() // returns the resulting subject
    */
   return function() {
-    // references
-    var _scales = scales;
-    var _voicings = voicings;
-    var _rhythmPatterns = rhythmPatterns;
-    var _arpeggioPatterns = arpeggioPatterns;
 
     // chord definiton parameters
     var _asString = '';
     var _step;
-    var _inversion = 0;
+    var _inversion = -1;
     var _transposition = 0;
     var _scale = {subject: _scales[0], cloned: false};
     var _voicing = {subject: _voicings.defaultVoicing, cloned: false};
@@ -234,7 +233,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
             _rhythmPattern = setSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
             break;
           case 'A':
-            var subject = resolveVariable(value, arpeggioPatterns, "arpeggio pattern", _messages);
+            var subject = resolveVariable(value, _arpeggioPatterns, "arpeggio pattern", _messages);
             _arpeggioPattern = setSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
             break;
           default:
