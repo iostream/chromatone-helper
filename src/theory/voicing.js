@@ -182,7 +182,8 @@ function invertNotes(notes, inversion) {
       notes.push(note);
     }
   } else {
-    for (var i = inversion; i >= 0; --i) {
+    inversion = Math.abs(inversion);
+    for (var i = 0; i < inversion; ++i) {
       var note = notes.pop();
       var lowestNote = notes[0];
       while (note.getPosition() >= lowestNote.getPosition()) {
