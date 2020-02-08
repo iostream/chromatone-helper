@@ -154,6 +154,17 @@ margin-top: 4pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
+.form-element select,
+.form-element input[type="range"] {
+  max-width: 100%;
+}
+.form-element input[name="bpm_output"],
+.form-element input[name="play"],
+.form-element input[name="stop"] {
+  width: 26%;
+  display: inline-block;
+  padding: 0;
+}
 .form-element label {
   display: inline-block;
 }
@@ -414,12 +425,16 @@ margin-top: 4pt;
                 <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be player at once. If chord mode is off, then all existing pitches are shown."></input>
               </span>
             </span>
-            <!--
-            <span class="form-element">
-              <label for="auto_invert">automatic inversions</label>
-              <input type="checkbox" name="auto_invert" title="activate automatic inversion optimization" checked="checked">
-            </span>
-          -->
+          </div>
+          <div class="secondary-form-elements">
+          <span class="form-element">
+            <input type="button" value="▶" name="play" title="plays the last generated progression directly in the browser">
+            <input type="button" value="⏹" name="stop" title="stops the currently playing progression">
+            <input type="text" disabled="disabled" name="bpm_output" title="the current speed in beat per minutes">
+            <input min="1" max="350" type="range" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
+            <select class="play-instrument-select" value="" title="select the (fm) instrument to be used when using the play button">
+            </select>
+          </span>
           </div>
           <div class="secondary-form-elements">
             <span class="form-element">
@@ -437,10 +452,6 @@ margin-top: 4pt;
           -->
             <span class="form-element">
               <input type="button" value="MIDI" name="generate_midi" title="download midi out of the generated progression">
-            </span>
-            <span class="form-element">
-              <input type="button" value="▶" name="play" title="plays the last generated progression directly in the browser">
-              <input type="button" value="⏹" name="stop" title="stops the currently playing progression">
             </span>
             <span class="form-element">
               <label for="upload_to_daw">Update DAW</label>
@@ -482,7 +493,7 @@ var g = require("./src/gui/base.js"),
  midi = require("./src/midi.js"),
  serverClient = require("./src/server/client.js"),
  presets = require("./resources/presets.js"),
- gmPlayerLib = require("./src/gm_player.js");
+ gmPlayerLib = require("./src/audio/gm_player.js");
 
 var gmPlayer = gmPlayerLib.createGmPlayer();
 
@@ -492,15 +503,31 @@ var _lastGeneratedEvents;
 // TODO move this code into an own file / layer?
 formLib.addForm(
   function(controls) {
-    controls.play.addEventListener("click", function() {
-      if (_lastGeneratedEvents && _lastGeneratedEvents.length > 0) {
-        gmPlayer.stop();
-        gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
+    var instrument = controls.instrument;
+    var option;
+    gmPlayer.getInstruments().forEach(function(name, index) {
+      option = document.createElement('option');
+      option.appendChild(document.createTextNode(name));
+      option.value = index;
+      instrument.appendChild(option);
+    });
+    instrument.addEventListener("change", function() {
+      if (instrument.selectedIndex > -1) {
+        gmPlayer.setInstrument(controls.instrument.options[instrument.selectedIndex].value);
       }
+    });1
+    controls.play.addEventListener("click", function() {
+      gmPlayer.stop();
+      gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
     });
     controls.stop.addEventListener("click", function() {
       gmPlayer.stop();
     });
+    controls.bpm.addEventListener("input", function() {
+      gmPlayer.setBpm(controls.bpm.value);
+    });
+    controls.bpm.value = 120;
+    controls.bpm.dispatchEvent(new Event('input'));
   },
   function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
     var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
@@ -547,7 +574,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":11,"./src/gm_player.js":13,"./src/gui/base.js":14,"./src/gui/form.js":15,"./src/midi.js":22,"./src/parser/composite.js":24,"./src/parser/composite_parser.js":25,"./src/server/client.js":28,"./src/theory/arpeggio.js":30,"./src/theory/base.js":31,"./src/theory/progression.js":35}],2:[function(require,module,exports){
+},{"./resources/presets.js":11,"./src/audio/gm_player.js":12,"./src/gui/base.js":14,"./src/gui/form.js":15,"./src/midi.js":22,"./src/parser/composite.js":24,"./src/parser/composite_parser.js":25,"./src/server/client.js":28,"./src/theory/arpeggio.js":30,"./src/theory/base.js":31,"./src/theory/progression.js":35}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -5625,6 +5652,74 @@ module.exports.rhythmPatterns = [
 var lib = {};
 module.exports = lib;
 
+var WebAudioTinySynth = require('webaudio-tinysynth');
+
+lib.createGmPlayer = function(channel) {
+  var _channel = channel || 0;
+  var _events = [];
+  var _noteOffs = [];
+  var _msPerQuarterNote;
+  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+
+  function turnOffNotes() {
+    _noteOffs.forEach(function(position) {
+      _synth.noteOff(_channel, position);
+    });
+    _noteOffs = [];
+  }
+
+  var player = {
+    getInstruments: function() {
+      return _synth.program.map(function(programEntry) {
+        return programEntry.name;
+      });
+    },
+    setBpm: function(bpm) {
+      _msPerQuarterNote = 60000 / bpm;
+    },
+    stop: function() {
+      _events = [];
+      turnOffNotes();
+    },
+    setInstrument: function(index) {
+      _synth.setTimbre(0, _channel, _synth.program[index].p);
+    },
+    playEvents: function(events, instrument, bpm) {
+      _events = events.slice(0);
+      var channel = 1;
+      var velocity = 100;
+
+      function playNextEvent() {
+        _noteOffs.forEach(function(position) {
+          _synth.noteOff(_channel, position);
+        });
+        var event = _events.shift();
+        if (typeof(event) === 'undefined') {
+          return;
+        }
+        _noteOffs = [];
+        if (!event.isRest()) {
+          event.getPitches().forEach(function(note) {
+            _noteOffs.push(note.getPosition());
+            _synth.noteOn(_channel, note.getPosition(), velocity);
+          });
+        }
+        // play next note after this note ended
+        setTimeout(playNextEvent, event.getLengthInQN() * _msPerQuarterNote);
+      }
+
+      playNextEvent();
+    }
+  };
+
+  player.setBpm(120);
+  return player;
+};
+
+},{"webaudio-tinysynth":10}],13:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
 var tLib = require("./theory/base.js");
 var notesLib = require("./theory/notes.js");
 
@@ -5671,66 +5766,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":31,"./theory/notes.js":34}],13:[function(require,module,exports){
-var lib = {};
-module.exports = lib;
-
-var WebAudioTinySynth = require('webaudio-tinysynth');
-
-lib.createGmPlayer = function(channel) {
-  var _channel = channel || 0;
-  var _events = [];
-  var _noteOffs = [];
-  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 0, voices: 20});
-
-  function turnOffNotes() {
-    _noteOffs.forEach(function(position) {
-      _synth.noteOff(_channel, position);
-    });
-    _noteOffs = [];
-  }
-
-  return {
-    getInstrumentNames: function() {
-      return _synth.program.map(function(programEntry) {
-        console.log(programEntry);
-      });
-    },
-    stop: function() {
-      _events = [];
-      turnOffNotes();
-    },
-    playEvents: function(events, instrument, bpm) {
-      var msPerQuarterNote = 60000 / bpm;
-      _events = events.slice(0);
-      var channel = 1;
-      var velocity = 100;
-
-      function playNextEvent() {
-        _noteOffs.forEach(function(position) {
-          _synth.noteOff(_channel, position);
-        });
-        var event = _events.shift();
-        if (typeof(event) === 'undefined') {
-          return;
-        }
-        _noteOffs = [];
-        if (!event.isRest()) {
-          event.getPitches().forEach(function(note) {
-            _noteOffs.push(note.getPosition());
-            _synth.noteOn(_channel, note.getPosition(), velocity);
-          });
-        }
-        // play next note after this note ended
-        setTimeout(playNextEvent, event.getLengthInQN() * msPerQuarterNote);
-      }
-
-      playNextEvent();
-    }
-  };
-};
-
-},{"webaudio-tinysynth":10}],14:[function(require,module,exports){
+},{"./theory/base.js":31,"./theory/notes.js":34}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5894,7 +5930,8 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
   scaleElementTemplate.style = "display:none";
 
   pocketKnife.initPocketKnife(utilityForm);
-  initFunction(collectControlElements(form));
+  var controlElements = initControlElements(form);
+  setTimeout(function() { initFunction(controlElements); });
 
   var stringedOptionsGroup = formGroupEl.getElementsByClassName("stringed-options")[0];
   var stringedOptionElements = stringedOptionsGroup.getElementsByTagName("input");
@@ -6186,10 +6223,18 @@ function collectInstrumentOptions(form, stringedOptionElements) {
   return options;
 }
 
-function collectControlElements(form) {
+function initControlElements(form) {
+  form.bpm.addEventListener("input", function() {
+    form.bpm_output.value = form.bpm.value;
+  });
+  form.bpm.addEventListener("change", function() {
+    form.bpm_output.value = form.bpm.value;
+  });
   return {
     play: form.play,
-    stop: form.stop
+    stop: form.stop,
+    bpm: form.bpm,
+    instrument: form.getElementsByClassName('play-instrument-select')[0]
   };
 }
 
@@ -8464,7 +8509,7 @@ var REGEX_COUNT_SCALE = /\*/g;
 /**
  * Returns false if there is no valid chord definition to be parsed.
  */
-function createChordDefinition(asString, step, inversion, transposition, voicing, scale, rhythmPattern, arpeggioPattern) {
+function createChordDefinition(asString, step, inversion, transposition, inversionOptimization, voicing, scale, rhythmPattern, arpeggioPattern) {
   var _step = step;
   var _asString = asString;
 
@@ -8658,6 +8703,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
     var _voicing = {subject: _voicings.defaultVoicing, cloned: false};
     var _rhythmPattern = {subject: _rhythmPatterns.defaultRhythmPattern, cloned: false};
     var _arpeggioPattern = {subject: _arpeggioPatterns.defaultArpeggioPattern, cloned: false};
+    var _inversionOptimization = 0;
 
     return {
       withMatch: function(match) {
@@ -8673,6 +8719,9 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
             break;
           case 't':
             _transposition = setInteger(_transposition, value, operator, _messages);
+            break;
+          case 'o': // inversion optimization algorithm, 0=off, 1=type 1, 2=type 2, etc.
+            _inversionOptimization = value; // <- no operations possible here, so just assign the value
             break;
           case 's':
             var subject = resolveScale(value, _scales, _messages);
@@ -8699,7 +8748,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         _asString += (" " + key + operator + value);
       },
       getResult: function() {
-        return createChordDefinition(_asString, _step, _inversion, _transposition, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
+        return createChordDefinition(_asString, _step, _inversion, _transposition, _inversionOptimization, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
       }
     }
   };
@@ -8838,8 +8887,17 @@ function parseKeyPosition(keyName) {
  * @return a string or the string "error"
  */
 function findIntervalName(interval, intervalNameMap) {
-  if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval] === "string") {
-    return intervalNameMap[interval];
+  if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval % 12] === "string") {
+    if (interval % 12 == interval) {
+      return intervalNameMap[interval];
+    }
+    var name = intervalNameMap[interval % 12];
+    var pos = 0;
+    while (name.length > pos && name[pos] === flat || name[pos] === sharp) {
+      ++pos;
+    }
+    var prefix = name.substring(0, pos);
+    var newName = prefix
   }
 
   if (interval < 0) {
@@ -8851,12 +8909,13 @@ function findIntervalName(interval, intervalNameMap) {
 
   // fallback
   for (var i = 0; i < majorNotes.length; ++i) {
-    if (majorNotes[i] == interval) {
-      return "" + (i + 1);
-    }
-    // that's a bit silly?...
-    if (majorNotes[i] - 1 == interval) {
-      return "b" + (i + 1);
+    var relativeInterval = interval % 12;
+    if (majorNotes[i] == relativeInterval || majorNotes[i] - 1 == relativeInterval) {
+      var add = i * (Math.floor(interval / 12));
+      if (majorNotes[i] - 1 == interval) {
+        return "b" + (i + 1 + add);
+      }
+      return "" + (i + 1 + add);
     }
   }
 
@@ -9224,7 +9283,7 @@ function makeNearestChord(chordDef, previousChord, scale) {
   return chord;
 }
 
-},{"../fingering.js":12,"./base.js":31}],36:[function(require,module,exports){
+},{"../fingering.js":13,"./base.js":31}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
