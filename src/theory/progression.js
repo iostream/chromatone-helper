@@ -64,7 +64,7 @@ lib.createChordProgression = function(scale, chordDefinitions) {
       }
 
       var progression = [];
-      var previousChord = scale.createChord(_chordDefs[0]);
+      var previousChord = _chordDefs[0].createChord();
       f.updateFingering(previousChord);
       progression.push(previousChord);
       for (var i=1; i<_chordDefs.length; ++i) {
@@ -73,7 +73,7 @@ lib.createChordProgression = function(scale, chordDefinitions) {
         var explicitInversion = chordDef.getInversion();
         if (explicitInversion > -1 || chordDef.getInversionOptimization() === '0') {
           // use the explicitely set inversion
-          chord = scale.createChord(chordDef);
+          chord = chordDef.createChord();
         } else {
           // choose inversion automatically
           chord = makeNearestChord(chordDef, previousChord, scale);
@@ -106,12 +106,12 @@ var nearestChordTypeStrategies = {
   's': function (chordDef, previousChord, scale) {
     // get best diff of all the inversions (inversion=0 is in root position)
     // XXX TODO This should not alter the chord definition, but this makes no difference right now
-    var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
+    var minDiff = calculateDiff(previousChord, chordDef.createChord());
     var bestInversion = 0, bestTransposed = 0, transposed = 0;
     var voicingLength = chordDef.getVoicing().getVoices1().length;
     for (var inversion = 1; inversion < voicingLength; ++inversion) {
       chordDef.setInversion(inversion);
-      var chord = scale.createChord(chordDef);
+      var chord = chordDef.createChord();
       // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
 
       if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
@@ -126,7 +126,7 @@ var nearestChordTypeStrategies = {
       }
     }
     chordDef.setInversion(bestInversion);
-    var chord = scale.createChord(chordDef)
+    var chord = chordDef.createChord()
     chord.transpose(bestTransposed);
 
     return chord;
@@ -135,7 +135,7 @@ var nearestChordTypeStrategies = {
    * The highest note moves up or stays the same.
    */
   'u': function (chordDef, previousChord, scale) {
-    var chord = chordDef.createChord();
+    var chord = nearestChordTypeStrategies.s(chordDef, previousChord, scale);
     while (previousChord.getHighestNote().getPosition() > chord.getHighestNote().getPosition()) {
       chordDef.setInversion(chordDef.getInversion() + 1);
       chord = chordDef.createChord();
@@ -146,7 +146,7 @@ var nearestChordTypeStrategies = {
    * The highest note moves down or stays the same.
    */
   'd': function /* lowest note goes down */ (chordDef, previousChord, scale) {
-    var chord = chordDef.createChord();
+    var chord = nearestChordTypeStrategies.s(chordDef, previousChord, scale);
     while (previousChord.getHighestNote().getPosition() < chord.getHighestNote().getPosition()) {
       chordDef.setInversion(chordDef.getInversion() - 1);
       chord = chordDef.createChord();
