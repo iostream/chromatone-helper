@@ -86,12 +86,13 @@ function findIntervalName(interval, intervalNameMap) {
 
   // fallback
   for (var i = 0; i < majorNotes.length; ++i) {
-    if (majorNotes[i] == interval) {
-      return "" + (i + 1);
-    }
-    // that's a bit silly?...
-    if (majorNotes[i] - 1 == interval) {
-      return "b" + (i + 1);
+    var relativeInterval = interval % 12;
+    if (majorNotes[i] == relativeInterval || majorNotes[i] - 1 == relativeInterval) {
+      var add = 7 * (Math.floor(interval / 12)); // the major scale has 7 notes
+      if (majorNotes[i] - 1 == interval) {
+        return "b" + (i + 1 + add);
+      }
+      return "" + (i + 1 + add);
     }
   }
 
