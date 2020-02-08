@@ -8,7 +8,7 @@ var g = require("./src/gui/base.js"),
  midi = require("./src/midi.js"),
  serverClient = require("./src/server/client.js"),
  presets = require("./resources/presets.js"),
- gmPlayerLib = require("./src/gm_player.js");
+ gmPlayerLib = require("./src/audio/gm_player.js");
 
 var gmPlayer = gmPlayerLib.createGmPlayer();
 
@@ -18,15 +18,31 @@ var _lastGeneratedEvents;
 // TODO move this code into an own file / layer?
 formLib.addForm(
   function(controls) {
-    controls.play.addEventListener("click", function() {
-      if (_lastGeneratedEvents && _lastGeneratedEvents.length > 0) {
-        gmPlayer.stop();
-        gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
+    var instrument = controls.instrument;
+    var option;
+    gmPlayer.getInstruments().forEach(function(name, index) {
+      option = document.createElement('option');
+      option.appendChild(document.createTextNode(name));
+      option.value = index;
+      instrument.appendChild(option);
+    });
+    instrument.addEventListener("change", function() {
+      if (instrument.selectedIndex > -1) {
+        gmPlayer.setInstrument(controls.instrument.options[instrument.selectedIndex].value);
       }
+    });1
+    controls.play.addEventListener("click", function() {
+      gmPlayer.stop();
+      gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
     });
     controls.stop.addEventListener("click", function() {
       gmPlayer.stop();
     });
+    controls.bpm.addEventListener("input", function() {
+      gmPlayer.setBpm(controls.bpm.value);
+    });
+    controls.bpm.value = 120;
+    controls.bpm.dispatchEvent(new Event('input'));
   },
   function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
     var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());

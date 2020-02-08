@@ -34,7 +34,8 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
   scaleElementTemplate.style = "display:none";
 
   pocketKnife.initPocketKnife(utilityForm);
-  initFunction(collectControlElements(form));
+  var controlElements = initControlElements(form);
+  setTimeout(function() { initFunction(controlElements); });
 
   var stringedOptionsGroup = formGroupEl.getElementsByClassName("stringed-options")[0];
   var stringedOptionElements = stringedOptionsGroup.getElementsByTagName("input");
@@ -326,9 +327,17 @@ function collectInstrumentOptions(form, stringedOptionElements) {
   return options;
 }
 
-function collectControlElements(form) {
+function initControlElements(form) {
+  form.bpm.addEventListener("input", function() {
+    form.bpm_output.value = form.bpm.value;
+  });
+  form.bpm.addEventListener("change", function() {
+    form.bpm_output.value = form.bpm.value;
+  });
   return {
     play: form.play,
-    stop: form.stop
+    stop: form.stop,
+    bpm: form.bpm,
+    instrument: form.getElementsByClassName('play-instrument-select')[0]
   };
 }

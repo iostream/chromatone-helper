@@ -7,7 +7,8 @@ lib.createGmPlayer = function(channel) {
   var _channel = channel || 0;
   var _events = [];
   var _noteOffs = [];
-  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 0, voices: 20});
+  var _msPerQuarterNote;
+  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
 
   function turnOffNotes() {
     _noteOffs.forEach(function(position) {
@@ -16,18 +17,23 @@ lib.createGmPlayer = function(channel) {
     _noteOffs = [];
   }
 
-  return {
-    getInstrumentNames: function() {
+  var player = {
+    getInstruments: function() {
       return _synth.program.map(function(programEntry) {
-        console.log(programEntry);
+        return programEntry.name;
       });
+    },
+    setBpm: function(bpm) {
+      _msPerQuarterNote = 60000 / bpm;
     },
     stop: function() {
       _events = [];
       turnOffNotes();
     },
+    setInstrument: function(index) {
+      _synth.setTimbre(0, _channel, _synth.program[index].p);
+    },
     playEvents: function(events, instrument, bpm) {
-      var msPerQuarterNote = 60000 / bpm;
       _events = events.slice(0);
       var channel = 1;
       var velocity = 100;
@@ -48,10 +54,13 @@ lib.createGmPlayer = function(channel) {
           });
         }
         // play next note after this note ended
-        setTimeout(playNextEvent, event.getLengthInQN() * msPerQuarterNote);
+        setTimeout(playNextEvent, event.getLengthInQN() * _msPerQuarterNote);
       }
 
       playNextEvent();
     }
   };
+
+  player.setBpm(120);
+  return player;
 };

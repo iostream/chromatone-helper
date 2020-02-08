@@ -148,6 +148,17 @@ margin-top: 4pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
+.form-element select,
+.form-element input[type="range"] {
+  max-width: 100%;
+}
+.form-element input[name="bpm_output"],
+.form-element input[name="play"],
+.form-element input[name="stop"] {
+  width: 26%;
+  display: inline-block;
+  padding: 0;
+}
 .form-element label {
   display: inline-block;
 }
