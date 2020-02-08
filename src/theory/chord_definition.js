@@ -8,10 +8,14 @@ var compositeParser = require("../parser/composite_parser.js");
 var REGEX_COUNT_SCALE = /\*/g;
 
 /**
+ * TODO make this a clean method again (which needs some f)
+*
  * Returns false if there is no valid chord definition to be parsed.
  */
-function createChordDefinition(asString, step, inversion, transposition, voicing, scale, rhythmPattern, arpeggioPattern) {
+function createChordDefinition(asString, step, inversion, transposition, inversionOptimization, direction, voicing, scale, rhythmPattern, arpeggioPattern) {
   var _step = step;
+  var _inversionOptimization = inversionOptimization;
+  var _direction = direction;
   var _asString = asString;
 
   // make step 0 based
@@ -33,68 +37,8 @@ function createChordDefinition(asString, step, inversion, transposition, voicing
   }
 
   var _rhythmPattern = rhythmPattern;
-  // var rhythmPatternReferences = parseStringParameters("R", null, "rhythms");
-  // if (rhythmPatternReferences.length == 1) {
-  //   if (rhythmPatternReferences[0] !== null) {
-  //     _rhythmPattern = resolveRhythmPattern(rhythmPatternReferences[0], rhythmPatterns, chordDef);
-  //   }
-  // } else if (rhythmPatternReferences.length > 1) {
-  //   rhythmPatternReferences.forEach(function(patternReference) {
-  //     var pattern = resolveRhythmPattern(patternReference, rhythmPatterns, chordDef);
-  //     if (!pattern) {
-  //       return;
-  //     }
-  //     if (!_rhythmPattern) {
-  //       _rhythmPattern = pattern.clone();
-  //       return;
-  //     }
-  //     _rhythmPattern.addPattern(pattern);
-  //   });
-  // }
-
   var _arpeggioPattern = arpeggioPattern;
-  // var arpeggioPatternReferences = parseStringParameters("A", null, "arpeggios");
-  // if (arpeggioPatternReferences.length == 1) {
-  //   if (arpeggioPatternReferences[0] !== null) {
-  //     _arpeggioPattern = resolveArpeggioPattern(arpeggioPatternReferences[0], arpeggioPatterns, chordDef);
-  //   }
-  // } else if (arpeggioPatternReferences.length > 1) {
-  //   arpeggioPatternReferences.forEach(function(patternReference) {
-  //     var pattern = resolveArpeggioPattern(patternReference, arpeggioPatterns, chordDef);
-  //     if (!pattern) {
-  //       return;
-  //     }
-  //     if (!_arpeggioPattern) {
-  //       _arpeggioPattern = pattern.clone();
-  //       return;
-  //     }
-  //     _arpeggioPattern.addPattern(pattern);
-  //   });
-  // }
   var _voicing = voicing;
-  // var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
-  //   // map voicing references to actual voicings
-  //   .map(function(voicingReference) {
-  //     if (voicingLib.isVoicing(voicingReference)) {
-  //       return voicingReference;
-  //     }
-  //     if (Array.isArray(voicingReference)) {
-  //       return voicingReference;
-  //     }
-  //     if(voicings[voicingReference]) {
-  //       return voicings[voicingReference];
-  //     }
-  //     console.warn("Unknown voicing reference \"" + voicingReference + "\" used in chord definition \"" + chordDef  + "\"");
-  //     return defaultVoicing;
-  //   })
-  //   // if more than one voicing was used, they need to be merged
-  //   // TODO does this already work as expected?
-  //   .reduce(function(a, b) {
-  //     var combinedVoicing = {};
-  //     mergeVoices(combinedVoicing, a);
-  //     mergeVoices(combinedVoicing, b);
-  //     return combinedVoicing;
-  //   });
 
   return {
     toString: function() {
@@ -102,6 +46,12 @@ function createChordDefinition(asString, step, inversion, transposition, voicing
     },
     getStep: function() {
       return _step;
+    },
+    getInversionOptimization: function() {
+      return _inversionOptimization;
+    },
+    getDirection: function() {
+      return _direction;
     },
     getInversion: function() {
       return _inversion;
@@ -126,6 +76,9 @@ function createChordDefinition(asString, step, inversion, transposition, voicing
     },
     getArpeggioPattern: function() {
       return _arpeggioPattern;
+    },
+    createChord: function() {
+      return _scale.createChord(this);
     }
   };
 }
@@ -204,6 +157,8 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
     var _voicing = {subject: _voicings.defaultVoicing, cloned: false};
     var _rhythmPattern = {subject: _rhythmPatterns.defaultRhythmPattern, cloned: false};
     var _arpeggioPattern = {subject: _arpeggioPatterns.defaultArpeggioPattern, cloned: false};
+    var _inversionOptimization = 0;
+    var _direction = 's';
 
     return {
       withMatch: function(match) {
@@ -215,26 +170,33 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         var subject;
         switch (key) {
           case 'i':
-            _inversion = setInteger(_inversion, value, operator, _messages);
+            _inversion = alterInteger(_inversion, value, operator, _messages);
             break;
           case 't':
-            _transposition = setInteger(_transposition, value, operator, _messages);
+            _transposition = alterInteger(_transposition, value, operator, _messages);
+            break;
+          case 'o': // inversion optimization algorithm, 0=off, 1=type 1, 2=type 2, etc.
+            _inversionOptimization = value;
+          case 'd':
+            // inversion direction, (only effective, when inversion optimzation is turned on)
+            // u=up, d=down, s=same (= try to optimize for best voice leading)
+            _direction = value;
             break;
           case 's':
             var subject = resolveScale(value, _scales, _messages);
-            _scale = setSubject(_scale, subject, operator, "scale", _messages);
+            _scale = alterSubject(_scale, subject, operator, "scale", _messages);
             break;
           case 'V':
             var subject = resolveVariable(value, _voicings, "voicing", _messages);
-            _voicing = setSubject(_voicing, subject, operator, "voicing", _messages);
+            _voicing = alterSubject(_voicing, subject, operator, "voicing", _messages);
             break;
           case 'R':
             var subject = resolveVariable(value, rhythmPatterns, "rhythm pattern", _messages);
-            _rhythmPattern = setSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
+            _rhythmPattern = alterSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
             break;
           case 'A':
             var subject = resolveVariable(value, _arpeggioPatterns, "arpeggio pattern", _messages);
-            _arpeggioPattern = setSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
+            _arpeggioPattern = alterSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
             break;
           default:
             _messages.addWarning("Unknown option: " + key);
@@ -245,7 +207,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         _asString += (" " + key + operator + value);
       },
       getResult: function() {
-        return createChordDefinition(_asString, _step, _inversion, _transposition, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
+        return createChordDefinition(_asString, _step, _inversion, _transposition, _inversionOptimization, _direction, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
       }
     }
   };
@@ -254,7 +216,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
 /**
  * Returns
  */
-function setInteger(existingValue, newValueAsString, operator, messages) {
+function alterInteger(existingValue, newValueAsString, operator, messages) {
   var newValue = parseInt(newValueAsString);
   if (isNaN(newValue)) {
     messages.addWarning("Ignoring non integer value: " + newValue);
@@ -276,7 +238,7 @@ function setInteger(existingValue, newValueAsString, operator, messages) {
 /**
  * once set,
  */
-function setSubject(existingSubject, newSubject, operator, description, messages) {
+function alterSubject(existingSubject, newSubject, operator, description, messages) {
   if (operator === '=') {
     return {subject: newSubject, cloned: false};
   }
