@@ -306,9 +306,11 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
       parts.pop();
-    } else if (isNaN(parseInt(lastPart))) {
+    } else if (isNaN(parseInt(lastPart)) && lastPart[0] != 'b') {
       // alternative for k=E#, just write the key after the notes, like:
       // 1 2 3 4 5 6 7 E#
+      // the key B must be written using a big letter, otherwise if there is
+      // a pitch at the end starting with b (e.g. b7), it would set the key to B7
       keyName = lastPart;
       keyPosition = parseKeyPosition(lastPart);
       parts.pop();
