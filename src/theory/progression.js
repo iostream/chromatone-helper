@@ -39,16 +39,16 @@ function findLowestPosition(chords) {
 }
 
 /**
- * chordDefs[]  .. strings of chord definitions relating to the scale
+ *
  */
-lib.createChordProgression = function(scale, chordDefinitions) {
+lib.createChordProgression = function(chordDefinitions) {
   var _chordDefs = chordDefinitions;
   var _chords = false;
   var _lowestPosition = false; // lowest chromatic position
   return {
     /**
      * XXX Once fixed they stay fixed.... so this becomes a thing of using it
-     * in the right order! must return a copy instead!
+     * in the right order! must return a co py instead!
      */
     getLowestPosition: function() {
       // lazy init
@@ -70,13 +70,12 @@ lib.createChordProgression = function(scale, chordDefinitions) {
       for (var i=1; i<_chordDefs.length; ++i) {
         var chordDef = _chordDefs[i];
         var chord;
-        var explicitInversion = chordDef.getInversion();
-        if (explicitInversion > -1 || chordDef.getInversionOptimization() === '0') {
+        if (chordDef.getInversionOptimization() === '0') {
           // use the explicitely set inversion
           chord = chordDef.createChord();
         } else {
           // choose inversion automatically
-          chord = makeNearestChord(chordDef, previousChord, scale);
+          chord = makeNearestChord(chordDef, previousChord);
         }
 
         f.updateFingering(chord);
@@ -89,7 +88,7 @@ lib.createChordProgression = function(scale, chordDefinitions) {
   }
 }
 
-function makeNearestChord(chordDef, previousChord, scale) {
+function makeNearestChord(chordDef, previousChord) {
   var direction = chordDef.getDirection();
   if (!nearestChordTypeStrategies.hasOwnProperty(direction)) {
     console.warn("makeNearestChord() - Ignoring unknown direction: " + direction);
@@ -103,7 +102,7 @@ var nearestChordTypeStrategies = {
    * same
    * TODO: now this is just the previously only existing strategy, not what it actually needs to be
    */
-  's': function (chordDef, previousChord, scale) {
+  's': function (chordDef, previousChord) {
     // get best diff of all the inversions (inversion=0 is in root position)
     // XXX TODO This should not alter the chord definition, but this makes no difference right now
     var minDiff = calculateDiff(previousChord, chordDef.createChord());
@@ -134,8 +133,8 @@ var nearestChordTypeStrategies = {
   /**
    * The highest note moves up or stays the same.
    */
-  'u': function (chordDef, previousChord, scale) {
-    var chord = nearestChordTypeStrategies.s(chordDef, previousChord, scale);
+  'u': function (chordDef, previousChord) {
+    var chord = nearestChordTypeStrategies.s(chordDef, previousChord);
     while (previousChord.getHighestNote().getPosition() > chord.getHighestNote().getPosition()) {
       chordDef.setInversion(chordDef.getInversion() + 1);
       chord = chordDef.createChord();
@@ -145,8 +144,8 @@ var nearestChordTypeStrategies = {
   /**
    * The highest note moves down or stays the same.
    */
-  'd': function /* lowest note goes down */ (chordDef, previousChord, scale) {
-    var chord = nearestChordTypeStrategies.s(chordDef, previousChord, scale);
+  'd': function /* lowest note goes down */ (chordDef, previousChord) {
+    var chord = nearestChordTypeStrategies.s(chordDef, previousChord);
     while (previousChord.getHighestNote().getPosition() < chord.getHighestNote().getPosition()) {
       chordDef.setInversion(chordDef.getInversion() - 1);
       chord = chordDef.createChord();

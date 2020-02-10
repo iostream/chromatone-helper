@@ -11,7 +11,7 @@ lib.createReceiptBuilder = function() {
 var scaleObjects = scales.map(function(scale) { return t.createScale(scale); });
 var voicingObjects = t.parseVoicings(voicings);
 var chordDefinitions = tchords, voicingObjects, scaleObjects);
-var chordObjects = p.createChordProgression(scaleObjects[0], chordDefinitions).getChords();
+var chordObjects = p.createChordProgression(chordDefinitions).getChords();
 
 /**
  * One receipt contains everything which is used to define a chord progression (and later also multi track songs).

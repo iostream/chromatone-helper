@@ -2,7 +2,6 @@ var lib = {};
 module.exports = lib;
 
 var notesLib = require("./notes.js");
-var chordLib = require("./chord.js");
 
 var WHITESPACE_REGEX = /\s+/;
 
@@ -42,9 +41,6 @@ lib.createScale = function(definition) {
      */
     getRootNote: function() {
       return _notes[_rootNoteIndex];
-    },
-    createChord: function(chordDef) {
-      return chordLib.createChord(chordDef, this);
     },
     shift: function(steps, invert) {
       var invert = invert || false;

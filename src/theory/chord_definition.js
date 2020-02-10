@@ -2,6 +2,7 @@ var lib = {};
 module.exports = lib;
 
 var voicingLib = require("./voicing.js");
+var chordLib = require("./chord.js");
 var compositeLib = require("../parser/composite.js");
 var compositeParser = require("../parser/composite_parser.js");
 
@@ -78,7 +79,7 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
       return _arpeggioPattern;
     },
     createChord: function() {
-      return _scale.createChord(this);
+      return chordLib.createChord(this);
     }
   };
 }
@@ -151,13 +152,14 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
     // chord definiton parameters
     var _asString = '';
     var _step;
-    var _inversion = -1;
+    var _inversion = 0;
     var _transposition = 0;
     var _scale = {subject: _scales[0], cloned: false};
     var _voicing = {subject: _voicings.defaultVoicing, cloned: false};
     var _rhythmPattern = {subject: _rhythmPatterns.defaultRhythmPattern, cloned: false};
     var _arpeggioPattern = {subject: _arpeggioPatterns.defaultArpeggioPattern, cloned: false};
     var _inversionOptimization = 0;
+    var _isInversionOptimizationSet = false; // <- marker whether _inversionOptimization was set by the user
     var _direction = 's';
 
     return {
@@ -170,12 +172,18 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         var subject;
         switch (key) {
           case 'i':
+            // if an inversion was explicitly set, then the inversion optimization is turned off,
+            // but only so, that a user set value gets not overwritten
+            if (!_isInversionOptimizationSet) {
+              _inversionOptimization = '0';
+            }
             _inversion = alterInteger(_inversion, value, operator, _messages);
             break;
           case 't':
             _transposition = alterInteger(_transposition, value, operator, _messages);
             break;
           case 'o': // inversion optimization algorithm, 0=off, 1=type 1, 2=type 2, etc.
+            _isInversionOptimizationSet = true;
             _inversionOptimization = value;
           case 'd':
             // inversion direction, (only effective, when inversion optimzation is turned on)

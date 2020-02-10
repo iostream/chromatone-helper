@@ -45,7 +45,7 @@ formLib.addForm(
     controls.bpm.dispatchEvent(new Event('input'));
   },
   function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-    var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
+    var progression = p.createChordProgression(chordDefParserResult.getList());
     var chords = progression.getChords();
 
     _lastGeneratedEvents = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);

@@ -4,9 +4,9 @@ module.exports = lib;
 /**
  * @param chordDef
  */
-lib.createChord = function(chordDef, defaultScale) {
+lib.createChord = function(chordDef) {
   // TODO this is now kind of a mess here!?
-  var _scale = chordDef.getScale() || defaultScale;
+  var _scale = chordDef.getScale();
   var _step = chordDef.getStep();
   var _voicing = chordDef.getVoicing();
   var _inversion = chordDef.getInversion();
