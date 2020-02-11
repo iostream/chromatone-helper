@@ -119,14 +119,18 @@ margin-top: 4pt;
   position: relative;
 }
 .interactive-form .scale_container input[type="button"] {
-  width: 47pt;
+  width: calc(25% - 4px);
+  padding: 0;
 }
 .interactive-form .scale_container input[value=">"] {
   float: right;
 }
+.interactive-form .scale_container input[type="text"] {
+  width: calc(100% - 10pt);
+}
 .interactive-form .scale_container {
   display: inline-block;
-  max-width: 113pt;
+  max-width: 145pt;
 }
 .interactive-form .scale_container label {
   display: inline-block;
@@ -154,17 +158,37 @@ margin-top: 4pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
+.form-element .form-element {
+  border: none;
+}
 .form-element select,
 .form-element input[type="range"] {
   max-width: 100%;
 }
-.form-element input[name="bpm_output"],
+.form-element input[name="loop"],
 .form-element input[name="play"],
 .form-element input[name="stop"] {
-  width: 26%;
   display: inline-block;
   padding: 0;
+  width: calc(50% - 10pt)
 }
+.form-element input[name="loop"] {
+  width: 10pt;
+  margin: 0;
+  padding: 0;
+}
+.form-element input[name="bpm"],
+.form-element input[name="bpm_output"] {
+  display: inline-block;
+  padding: 0;
+  width: 20pt;
+  margin: 0;
+  vertical-align: middle;
+}
+.form-element input[name="bpm"] {
+  width: calc(100% - 20pt - 20px);
+}
+
 .form-element label {
   display: inline-block;
 }
@@ -384,6 +408,8 @@ margin-top: 4pt;
               <select name="scale_preset" class="preset"></select>
               <input type="text" name="scale" placeholder="scale" class="scale">
               <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left">
+              <input type="button" value="-" name="transpose_scale_down" title="transpose the scale one semitone up">
+              <input type="button" value="+" name="transpose_scale_up" title="transpose the scale one semitone down">
               <input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right">
               <div class="messages"></div>
             </div>
@@ -422,16 +448,20 @@ margin-top: 4pt;
                 <label for="all_intervals">all intervals</label>
                 <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
                 <label for="chord_mode">chord mode</label>
-                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be player at once. If chord mode is off, then all existing pitches are shown."></input>
+                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown."></input>
               </span>
             </span>
           </div>
           <div class="secondary-form-elements">
           <span class="form-element">
-            <input type="button" value="▶" name="play" title="plays the last generated progression directly in the browser">
-            <input type="button" value="⏹" name="stop" title="stops the currently playing progression">
+            <span class="form-element">
+              <input type="button" value="▶" name="play" title="plays the last generated progression directly in the browser">
+              <input type="button" value="⏹" name="stop" title="stops the currently playing progression">
+              <input type="checkbox" name="loop" title="Whether to repeat the played sequence over and over.">
+            </span>
+            <span class="form-element">
+            <input type="range" min="1" max="350" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
             <input type="text" disabled="disabled" name="bpm_output" title="the current speed in beat per minutes">
-            <input min="1" max="350" type="range" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
             <select class="play-instrument-select" value="" title="select the (fm) instrument to be used when using the play button">
             </select>
           </span>
@@ -497,9 +527,6 @@ var g = require("./src/gui/base.js"),
 
 var gmPlayer = gmPlayerLib.createGmPlayer();
 
-// these get played when the user clicks on play
-var _lastGeneratedEvents;
-
 // TODO move this code into an own file / layer?
 formLib.addForm(
   function(controls) {
@@ -517,11 +544,13 @@ formLib.addForm(
       }
     });1
     controls.play.addEventListener("click", function() {
-      gmPlayer.stop();
-      gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
+      gmPlayer.start();
     });
     controls.stop.addEventListener("click", function() {
       gmPlayer.stop();
+    });
+    controls.loop.addEventListener("click", function() {
+      gmPlayer.setLoop(controls.loop.checked);
     });
     controls.bpm.addEventListener("input", function() {
       gmPlayer.setBpm(controls.bpm.value);
@@ -530,17 +559,18 @@ formLib.addForm(
     controls.bpm.dispatchEvent(new Event('input'));
   },
   function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-    var progression = p.createChordProgression(scales[0], chordDefParserResult.getList());
+    var progression = p.createChordProgression(chordDefParserResult.getList());
     var chords = progression.getChords();
 
-    _lastGeneratedEvents = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    var events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    gmPlayer.setEvents(events);
 
     if (options.uploadToDAW) {
-      serverClient.uploadToDAW(_lastGeneratedEvents, chords, scales, buildGeneratorUrl(options.serializedForm));
+      serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
     }
 
     if (options.uploadMidi || options.generateMidi) {
-      var midiWriter = midi.createMidi(_lastGeneratedEvents, chords, scales, buildGeneratorUrl(options.serializedForm));
+      var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
       if (options.generateMidi) {
         downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
       }
@@ -5657,6 +5687,9 @@ var WebAudioTinySynth = require('webaudio-tinysynth');
 lib.createGmPlayer = function(channel) {
   var _channel = channel || 0;
   var _events = [];
+  var _loop = false;
+  var _playIndex = 0;
+  var _isPlaying = false;
   var _noteOffs = [];
   var _msPerQuarterNote;
   var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
@@ -5674,30 +5707,47 @@ lib.createGmPlayer = function(channel) {
         return programEntry.name;
       });
     },
+    setEvents: function(events) {
+      _events = events;
+    },
+    setLoop: function(loop) {
+      _loop = loop;
+    },
     setBpm: function(bpm) {
       _msPerQuarterNote = 60000 / bpm;
     },
     stop: function() {
-      _events = [];
+      _isPlaying = false;
+      _playIndex = 0;
       turnOffNotes();
     },
     setInstrument: function(index) {
       _synth.setTimbre(0, _channel, _synth.program[index].p);
     },
-    playEvents: function(events, instrument, bpm) {
-      _events = events.slice(0);
+    start: function() {
+      _isPlaying = true;
       var channel = 1;
       var velocity = 100;
 
+      var me = this;
       function playNextEvent() {
         _noteOffs.forEach(function(position) {
           _synth.noteOff(_channel, position);
         });
-        var event = _events.shift();
-        if (typeof(event) === 'undefined') {
+        _noteOffs = [];
+        if (!_isPlaying) {
           return;
         }
-        _noteOffs = [];
+        if (_playIndex >= _events.length) {
+          if (!_loop) {
+            me.stop();
+            return;
+          }
+          // if loop is active, then start from the beginning when the last
+          // event was already played
+          _playIndex = 0;
+        }
+        var event = _events[_playIndex++];
         if (!event.isRest()) {
           event.getPitches().forEach(function(note) {
             _noteOffs.push(note.getPosition());
@@ -5974,6 +6024,14 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     form.update.click();
   }
 
+  function transposeScale(semitones, element) {
+    var scale = tLib.createScale(element.value);
+    scale.transpose(semitones);
+    element.value = scale.toString();
+    form.update.click();
+  }
+
+
   function createScaleContainer(index, rootElement) {
     rootElement = rootElement || scaleElementTemplate.cloneNode(true);
     rootElement.style = '';
@@ -5994,10 +6052,21 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
 
     // shift scales through all their modes by "<" and ">" buttons
     c.root.querySelectorAll('input[type="button"]').forEach(function(button) {
-      if (button.value == "<") {
-        button.addEventListener("click", function() { shiftScale(-1, c.input); });
-      } else {
-        button.addEventListener("click", function() { shiftScale(1, c.input); });
+      switch(button.name) {
+        case 'shift_scale_left':
+          button.addEventListener("click", function() { shiftScale(-1, c.input); });
+          break;
+        case 'shift_scale_right':
+          button.addEventListener("click", function() { shiftScale(1, c.input); });
+          break;
+        case 'transpose_scale_down':
+          button.addEventListener("click", function() { transposeScale(-1, c.input); });
+          break;
+        case 'transpose_scale_up':
+          button.addEventListener("click", function() { transposeScale(1, c.input); });
+          break;
+        default:
+         break;
       }
     });
     // each scale comes with handy presets for jump starting everything:
@@ -6233,6 +6302,7 @@ function initControlElements(form) {
   return {
     play: form.play,
     stop: form.stop,
+    loop: form.loop,
     bpm: form.bpm,
     instrument: form.getElementsByClassName('play-instrument-select')[0]
   };
@@ -8392,9 +8462,9 @@ module.exports = lib;
 /**
  * @param chordDef
  */
-lib.createChord = function(chordDef, defaultScale) {
+lib.createChord = function(chordDef) {
   // TODO this is now kind of a mess here!?
-  var _scale = chordDef.getScale() || defaultScale;
+  var _scale = chordDef.getScale();
   var _step = chordDef.getStep();
   var _voicing = chordDef.getVoicing();
   var _inversion = chordDef.getInversion();
@@ -8501,16 +8571,21 @@ var lib = {};
 module.exports = lib;
 
 var voicingLib = require("./voicing.js");
+var chordLib = require("./chord.js");
 var compositeLib = require("../parser/composite.js");
 var compositeParser = require("../parser/composite_parser.js");
 
 var REGEX_COUNT_SCALE = /\*/g;
 
 /**
+ * TODO make this a clean method again (which needs some f)
+*
  * Returns false if there is no valid chord definition to be parsed.
  */
-function createChordDefinition(asString, step, inversion, transposition, inversionOptimization, voicing, scale, rhythmPattern, arpeggioPattern) {
+function createChordDefinition(asString, step, inversion, transposition, inversionOptimization, direction, voicing, scale, rhythmPattern, arpeggioPattern) {
   var _step = step;
+  var _inversionOptimization = inversionOptimization;
+  var _direction = direction;
   var _asString = asString;
 
   // make step 0 based
@@ -8532,68 +8607,8 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
   }
 
   var _rhythmPattern = rhythmPattern;
-  // var rhythmPatternReferences = parseStringParameters("R", null, "rhythms");
-  // if (rhythmPatternReferences.length == 1) {
-  //   if (rhythmPatternReferences[0] !== null) {
-  //     _rhythmPattern = resolveRhythmPattern(rhythmPatternReferences[0], rhythmPatterns, chordDef);
-  //   }
-  // } else if (rhythmPatternReferences.length > 1) {
-  //   rhythmPatternReferences.forEach(function(patternReference) {
-  //     var pattern = resolveRhythmPattern(patternReference, rhythmPatterns, chordDef);
-  //     if (!pattern) {
-  //       return;
-  //     }
-  //     if (!_rhythmPattern) {
-  //       _rhythmPattern = pattern.clone();
-  //       return;
-  //     }
-  //     _rhythmPattern.addPattern(pattern);
-  //   });
-  // }
-
   var _arpeggioPattern = arpeggioPattern;
-  // var arpeggioPatternReferences = parseStringParameters("A", null, "arpeggios");
-  // if (arpeggioPatternReferences.length == 1) {
-  //   if (arpeggioPatternReferences[0] !== null) {
-  //     _arpeggioPattern = resolveArpeggioPattern(arpeggioPatternReferences[0], arpeggioPatterns, chordDef);
-  //   }
-  // } else if (arpeggioPatternReferences.length > 1) {
-  //   arpeggioPatternReferences.forEach(function(patternReference) {
-  //     var pattern = resolveArpeggioPattern(patternReference, arpeggioPatterns, chordDef);
-  //     if (!pattern) {
-  //       return;
-  //     }
-  //     if (!_arpeggioPattern) {
-  //       _arpeggioPattern = pattern.clone();
-  //       return;
-  //     }
-  //     _arpeggioPattern.addPattern(pattern);
-  //   });
-  // }
   var _voicing = voicing;
-  // var _voicing = parseStringParameters("V", defaultVoicing, "voicings")
-  //   // map voicing references to actual voicings
-  //   .map(function(voicingReference) {
-  //     if (voicingLib.isVoicing(voicingReference)) {
-  //       return voicingReference;
-  //     }
-  //     if (Array.isArray(voicingReference)) {
-  //       return voicingReference;
-  //     }
-  //     if(voicings[voicingReference]) {
-  //       return voicings[voicingReference];
-  //     }
-  //     console.warn("Unknown voicing reference \"" + voicingReference + "\" used in chord definition \"" + chordDef  + "\"");
-  //     return defaultVoicing;
-  //   })
-  //   // if more than one voicing was used, they need to be merged
-  //   // TODO does this already work as expected?
-  //   .reduce(function(a, b) {
-  //     var combinedVoicing = {};
-  //     mergeVoices(combinedVoicing, a);
-  //     mergeVoices(combinedVoicing, b);
-  //     return combinedVoicing;
-  //   });
 
   return {
     toString: function() {
@@ -8601,6 +8616,12 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
     },
     getStep: function() {
       return _step;
+    },
+    getInversionOptimization: function() {
+      return _inversionOptimization;
+    },
+    getDirection: function() {
+      return _direction;
     },
     getInversion: function() {
       return _inversion;
@@ -8610,6 +8631,9 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
     },
     getTransposition: function() {
       return _transposition;
+    },
+    transpose: function(semitones) {
+      _transposition += semitones;
     },
     getVoicing: function() {
       return _voicing;
@@ -8625,6 +8649,9 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
     },
     getArpeggioPattern: function() {
       return _arpeggioPattern;
+    },
+    createChord: function() {
+      return chordLib.createChord(this);
     }
   };
 }
@@ -8697,13 +8724,15 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
     // chord definiton parameters
     var _asString = '';
     var _step;
-    var _inversion = -1;
+    var _inversion = 0;
     var _transposition = 0;
     var _scale = {subject: _scales[0], cloned: false};
     var _voicing = {subject: _voicings.defaultVoicing, cloned: false};
     var _rhythmPattern = {subject: _rhythmPatterns.defaultRhythmPattern, cloned: false};
     var _arpeggioPattern = {subject: _arpeggioPatterns.defaultArpeggioPattern, cloned: false};
     var _inversionOptimization = 0;
+    var _isInversionOptimizationSet = false; // <- marker whether _inversionOptimization was set by the user
+    var _direction = 's';
 
     return {
       withMatch: function(match) {
@@ -8715,29 +8744,39 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         var subject;
         switch (key) {
           case 'i':
-            _inversion = setInteger(_inversion, value, operator, _messages);
+            // if an inversion was explicitly set, then the inversion optimization is turned off,
+            // but only so, that a user set value gets not overwritten
+            if (!_isInversionOptimizationSet) {
+              _inversionOptimization = '0';
+            }
+            _inversion = alterInteger(_inversion, value, operator, _messages);
             break;
           case 't':
-            _transposition = setInteger(_transposition, value, operator, _messages);
+            _transposition = alterInteger(_transposition, value, operator, _messages);
             break;
           case 'o': // inversion optimization algorithm, 0=off, 1=type 1, 2=type 2, etc.
-            _inversionOptimization = value; // <- no operations possible here, so just assign the value
+            _isInversionOptimizationSet = true;
+            _inversionOptimization = value;
+          case 'd':
+            // inversion direction, (only effective, when inversion optimzation is turned on)
+            // u=up, d=down, s=same (= try to optimize for best voice leading)
+            _direction = value;
             break;
           case 's':
             var subject = resolveScale(value, _scales, _messages);
-            _scale = setSubject(_scale, subject, operator, "scale", _messages);
+            _scale = alterSubject(_scale, subject, operator, "scale", _messages);
             break;
           case 'V':
             var subject = resolveVariable(value, _voicings, "voicing", _messages);
-            _voicing = setSubject(_voicing, subject, operator, "voicing", _messages);
+            _voicing = alterSubject(_voicing, subject, operator, "voicing", _messages);
             break;
           case 'R':
             var subject = resolveVariable(value, rhythmPatterns, "rhythm pattern", _messages);
-            _rhythmPattern = setSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
+            _rhythmPattern = alterSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
             break;
           case 'A':
             var subject = resolveVariable(value, _arpeggioPatterns, "arpeggio pattern", _messages);
-            _arpeggioPattern = setSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
+            _arpeggioPattern = alterSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
             break;
           default:
             _messages.addWarning("Unknown option: " + key);
@@ -8748,7 +8787,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         _asString += (" " + key + operator + value);
       },
       getResult: function() {
-        return createChordDefinition(_asString, _step, _inversion, _transposition, _inversionOptimization, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
+        return createChordDefinition(_asString, _step, _inversion, _transposition, _inversionOptimization, _direction, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
       }
     }
   };
@@ -8757,7 +8796,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
 /**
  * Returns
  */
-function setInteger(existingValue, newValueAsString, operator, messages) {
+function alterInteger(existingValue, newValueAsString, operator, messages) {
   var newValue = parseInt(newValueAsString);
   if (isNaN(newValue)) {
     messages.addWarning("Ignoring non integer value: " + newValue);
@@ -8779,7 +8818,7 @@ function setInteger(existingValue, newValueAsString, operator, messages) {
 /**
  * once set,
  */
-function setSubject(existingSubject, newSubject, operator, description, messages) {
+function alterSubject(existingSubject, newSubject, operator, description, messages) {
   if (operator === '=') {
     return {subject: newSubject, cloned: false};
   }
@@ -8811,7 +8850,7 @@ function setSubject(existingSubject, newSubject, operator, description, messages
   return existingSubject;
 }
 
-},{"../parser/composite.js":24,"../parser/composite_parser.js":25,"./voicing.js":38}],34:[function(require,module,exports){
+},{"../parser/composite.js":24,"../parser/composite_parser.js":25,"./chord.js":32,"./voicing.js":38}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -8832,8 +8871,9 @@ var majorNotes = [
 var WHITESPACE_REGEX = /\s+/;
 
 // mapping between letter and relative chromatic root
+var letters = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
 var letterMap = {};
-['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(function(letter, index) {
+letters.forEach(function(letter, index) {
   letterMap[letter] = majorNotes[index];
 });
 var defaultRegister = 4;
@@ -8862,7 +8902,7 @@ function parseKeyPosition(keyName) {
       relativeRoot += 1;
       ++pos;
     } else {
-      register = parseInt(keyName[pos]);
+      register = parseInt(keyName.substring(pos));
       if (isNaN(register)) {
         register = defaultRegister;
         console.error('parseKeyPosition() - Cannot parse register: ' + keyName[pos] + ' (of ' + keyName + ')');
@@ -8876,6 +8916,28 @@ function parseKeyPosition(keyName) {
   return 12 + (register * 12) + relativeRoot;
 }
 
+// mapping (in form of a sparce array) between relative chromatic positions of the first octave and letters
+var chromaticKeyMap = {};
+for (var i = 0; i < 7; ++i) {
+  chromaticKeyMap[majorNotes[i]] = letters[i];
+}
+
+lib.findKeyName = function(keyPosition, preferB) {
+  var relativeKeyPosition = keyPosition % 12;
+  var register = Math.floor(keyPosition / 12) - 1;
+  if (chromaticKeyMap.hasOwnProperty(relativeKeyPosition)) {
+    return chromaticKeyMap[relativeKeyPosition].toUpperCase() + register;
+  }
+  var index;
+  if (preferB) {
+    index = (relativeKeyPosition + 1) % 7;
+    return chromaticKeyMap[index].toUpperCase() + 'b' + register;
+  } else {
+    index = (relativeKeyPosition == 0) ? 7 : relativeKeyPosition - 1;
+    return chromaticKeyMap[index].toUpperCase() + '#' + register;
+  }
+};
+
 /**
  * TODO Make lookups in intervalNameMap and fallback also work for higher than contained intervals, e.g. if b3 is contained, also b11 should also work
  *
@@ -8887,17 +8949,8 @@ function parseKeyPosition(keyName) {
  * @return a string or the string "error"
  */
 function findIntervalName(interval, intervalNameMap) {
-  if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval % 12] === "string") {
-    if (interval % 12 == interval) {
-      return intervalNameMap[interval];
-    }
-    var name = intervalNameMap[interval % 12];
-    var pos = 0;
-    while (name.length > pos && name[pos] === flat || name[pos] === sharp) {
-      ++pos;
-    }
-    var prefix = name.substring(0, pos);
-    var newName = prefix
+  if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval] === "string") {
+    return intervalNameMap[interval];
   }
 
   if (interval < 0) {
@@ -8911,7 +8964,7 @@ function findIntervalName(interval, intervalNameMap) {
   for (var i = 0; i < majorNotes.length; ++i) {
     var relativeInterval = interval % 12;
     if (majorNotes[i] == relativeInterval || majorNotes[i] - 1 == relativeInterval) {
-      var add = i * (Math.floor(interval / 12));
+      var add = 7 * (Math.floor(interval / 12)); // the major scale has 7 notes
       if (majorNotes[i] - 1 == interval) {
         return "b" + (i + 1 + add);
       }
@@ -9129,9 +9182,11 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
         console.warn('parseLineOfNotes() - Unknown option used: ' + option[0]  + ' (of ' + keyName + ')');
       }
       parts.pop();
-    } else if (isNaN(parseInt(lastPart))) {
+    } else if (isNaN(parseInt(lastPart)) && lastPart[0] != 'b') {
       // alternative for k=E#, just write the key after the notes, like:
       // 1 2 3 4 5 6 7 E#
+      // the key B must be written using a big letter, otherwise if there is
+      // a pitch at the end starting with b (e.g. b7), it would set the key to B7
       keyName = lastPart;
       keyPosition = parseKeyPosition(lastPart);
       parts.pop();
@@ -9202,16 +9257,16 @@ function findLowestPosition(chords) {
 }
 
 /**
- * chordDefs[]  .. strings of chord definitions relating to the scale
+ *
  */
-lib.createChordProgression = function(scale, chordDefinitions) {
+lib.createChordProgression = function(chordDefinitions) {
   var _chordDefs = chordDefinitions;
   var _chords = false;
   var _lowestPosition = false; // lowest chromatic position
   return {
     /**
      * XXX Once fixed they stay fixed.... so this becomes a thing of using it
-     * in the right order! must return a copy instead!
+     * in the right order! must return a co py instead!
      */
     getLowestPosition: function() {
       // lazy init
@@ -9227,19 +9282,18 @@ lib.createChordProgression = function(scale, chordDefinitions) {
       }
 
       var progression = [];
-      var previousChord = scale.createChord(_chordDefs[0]);
+      var previousChord = _chordDefs[0].createChord();
       f.updateFingering(previousChord);
       progression.push(previousChord);
       for (var i=1; i<_chordDefs.length; ++i) {
         var chordDef = _chordDefs[i];
         var chord;
-        var explicitInversion = chordDef.getInversion();
-        if (explicitInversion > -1) {
+        if (chordDef.getInversionOptimization() === '0') {
           // use the explicitely set inversion
-          chord = scale.createChord(chordDef);
+          chord = chordDef.createChord();
         } else {
           // choose inversion automatically
-          chord = makeNearestChord(chordDef, previousChord, scale);
+          chord = makeNearestChord(chordDef, previousChord);
         }
 
         f.updateFingering(chord);
@@ -9252,36 +9306,72 @@ lib.createChordProgression = function(scale, chordDefinitions) {
   }
 }
 
-function makeNearestChord(chordDef, previousChord, scale) {
-  // XXX TODO This should not alter the chord definition, but this makes no difference right now
-  // chordDef = chordDef.clone();
-
-  // get best diff of all the inversions (inversion=0 is in root position)
-  var minDiff = calculateDiff(previousChord, scale.createChord(chordDef));
-  var bestInversion = 0, bestTransposed = 0, transposed = 0;
-  var voicingLength = chordDef.getVoicing().getVoices1().length;
-  for (var inversion = 1; inversion < voicingLength; ++inversion) {
-    chordDef.setInversion(inversion);
-    var chord = scale.createChord(chordDef);
-    // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
-
-    if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
-      transposed = -12;
-      chord.transpose(transposed);
-    }
-    var diff = calculateDiff(previousChord, chord);
-    if (diff < minDiff) {
-      minDiff = diff;
-      bestInversion = inversion;
-      bestTransposed = transposed;
-    }
+function makeNearestChord(chordDef, previousChord) {
+  var direction = chordDef.getDirection();
+  if (!nearestChordTypeStrategies.hasOwnProperty(direction)) {
+    console.warn("makeNearestChord() - Ignoring unknown direction: " + direction);
+    direction = 's';
   }
-  chordDef.setInversion(bestInversion);
-  var chord = scale.createChord(chordDef)
-  chord.transpose(bestTransposed);
-
-  return chord;
+  return nearestChordTypeStrategies[direction].apply(null, arguments);
 }
+
+var nearestChordTypeStrategies = {
+  /**
+   * same
+   * TODO: now this is just the previously only existing strategy, not what it actually needs to be
+   */
+  's': function (chordDef, previousChord) {
+    // get best diff of all the inversions (inversion=0 is in root position)
+    // XXX TODO This should not alter the chord definition, but this makes no difference right now
+    var minDiff = calculateDiff(previousChord, chordDef.createChord());
+    var bestInversion = 0, bestTransposed = 0, transposed = 0;
+    var voicingLength = chordDef.getVoicing().getVoices1().length;
+    for (var inversion = 1; inversion < voicingLength; ++inversion) {
+      chordDef.setInversion(inversion);
+      var chord = chordDef.createChord();
+      // if the chord before started lower, transpose one octave down to give the inversions any chance of getting closer
+
+      if (previousChord.getLowestNote().getPosition() < chord.getLowestNote().getPosition()) {
+        transposed = -12;
+        chord.transpose(transposed);
+      }
+      var diff = calculateDiff(previousChord, chord);
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestInversion = inversion;
+        bestTransposed = transposed;
+      }
+    }
+    chordDef.setInversion(bestInversion);
+    chordDef.transpose(bestTransposed);
+    var chord = chordDef.createChord();
+    return chord;
+  },
+  /**
+   * The highest note moves up or stays the same.
+   */
+  'u': function (chordDef, previousChord) {
+    var chord = nearestChordTypeStrategies.s(chordDef, previousChord);
+    chordDef = chord.getChordDefinition();
+    while (previousChord.getHighestNote().getPosition() > chord.getHighestNote().getPosition()) {
+      chordDef.setInversion(chordDef.getInversion() + 1);
+      chord = chordDef.createChord();
+    }
+    return chord;
+  },
+  /**
+   * The highest note moves down or stays the same.
+   */
+  'd': function /* lowest note goes down */ (chordDef, previousChord) {
+    var chord = nearestChordTypeStrategies.s(chordDef, previousChord);
+    chordDef = chord.getChordDefinition();
+    while (previousChord.getHighestNote().getPosition() < chord.getHighestNote().getPosition()) {
+      chordDef.setInversion(chordDef.getInversion() - 1);
+      chord = chordDef.createChord();
+    }
+    return chord;
+  },
+};
 
 },{"../fingering.js":13,"./base.js":31}],36:[function(require,module,exports){
 var lib = {};
@@ -9519,16 +9609,8 @@ var lib = {};
 module.exports = lib;
 
 var notesLib = require("./notes.js");
-var chordLib = require("./chord.js");
 
 var WHITESPACE_REGEX = /\s+/;
-
-/**
- * notesAfterShift is an in/out parameter.
- */
-function transposeToMatchKey(notesBeforeShift, notesAfterShift) {
-
-}
 
 /**
  * @param String|notesObject definition
@@ -9559,9 +9641,6 @@ lib.createScale = function(definition) {
      */
     getRootNote: function() {
       return _notes[_rootNoteIndex];
-    },
-    createChord: function(chordDef) {
-      return chordLib.createChord(chordDef, this);
     },
     shift: function(steps, invert) {
       var invert = invert || false;
@@ -9616,6 +9695,11 @@ lib.createScale = function(definition) {
       // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
     },
     transpose: function(semitones) {
+       _keyPosition = _keyPosition + semitones;
+       // when transposing down, then b is preferred
+       // when transposing up, then # is preferred
+       var preferB = semitones < 0;
+      _keyName = notesLib.findKeyName(_keyPosition, preferB);
       for (var i=0; i<_notes.length; ++i) {
         _notes[i].transpose(semitones);
       }
@@ -9636,7 +9720,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./chord.js":32,"./notes.js":34}],38:[function(require,module,exports){
+},{"./notes.js":34}],38:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9821,9 +9905,10 @@ function invertNotes(notes, inversion) {
       notes.push(note);
     }
   } else {
-    for (var i = inversion; i >= 0; --i) {
+    inversion = Math.abs(inversion);
+    var lowestNote = notes[0];
+    for (var i = 0; i < inversion; ++i) {
       var note = notes.pop();
-      var lowestNote = notes[0];
       while (note.getPosition() >= lowestNote.getPosition()) {
         note.transpose(-12);
       }
