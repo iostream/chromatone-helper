@@ -48,6 +48,7 @@ lib.createGmPlayer = function(channel) {
       var channel = 1;
       var velocity = 100;
 
+      var me = this;
       function playNextEvent() {
         _noteOffs.forEach(function(position) {
           _synth.noteOff(_channel, position);
@@ -58,6 +59,7 @@ lib.createGmPlayer = function(channel) {
         }
         if (_playIndex >= _events.length) {
           if (!_loop) {
+            me.stop();
             return;
           }
           // if loop is active, then start from the beginning when the last
