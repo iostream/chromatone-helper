@@ -63,6 +63,9 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
     getTransposition: function() {
       return _transposition;
     },
+    transpose: function(semitones) {
+      _transposition += semitones;
+    },
     getVoicing: function() {
       return _voicing;
     },

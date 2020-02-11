@@ -125,9 +125,8 @@ var nearestChordTypeStrategies = {
       }
     }
     chordDef.setInversion(bestInversion);
-    var chord = chordDef.createChord()
-    chord.transpose(bestTransposed);
-
+    chordDef.transpose(bestTransposed);
+    var chord = chordDef.createChord();
     return chord;
   },
   /**
@@ -135,6 +134,7 @@ var nearestChordTypeStrategies = {
    */
   'u': function (chordDef, previousChord) {
     var chord = nearestChordTypeStrategies.s(chordDef, previousChord);
+    chordDef = chord.getChordDefinition();
     while (previousChord.getHighestNote().getPosition() > chord.getHighestNote().getPosition()) {
       chordDef.setInversion(chordDef.getInversion() + 1);
       chord = chordDef.createChord();
@@ -146,6 +146,7 @@ var nearestChordTypeStrategies = {
    */
   'd': function /* lowest note goes down */ (chordDef, previousChord) {
     var chord = nearestChordTypeStrategies.s(chordDef, previousChord);
+    chordDef = chord.getChordDefinition();
     while (previousChord.getHighestNote().getPosition() < chord.getHighestNote().getPosition()) {
       chordDef.setInversion(chordDef.getInversion() - 1);
       chord = chordDef.createChord();
