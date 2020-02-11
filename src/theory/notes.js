@@ -18,8 +18,9 @@ var majorNotes = [
 var WHITESPACE_REGEX = /\s+/;
 
 // mapping between letter and relative chromatic root
+var letters = ['c', 'd', 'e', 'f', 'g', 'a', 'b'];
 var letterMap = {};
-['c', 'd', 'e', 'f', 'g', 'a', 'b'].forEach(function(letter, index) {
+letters.forEach(function(letter, index) {
   letterMap[letter] = majorNotes[index];
 });
 var defaultRegister = 4;
@@ -61,6 +62,28 @@ function parseKeyPosition(keyName) {
   // c0 = 12
   return 12 + (register * 12) + relativeRoot;
 }
+
+// mapping (in form of a sparce array) between relative chromatic positions of the first octave and letters
+var chromaticKeyMap = {};
+for (var i = 0; i < 7; ++i) {
+  chromaticKeyMap[majorNotes[i]] = letters[i];
+}
+
+lib.findKeyName = function(keyPosition, preferB) {
+  var relativeKeyPosition = keyPosition % 12;
+  var register = Math.floor(keyPosition / 12) - 1;
+  if (chromaticKeyMap.hasOwnProperty(relativeKeyPosition)) {
+    return chromaticKeyMap[relativeKeyPosition].toUpperCase() + register;
+  }
+  var index;
+  if (preferB) {
+    index = (relativeKeyPosition + 1) % 7;
+    return chromaticKeyMap[index].toUpperCase() + 'b' + register;
+  } else {
+    index = (relativeKeyPosition == 0) ? 7 : relativeKeyPosition - 1;
+    return chromaticKeyMap[index].toUpperCase() + '#' + register;
+  }
+};
 
 /**
  * TODO Make lookups in intervalNameMap and fallback also work for higher than contained intervals, e.g. if b3 is contained, also b11 should also work

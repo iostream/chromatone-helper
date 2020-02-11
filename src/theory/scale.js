@@ -6,13 +6,6 @@ var notesLib = require("./notes.js");
 var WHITESPACE_REGEX = /\s+/;
 
 /**
- * notesAfterShift is an in/out parameter.
- */
-function transposeToMatchKey(notesBeforeShift, notesAfterShift) {
-
-}
-
-/**
  * @param String|notesObject definition
  * @return scale
  */
@@ -95,6 +88,11 @@ lib.createScale = function(definition) {
       // console.log("scale.shift(): " + oldNotes.join(" ") + " shifted " + steps + " times -> " + _notes.join(" ") + " notesSiftedButOldNames: " + notesSiftedButOldNames);
     },
     transpose: function(semitones) {
+       _keyPosition = _keyPosition + semitones;
+       // when transposing down, then b is preferred
+       // when transposing up, then # is preferred
+       var preferB = semitones < 0;
+      _keyName = notesLib.findKeyName(_keyPosition, preferB);
       for (var i=0; i<_notes.length; ++i) {
         _notes[i].transpose(semitones);
       }

@@ -78,6 +78,14 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     form.update.click();
   }
 
+  function transposeScale(semitones, element) {
+    var scale = tLib.createScale(element.value);
+    scale.transpose(semitones);
+    element.value = scale.toString();
+    form.update.click();
+  }
+
+
   function createScaleContainer(index, rootElement) {
     rootElement = rootElement || scaleElementTemplate.cloneNode(true);
     rootElement.style = '';
@@ -98,10 +106,21 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
 
     // shift scales through all their modes by "<" and ">" buttons
     c.root.querySelectorAll('input[type="button"]').forEach(function(button) {
-      if (button.value == "<") {
-        button.addEventListener("click", function() { shiftScale(-1, c.input); });
-      } else {
-        button.addEventListener("click", function() { shiftScale(1, c.input); });
+      switch(button.name) {
+        case 'shift_scale_left':
+          button.addEventListener("click", function() { shiftScale(-1, c.input); });
+          break;
+        case 'shift_scale_right':
+          button.addEventListener("click", function() { shiftScale(1, c.input); });
+          break;
+        case 'transpose_scale_down':
+          button.addEventListener("click", function() { transposeScale(-1, c.input); });
+          break;
+        case 'transpose_scale_up':
+          button.addEventListener("click", function() { transposeScale(1, c.input); });
+          break;
+        default:
+         break;
       }
     });
     // each scale comes with handy presets for jump starting everything:

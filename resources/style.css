@@ -113,14 +113,18 @@ margin-top: 4pt;
   position: relative;
 }
 .interactive-form .scale_container input[type="button"] {
-  width: 47pt;
+  width: calc(25% - 4px);
+  padding: 0;
 }
 .interactive-form .scale_container input[value=">"] {
   float: right;
 }
+.interactive-form .scale_container input[type="text"] {
+  width: calc(100% - 10pt);
+}
 .interactive-form .scale_container {
   display: inline-block;
-  max-width: 113pt;
+  max-width: 145pt;
 }
 .interactive-form .scale_container label {
   display: inline-block;
