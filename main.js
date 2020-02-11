@@ -12,9 +12,6 @@ var g = require("./src/gui/base.js"),
 
 var gmPlayer = gmPlayerLib.createGmPlayer();
 
-// these get played when the user clicks on play
-var _lastGeneratedEvents;
-
 // TODO move this code into an own file / layer?
 formLib.addForm(
   function(controls) {
@@ -32,11 +29,13 @@ formLib.addForm(
       }
     });1
     controls.play.addEventListener("click", function() {
-      gmPlayer.stop();
-      gmPlayer.playEvents(_lastGeneratedEvents, 2, 100);
+      gmPlayer.start();
     });
     controls.stop.addEventListener("click", function() {
       gmPlayer.stop();
+    });
+    controls.loop.addEventListener("click", function() {
+      gmPlayer.setLoop(controls.loop.checked);
     });
     controls.bpm.addEventListener("input", function() {
       gmPlayer.setBpm(controls.bpm.value);
@@ -48,14 +47,15 @@ formLib.addForm(
     var progression = p.createChordProgression(chordDefParserResult.getList());
     var chords = progression.getChords();
 
-    _lastGeneratedEvents = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    var events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    gmPlayer.setEvents(events);
 
     if (options.uploadToDAW) {
-      serverClient.uploadToDAW(_lastGeneratedEvents, chords, scales, buildGeneratorUrl(options.serializedForm));
+      serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
     }
 
     if (options.uploadMidi || options.generateMidi) {
-      var midiWriter = midi.createMidi(_lastGeneratedEvents, chords, scales, buildGeneratorUrl(options.serializedForm));
+      var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
       if (options.generateMidi) {
         downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
       }

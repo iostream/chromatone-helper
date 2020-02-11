@@ -156,13 +156,30 @@ margin-top: 4pt;
 .form-element input[type="range"] {
   max-width: 100%;
 }
-.form-element input[name="bpm_output"],
+.form-element input[name="loop"],
 .form-element input[name="play"],
 .form-element input[name="stop"] {
-  width: 26%;
   display: inline-block;
   padding: 0;
+  width: calc(50% - 10pt)
 }
+.form-element input[name="loop"] {
+  width: 10pt;
+  margin: 0;
+  padding: 0;
+}
+.form-element input[name="bpm"],
+.form-element input[name="bpm_output"] {
+  display: inline-block;
+  padding: 0;
+  width: 20pt;
+  margin: 0;
+  vertical-align: middle;
+}
+.form-element input[name="bpm"] {
+  width: calc(100% - 20pt - 20px);
+}
+
 .form-element label {
   display: inline-block;
 }
