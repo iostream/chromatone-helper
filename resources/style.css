@@ -152,6 +152,9 @@ margin-top: 4pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
+.form-element .form-element {
+  border: none;
+}
 .form-element select,
 .form-element input[type="range"] {
   max-width: 100%;
