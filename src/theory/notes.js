@@ -49,7 +49,7 @@ function parseKeyPosition(keyName) {
       relativeRoot += 1;
       ++pos;
     } else {
-      register = parseInt(keyName[pos]);
+      register = parseInt(keyName.substring(pos));
       if (isNaN(register)) {
         register = defaultRegister;
         console.error('parseKeyPosition() - Cannot parse register: ' + keyName[pos] + ' (of ' + keyName + ')');
