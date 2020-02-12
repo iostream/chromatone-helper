@@ -38,10 +38,10 @@ Each mode of a scale can be accessed using the `<` and `>` buttons
 * seventh chord: `1 3 5 7`
 * ninth chord: `1 3 5 7 9`
 
-### Rhythms
+### Rhythm patterns
 
 * "four to the floor": `1 1 1 1`
-* three quarter notes in one bar: `1 1 1 q=3`
+* three quarter notes in one bar (the default is a bar length of 4 quarter notes): `1 1 1 q=3`
 * "skank": `!1 1 !1 1 !1 1 !1 1`
 * Repeated dotted eighth note and sixteenth note: `3 1 3 1 3 1 3 1`
 
