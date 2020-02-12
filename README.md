@@ -20,6 +20,31 @@ Features
 - Chords are visualized to be played on Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
 - Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
+Examples
+--------
+
+### Scales
+
+Each mode of a scale can be accessed using the `<` and `>` buttons
+
+* D# major scale starting at middle D#: `1 2 3 4 5 6 7 k=D#4` or `1 2 3 4 5 6 7 D#4`
+* C natural minor starting at middle C (middle C is the default key): `1 2 b3 4 5 b6 b7`
+* Eb Bebob Major starting at Eb1: `1 2 3 4 5 b6 6 7 k=Eb1`
+
+### Voicings
+
+* triad: `1 3 5`
+* suspended chords: `1 2 5`, `1 4 5`
+* seventh chord: `1 3 5 7`
+* ninth chord: `1 3 5 7 9`
+
+### Rhythms
+
+* "four to the floor": `1 1 1 1`
+* three quarter notes in one bar: `1 1 1 q=3`
+* "skank": `!1 1 !1 1 !1 1 !1 1`
+* Repeated dotted eighth note and sixteenth note: `3 1 3 1 3 1 3 1`
+
 Development
 ===========
 
@@ -82,11 +107,9 @@ Feature wishes
 
 - Automatic Inversions
    * better/always working automatic chord transition inversion optimization
-   * allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
+   * [x] allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
    * add new mode: optimize for best voice leading
 
-- Chord-Length (first only for MIDI generation)
+- [x] Chord-Length (first only for MIDI generation)
    * default length of a chord is one bar
-   * change length examples:
-      * 2 bars, a forth note: `1L2`, `1L1/4`
-      * 2,5 bars: `1L2L1/2` or `1L2.5`
+   * chord length depends on the length of assigned rhythm of the chord definition
