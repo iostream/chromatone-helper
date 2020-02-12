@@ -25,11 +25,11 @@ Examples
 
 ### Scales
 
-Each mode of a scale can be accessed using the `<` and `>` buttons
+Each mode of a scale can be accessed by shifting the scale using the `<` and `>` buttons
 
 * D# major scale starting at middle D#: `1 2 3 4 5 6 7 k=D#4` or `1 2 3 4 5 6 7 D#4`
 * C natural minor starting at middle C (middle C is the default key): `1 2 b3 4 5 b6 b7`
-* Eb Bebob Major starting at Eb1: `1 2 3 4 5 b6 6 7 k=Eb1`
+* Eb bebob major scale starting at Eb1: `1 2 3 4 5 b6 6 7 k=Eb1`
 
 ### Voicings
 
