@@ -40,7 +40,6 @@ formLib.addForm(
     controls.bpm.addEventListener("input", function() {
       gmPlayer.setBpm(controls.bpm.value);
     });
-    controls.bpm.value = 120;
     controls.bpm.dispatchEvent(new Event('input'));
   },
   function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
