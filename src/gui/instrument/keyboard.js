@@ -1,7 +1,7 @@
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../theory/base.js");
+var tLib = require("../../theory/base.js");
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 

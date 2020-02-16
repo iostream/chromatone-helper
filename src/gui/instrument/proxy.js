@@ -30,9 +30,9 @@ function createInstrument1(options, parentElement) {
 
   var instrument = {
     // XXX This is the first mode: add one new GUI per chordDef
-    addChord: function(chord) {
+    addChord: function(chord, progression) {
       var instrument = _factory.create(
-        chord.getLowestNote().getPosition(),
+        progression.getLowestPosition(),
         chord.getHighestNote().getPosition(),
       );
 
@@ -52,21 +52,21 @@ function createInstrument1(options, parentElement) {
       var chords = progression.getChords();
       var chordsCopy = chords.slice();
       chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-        addChordsRecursive(chords, chordDefinitionOrComposit2);
+        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
       });
     }
   };
 
-  function addChordsRecursive(chords, chordDefinitionOrComposit) {
+  function addChordsRecursive(chords, chordDefinitionOrComposit, progression) {
     if (typeof chordDefinitionOrComposit.getChildren === "function") {
       var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), _parentElement);
       chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-        addChordsRecursive(chords, chordDefinitionOrComposit2);
+        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
       });
       _parentElement.appendChild(groupElement);
     } else {
       var chord = chords.shift();
-      instrument.addChord(chord);
+      instrument.addChord(chord, progression);
     }
   }
 

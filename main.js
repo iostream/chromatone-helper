@@ -1,4 +1,4 @@
-var instrumentLib = require("./src/gui/instrument.js"),
+var instrumentLib = require("./src/gui/instrument/proxy.js"),
  formLib = require("./src/gui/form.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),

@@ -1,7 +1,7 @@
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../theory/base.js");
+var tLib = require("../../theory/base.js");
 
 var zebraKeyboardTemplate = document.getElementById("templates").getElementsByClassName("zebra")[0];
 

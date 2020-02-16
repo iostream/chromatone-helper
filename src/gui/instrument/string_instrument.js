@@ -1,7 +1,7 @@
 var lib = {};
 module.exports = lib;
 
-var notesLib = require("../theory/notes.js");
+var notesLib = require("../../theory/notes.js");
 
 var stringInstrumentTemplate = document.getElementById("templates").getElementsByClassName("string-instrument")[0];
 
