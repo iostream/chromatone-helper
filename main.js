@@ -1,4 +1,4 @@
-var g = require("./src/gui/base.js"),
+var instrumentLib = require("./src/gui/instrument.js"),
  formLib = require("./src/gui/form.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),
@@ -63,7 +63,8 @@ formLib.addForm(
       }
     }
 
-    g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrumentOptions, resultSection);
+    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
+    instrument.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite());
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );
