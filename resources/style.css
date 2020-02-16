@@ -9,11 +9,6 @@ body {
 .form textarea {
   height: 50pt;
 }
-section#chords {
-  background-color: #f3eada;
-  padding: 4pt;
-  margin: 0;
-}
 section#templates {
   display: none;
 }
