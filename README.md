@@ -45,6 +45,14 @@ Each mode of a scale can be accessed by shifting the scale using the `<` and `>`
 * "skank": `!1 1 !1 1 !1 1 !1 1`
 * Repeated dotted eighth note and sixteenth note: `3 1 3 1 3 1 3 1`
 
+### Chord definitions
+
+The actual resulting chords depend on the used scale and the used voicing.
+
+* first jazz chord progression to learn: `2 5 1`
+* Pachelbel's Canon: `1 5 6 3 4 1 4 5`
+* modal interchange (chord defintions with `*` use the second scale, `**` is the third scale, etc.): `1 4* 3 1**`
+
 Development
 ===========
 
