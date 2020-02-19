@@ -188,6 +188,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
           case 'o': // inversion optimization algorithm, 0=off, 1=type 1, 2=type 2, etc.
             _isInversionOptimizationSet = true;
             _inversionOptimization = value;
+            break;
           case 'd':
             // inversion direction, (only effective, when inversion optimzation is turned on)
             // u=up, d=down, s=same (= try to optimize for best voice leading)
