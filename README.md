@@ -101,31 +101,11 @@ Creates `dist/chromatone/chromatone-combined-index.html` which contains everythi
 Feature wishes
 --------------
 
-**outdated**
-
-- Actual user reference
-- Voicings
-   * allow usage of accidentals in voicings
-   * allow usage of all chord modifiers also in voicings
-   * [x] include voicing in MIDI export
-   * enable voicings like this (beginning from comma does not exist yet), examples:
-      * 1 3 5 6, -2 (drop 2 voicing)
-      * 1 3 5 6, -4 (African jazz voicing I learned on Youtube)
-      * how to enable doubling? `1 3 5 6 6, -4` is not possible, because it would interupt the inversions (or change invert() algorithm?)
-        maybe `1 3 5 6, -4 4`
-   * transposing using intervals: e.g. 1Tb3 (1tb3 should not be possible?), instead of 1t3
-   * Bug: Using the voicings definition: `defaultVoicing` leads to endless recursion ("too much recursion" error in Firefox)
-
 - GUI
    * make it possible to switch between note naming modes: `relative` (each note is named by its chord interval, no matter the inversion), `absolute` (shows the actual intervals, starting from the lowest note), and maybe make it so, that the absolute naming can be starting from the highest note
    * better diff to next chord: just superimpose the next chord!
-   * render chord specifications next to the chord visualisation and enable modifications of the chord definition via just clicking on the visualisations or symbols next to them (e.g. transpose via `+`,`-`)
 
 - Automatic Inversions
    * better/always working automatic chord transition inversion optimization
    * [x] allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
    * add new mode: optimize for best voice leading
-
-- [x] Chord-Length (first only for MIDI generation)
-   * default length of a chord is one bar
-   * chord length depends on the length of assigned rhythm of the chord definition
