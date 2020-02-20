@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Chromatone Helper 🧙 by iostream 2018-2019</title>
+    <title>Chromatone Helper 🧙 by iostream 2018-2020</title>
     <meta charset="UTF-8">
 <style>
 :root {
@@ -14,11 +14,6 @@ body {
 }
 .form textarea {
   height: 50pt;
-}
-section#chords {
-  background-color: #f3eada;
-  padding: 4pt;
-  margin: 0;
 }
 section#templates {
   display: none;
@@ -507,13 +502,10 @@ margin-top: 4pt;
     <section id="interactive">
     </section>
 
-    <section id="chords">
-    </section>
-
     <!-- see main.js -->
 <script>
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-var g = require("./src/gui/base.js"),
+var instrumentLib = require("./src/gui/instrument/proxy.js"),
  formLib = require("./src/gui/form.js"),
  t = require("./src/theory/base.js"),
  p = require("./src/theory/progression.js"),
@@ -555,7 +547,6 @@ formLib.addForm(
     controls.bpm.addEventListener("input", function() {
       gmPlayer.setBpm(controls.bpm.value);
     });
-    controls.bpm.value = 120;
     controls.bpm.dispatchEvent(new Event('input'));
   },
   function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
@@ -579,7 +570,8 @@ formLib.addForm(
       }
     }
 
-    g.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite(), options.instrumentOptions, resultSection);
+    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
+    instrument.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite());
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );
@@ -604,7 +596,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":11,"./src/audio/gm_player.js":12,"./src/gui/base.js":14,"./src/gui/form.js":15,"./src/midi.js":22,"./src/parser/composite.js":24,"./src/parser/composite_parser.js":25,"./src/server/client.js":28,"./src/theory/arpeggio.js":30,"./src/theory/base.js":31,"./src/theory/progression.js":35}],2:[function(require,module,exports){
+},{"./resources/presets.js":11,"./src/audio/gm_player.js":12,"./src/gui/form.js":14,"./src/gui/instrument/proxy.js":16,"./src/midi.js":22,"./src/parser/composite.js":24,"./src/parser/composite_parser.js":25,"./src/server/client.js":28,"./src/theory/arpeggio.js":30,"./src/theory/base.js":31,"./src/theory/progression.js":35}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -5820,133 +5812,6 @@ lib.updateFingering = updateFingering;
 var lib = {};
 module.exports = lib;
 
-var keyboard = require("./keyboard.js");
-var zebra = require("./zebra.js");
-var stringInstrument = require("./string_instrument.js");
-
-function $_(id) { return document.getElementById(id); }
-/**
- * References to DOM elements...
- */
-var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
-  chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
-  chordReferenceGroupTemplate = $_("templates").getElementsByClassName("chord-reference-group")[0],
-  chordSection = $_("chords");
-
-function addChord(chord, parent, instrumentOptions, nextChord, lowestPosition) {
-  lowestPosition = lowestPosition || 0;
-  parent = parent || chordSection;
-  var instrument;
-
-  instrumentType = instrumentOptions.type || 'chromatic';
-  if (instrumentType == 'zebra') {
-    instrument = zebra.createZebraKeyboard(lowestPosition, chord.getHighestNote().getPosition());
-  } else if (instrumentType == 'chromatic') {
-    instrument = keyboard.createKeyboard(lowestPosition, chord.getHighestNote().getPosition(), 4);
-  } else {
-    instrument = stringInstrument.createStringInstrumentByType(instrumentType);
-  }
-
-  if (!instrument) {
-    console.error("addChord() - Unknown instrument type: " + instrumentType);
-    return;
-  }
-
-  var name;
-  if (typeof chord.getName !== "undefined") {
-    name = chord.getName();
-  }
-  instrument.add(chord, name, instrumentOptions);
-
-  if (nextChord) {
-    instrument.addDiff(nextChord);
-  }
-
-  parent.appendChild(instrument.getElement());
-
-  return instrument
-}
-lib.addChord = addChord;
-
-function createChordReferenceGroup(title, section) {
-  var groupEl = section.appendChild(chordReferenceGroupTemplate.cloneNode(true)),
-    titleEl = groupEl.getElementsByClassName("title")[0] || false;
-
-  if (titleEl && title) {
-    titleEl.innerHTML = title;
-  }
-  return groupEl;
-}
-
-function addChordGroup(chords, title, section, nextChordAfterGroup, instrumentOptions) {
-  section = section || chordSection;
-  nextChordAfterGroup = nextChordAfterGroup || null;
-
-  var groupEl = section.appendChild(chordGroupTemplate.cloneNode(true)),
-    titleEl = groupEl.getElementsByClassName("title")[0] || false;
-
-  if (titleEl && title) {
-    titleEl.innerHTML = title;
-  }
-
-  // TODO legacy code?
-  if (!Array.isArray(chords)) {
-    // make the array out of the string:
-    var chordDefinitions = chords.trim().split(",");
-    chords = [];
-    for (var i = 0; i < chordDefinitions.length; ++i) {
-      chords.push(tLib.parseNotes(chordDefinitions[i]));
-    }
-  }
-
-  for (var i = 0; i < chords.length; ++i) {
-    // add chord to the new keyboard
-    var keyboard = addChord(chords[i], groupEl, instrumentOptions);
-    var nextChord = chords[(i + 1) % chords.length];
-
-    // mark differences between voicings/notes, won't work all the time, because it's very simple:
-    // last chord of group and nextChordAfterGroup was passed?
-    if (i === chords.length - 1 && nextChordAfterGroup !== null) {
-      nextChord = nextChordAfterGroup;
-    }
-    keyboard.addDiff(nextChord);
-  }
-}
-lib.addChordGroup = addChordGroup;
-
-function addChordsRecursive(chords, chordDefinitionOrComposit, parentElement, instrumentOptions, lowestPosition) {
-  if (typeof chordDefinitionOrComposit.getChildren === "function") {
-    var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), parentElement);
-    chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-      addChordsRecursive(chords, chordDefinitionOrComposit2, groupElement, instrumentOptions, lowestPosition);
-    });
-    parentElement.appendChild(groupElement);
-  } else {
-    var chord = chords.shift();
-    var nextChord = chords.length > 0 ? chords[0] : false;
-    addChord(chord, parentElement, instrumentOptions, nextChord, lowestPosition);
-  }
-}
-
-lib.addChordProgressionUsingChordDefinitionComposit = function(progression, chordDefinitionComposit, instrumentOptions, parentElement) {
-  var chords = progression.getChords();
-  var chordsCopy = chords.slice();
-  parentElement = parentElement || chordSection;
-  chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-    addChordsRecursive(chords, chordDefinitionOrComposit2, parentElement, instrumentOptions, progression.getLowestPosition());
-  });
-}
-
-function addBreak(section) {
-  section = section || chordSection;
-  section.appendChild(document.createElement("br"));
-}
-lib.addBreak = addBreak;
-
-},{"./keyboard.js":16,"./string_instrument.js":20,"./zebra.js":21}],15:[function(require,module,exports){
-var lib = {};
-module.exports = lib;
-
 var formSerialize = require('form-serialize');
 
 var session = require("./session.js");
@@ -6308,11 +6173,11 @@ function initControlElements(form) {
   };
 }
 
-},{"../theory/arpeggio.js":30,"../theory/base.js":31,"../theory/rhythm.js":36,"./pocket_knife.js":17,"./presets.js":18,"./session.js":19,"form-serialize":4}],16:[function(require,module,exports){
+},{"../theory/arpeggio.js":30,"../theory/base.js":31,"../theory/rhythm.js":36,"./pocket_knife.js":19,"./presets.js":20,"./session.js":21,"form-serialize":4}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../theory/base.js");
+var tLib = require("../../theory/base.js");
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
@@ -6440,188 +6305,131 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../theory/base.js":31}],17:[function(require,module,exports){
+},{"../../theory/base.js":31}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-lib.initPocketKnife = function(form) {
-  form.pocket_knife.addEventListener("change", function() {
-    var value = form.pocket_knife.value;
-    if (handleUrlAction(value)) {
-      return;
-    }
-    console.error("Unknown pocket knife value: " + value);
-  });
+var keyboard = require("./keyboard.js");
+var zebra = require("./zebra.js");
+var stringInstrument = require("./string_instrument.js");
+
+function $_(id) { return document.getElementById(id); }
+var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
+  chordGroupTemplate = $_("templates").getElementsByClassName("chord-group")[0],
+  chordReferenceGroupTemplate = $_("templates").getElementsByClassName("chord-reference-group")[0],
+  chordSection = $_("chords");
+
+/**
+ * Creates a common proxy to all kind of instruments. The proxy also implements
+ * some features, so the actual instrument implementations can be simple.
+ */
+lib.createInstrument = function(options, parentElement) {
+  return createInstrument1(options, parentElement);
 }
 
-function handleUrlAction(value) {
-  var newUrlBase;
-  switch (value) {
-    case 'localhost':
-      newUrlBase = 'http://localhost:3042/';
+/**
+ * Creates one new instrument GUI per chord.
+ */
+function createInstrument1(options, parentElement) {
+  var _options = options;
+  var _factory = createInstrumentFactory(options);
+  var _parentElement = parentElement;
+  var _lastInstrument = false;
+
+  var instrument = {
+    // XXX This is the first mode: add one new GUI per chordDef
+    addChord: function(chord, progression) {
+      var instrument = _factory.create(
+        progression.getLowestPosition(),
+        chord.getHighestNote().getPosition(),
+      );
+
+      var name;
+      if (typeof chord.getName !== "undefined") {
+        name = chord.getName();
+      }
+      instrument.add(chord, name, _options);
+
+      if (_lastInstrument) {
+        _lastInstrument.addDiff(chord);
+      }
+      _lastInstrument = instrument;
+      _parentElement.appendChild(instrument.getElement());
+    },
+    addChordProgressionUsingChordDefinitionComposit: function(progression, chordDefinitionComposit) {
+      var chords = progression.getChords();
+      var chordsCopy = chords.slice();
+      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
+        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
+      });
+    }
+  };
+
+  function addChordsRecursive(chords, chordDefinitionOrComposit, progression) {
+    if (typeof chordDefinitionOrComposit.getChildren === "function") {
+      var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), _parentElement);
+      chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
+        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
+      });
+      _parentElement.appendChild(groupElement);
+    } else {
+      var chord = chords.shift();
+      instrument.addChord(chord, progression);
+    }
+  }
+
+  return instrument;
+}
+
+function createInstrumentFactory(options) {
+  var type = options.type || 'chromatic';
+
+  switch(type) {
+    case 'chromatic':
+      return {
+        create: function(lowestPosition, highestPosition) {
+          return keyboard.createKeyboard(lowestPosition, highestPosition, 4);
+        }
+      };
       break;
-    case 'www':
-      newUrlBase = 'https://iostream.github.io/chromatone-helper/';
-      break;
-    case 'file':
-      newUrlBase = 'file:///home/iostream/chromatone-helper/chromatone-helper/chromatone-index.html';
+    case 'zebra':
+      return {
+        create: function(lowestPosition, highestPosition) {
+          return zebra.createZebraKeyboard(lowestPosition, highestPosition);
+        }
+      };
       break;
     default:
-      return false;
-  }
-  var url = new URL(document.location.href);
-  var newUrl = newUrlBase + url.hash;
-  if (value === 'file') {
-    alert(newUrl);
-    return;
-  }
-  document.location.href = newUrl;
-}
-
-},{}],18:[function(require,module,exports){
-var lib = {};
-module.exports = lib;
-
-lib.enablePresets = function(form, enabled) {
-  var presetElements = form.querySelectorAll(".preset");
-  presetElements.forEach(function(element) {
-    element.disabled = !enabled;
-  });
-}
-
-/**
- * presets[]                        .. the presets to be initialized
- * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
- * elements[]                       .. the elements, the preset values get assigned to when a preset is selected
- */
-lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
-  var presetSelectElements = presetSelectElementOrElements;
-  if (!Array.isArray(presetSelectElements)) {
-    presetSelectElements = [presetSelectElements];
-  }
-
-  presetSelectElements.forEach(function(presetEl) {
-    // initialize the preset select box
-    for (var i = 0; i < presets.length; ++i) {
-      var preset = presets[i];
-      var option = presetEl.appendChild(document.createElement("option"));
-      option.value = i;
-      option.innerHTML = preset
-        .map(function(v){
-          return Array.isArray(v) ? v.join(", ") : v;
-        })
-        .join(" -> ");
-    }
-    presetEl.addEventListener("change", function(event) {
-      // Apply the selected preset to the element or elements
-      var preset = presets[presetEl.value];
-      for (var i=0; i < elements.length; ++i) {
-        var elementOrElements = elements[i];
-        if (typeof elementOrElements === "function") {
-          elementOrElements = elementOrElements(preset[i]);
-        }
-        if (Array.isArray(elementOrElements)) {
-          if (!Array.isArray(preset[i])) {
-            console.error("initPresets () - Preset not set up right!");
-            continue;
+      return {
+        create: function(lowestPosition, highestPosition) {
+          var instrument = stringInstrument.createStringInstrumentByType(type);
+          if (!instrument) {
+            console.error("create() - Unknown instrument type: " + type);
+            return;
           }
-          var index = 0;
-          preset[i].forEach(function(presetValue) {
-            if (typeof elementOrElements[index] === "undefined") {
-              console.error("initPresets () - Preset not set up right: " + (index + 1));
-            } else {
-              applyPresetValue(elementOrElements[index], presetValue);
-            }
-            ++index;
-          });
-
-        } else {
-          applyPresetValue(elementOrElements, preset[i]);
+          return instrument;
         }
-      }
-      presetEl.form.update.click();
-    });
-  });
-}
-
-function applyPresetValue(element, presetValue) {
-  if (typeof(presetValue) === "undefined") {
-    element.value = "";
-    return;
-  }
-  element.value = presetValue;
-}
-
-},{}],19:[function(require,module,exports){
-var session = {};
-module.exports = session;
-
-function setSessionValue(key, value) {
-  if (!window.sessionStorage) {
-    return;
-  }
-  window.sessionStorage.setItem(key, value);
-}
-
-function getBooleanSessionValue(key, defaultValue) {
-  if (!window.sessionStorage) {
-    return defaultValue;
-  }
-  var item = window.sessionStorage.getItem(key);
-  if (item === "true") {
-    return true;
-  }
-  if (item === "false") {
-    return false;
-  }
-  return defaultValue;
-}
-
-/**
- * callback(fullKeyWithoutPrefix, valueAsString);
- */
-function forEachItemsByKeyPrefix(prefix, callback) {
-  var key;
-  var i = 0;
-  while ((key = window.sessionStorage.key(i++)) ) {
-    if (key.indexOf(prefix) === 0) {
-      var subKey = key.substr(prefix.length);
-      callback(subKey, window.sessionStorage.getItem(key));
-    }
+      };
+      break;
   }
 }
 
-var UPDATE_DAW_KEY = "update_daw";
-session.setDAWUpdateActivated = function(enabled) {
-  setSessionValue(UPDATE_DAW_KEY, !!enabled);
+function createChordReferenceGroup(title, section) {
+  var groupEl = section.appendChild(chordReferenceGroupTemplate.cloneNode(true)),
+    titleEl = groupEl.getElementsByClassName("title")[0] || false;
+
+  if (titleEl && title) {
+    // XXX TODO use text node instead of innerHTML
+    titleEl.innerHTML = title;
+  }
+  return groupEl;
 }
 
-session.isDAWUpdateActivated = function() {
-  return getBooleanSessionValue(UPDATE_DAW_KEY, false);
-}
-
-var TEXT_AREAS_KEY_PREFIX = "text_area_sizes.";
-session.saveTextAreaSizes = function(textArea) {
-  var keyPrefix = TEXT_AREAS_KEY_PREFIX + textArea.name + ".";
-  setSessionValue(keyPrefix + "height", textArea.style.height);
-  setSessionValue(keyPrefix + "width", textArea.style.width);
-}
-
-session.restoreTextAreaSizes = function(form) {
-  forEachItemsByKeyPrefix(TEXT_AREAS_KEY_PREFIX, function(key, value) {
-    var keyParts = key.split(".");
-    if (keyParts < 2) {
-      return;
-    }
-    form[keyParts[0]].style[keyParts[1]] = value;
-  });
-}
-
-},{}],20:[function(require,module,exports){
+},{"./keyboard.js":15,"./string_instrument.js":17,"./zebra.js":18}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var notesLib = require("../theory/notes.js");
+var notesLib = require("../../theory/notes.js");
 
 var stringInstrumentTemplate = document.getElementById("templates").getElementsByClassName("string-instrument")[0];
 
@@ -6809,11 +6617,11 @@ function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
   }
 }
 
-},{"../theory/notes.js":34}],21:[function(require,module,exports){
+},{"../../theory/notes.js":34}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../theory/base.js");
+var tLib = require("../../theory/base.js");
 
 var zebraKeyboardTemplate = document.getElementById("templates").getElementsByClassName("zebra")[0];
 
@@ -6921,7 +6729,184 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../theory/base.js":31}],22:[function(require,module,exports){
+},{"../../theory/base.js":31}],19:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+lib.initPocketKnife = function(form) {
+  form.pocket_knife.addEventListener("change", function() {
+    var value = form.pocket_knife.value;
+    if (handleUrlAction(value)) {
+      return;
+    }
+    console.error("Unknown pocket knife value: " + value);
+  });
+}
+
+function handleUrlAction(value) {
+  var newUrlBase;
+  switch (value) {
+    case 'localhost':
+      newUrlBase = 'http://localhost:3042/';
+      break;
+    case 'www':
+      newUrlBase = 'https://iostream.github.io/chromatone-helper/';
+      break;
+    case 'file':
+      newUrlBase = 'file:///home/iostream/chromatone-helper/chromatone-helper/chromatone-index.html';
+      break;
+    default:
+      return false;
+  }
+  var url = new URL(document.location.href);
+  var newUrl = newUrlBase + url.hash;
+  if (value === 'file') {
+    alert(newUrl);
+    return;
+  }
+  document.location.href = newUrl;
+}
+
+},{}],20:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+lib.enablePresets = function(form, enabled) {
+  var presetElements = form.querySelectorAll(".preset");
+  presetElements.forEach(function(element) {
+    element.disabled = !enabled;
+  });
+}
+
+/**
+ * presets[]                        .. the presets to be initialized
+ * presetSelectElementOrElements|[] .. select element or elements which are used to switch between the different presets
+ * elements[]                       .. the elements, the preset values get assigned to when a preset is selected
+ */
+lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
+  var presetSelectElements = presetSelectElementOrElements;
+  if (!Array.isArray(presetSelectElements)) {
+    presetSelectElements = [presetSelectElements];
+  }
+
+  presetSelectElements.forEach(function(presetEl) {
+    // initialize the preset select box
+    for (var i = 0; i < presets.length; ++i) {
+      var preset = presets[i];
+      var option = presetEl.appendChild(document.createElement("option"));
+      option.value = i;
+      option.innerHTML = preset
+        .map(function(v){
+          return Array.isArray(v) ? v.join(", ") : v;
+        })
+        .join(" -> ");
+    }
+    presetEl.addEventListener("change", function(event) {
+      // Apply the selected preset to the element or elements
+      var preset = presets[presetEl.value];
+      for (var i=0; i < elements.length; ++i) {
+        var elementOrElements = elements[i];
+        if (typeof elementOrElements === "function") {
+          elementOrElements = elementOrElements(preset[i]);
+        }
+        if (Array.isArray(elementOrElements)) {
+          if (!Array.isArray(preset[i])) {
+            console.error("initPresets () - Preset not set up right!");
+            continue;
+          }
+          var index = 0;
+          preset[i].forEach(function(presetValue) {
+            if (typeof elementOrElements[index] === "undefined") {
+              console.error("initPresets () - Preset not set up right: " + (index + 1));
+            } else {
+              applyPresetValue(elementOrElements[index], presetValue);
+            }
+            ++index;
+          });
+
+        } else {
+          applyPresetValue(elementOrElements, preset[i]);
+        }
+      }
+      presetEl.form.update.click();
+    });
+  });
+}
+
+function applyPresetValue(element, presetValue) {
+  if (typeof(presetValue) === "undefined") {
+    element.value = "";
+    return;
+  }
+  element.value = presetValue;
+}
+
+},{}],21:[function(require,module,exports){
+var session = {};
+module.exports = session;
+
+function setSessionValue(key, value) {
+  if (!window.sessionStorage) {
+    return;
+  }
+  window.sessionStorage.setItem(key, value);
+}
+
+function getBooleanSessionValue(key, defaultValue) {
+  if (!window.sessionStorage) {
+    return defaultValue;
+  }
+  var item = window.sessionStorage.getItem(key);
+  if (item === "true") {
+    return true;
+  }
+  if (item === "false") {
+    return false;
+  }
+  return defaultValue;
+}
+
+/**
+ * callback(fullKeyWithoutPrefix, valueAsString);
+ */
+function forEachItemsByKeyPrefix(prefix, callback) {
+  var key;
+  var i = 0;
+  while ((key = window.sessionStorage.key(i++)) ) {
+    if (key.indexOf(prefix) === 0) {
+      var subKey = key.substr(prefix.length);
+      callback(subKey, window.sessionStorage.getItem(key));
+    }
+  }
+}
+
+var UPDATE_DAW_KEY = "update_daw";
+session.setDAWUpdateActivated = function(enabled) {
+  setSessionValue(UPDATE_DAW_KEY, !!enabled);
+}
+
+session.isDAWUpdateActivated = function() {
+  return getBooleanSessionValue(UPDATE_DAW_KEY, false);
+}
+
+var TEXT_AREAS_KEY_PREFIX = "text_area_sizes.";
+session.saveTextAreaSizes = function(textArea) {
+  var keyPrefix = TEXT_AREAS_KEY_PREFIX + textArea.name + ".";
+  setSessionValue(keyPrefix + "height", textArea.style.height);
+  setSessionValue(keyPrefix + "width", textArea.style.width);
+}
+
+session.restoreTextAreaSizes = function(form) {
+  forEachItemsByKeyPrefix(TEXT_AREAS_KEY_PREFIX, function(key, value) {
+    var keyParts = key.split(".");
+    if (keyParts < 2) {
+      return;
+    }
+    form[keyParts[0]].style[keyParts[1]] = value;
+  });
+}
+
+},{}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8757,6 +8742,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
           case 'o': // inversion optimization algorithm, 0=off, 1=type 1, 2=type 2, etc.
             _isInversionOptimizationSet = true;
             _inversionOptimization = value;
+            break;
           case 'd':
             // inversion direction, (only effective, when inversion optimzation is turned on)
             // u=up, d=down, s=same (= try to optimize for best voice leading)
