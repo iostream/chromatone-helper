@@ -23,6 +23,14 @@ Features
 Examples
 --------
 
+### Chord definitions
+
+The actual resulting chords depend on the used scale and the used voicing.
+
+* first jazz chord progression to learn: `2 5 1`
+* Pachelbel's Canon: `1 5 6 3 4 1 4 5`
+* modal interchange (chord defintions with `*` use the second scale, `**` is the third scale, etc.): `1 4* 3 1**`
+
 ### Scales
 
 Each mode of a scale can be accessed by shifting the scale using the `<` and `>` buttons
@@ -45,13 +53,13 @@ Each mode of a scale can be accessed by shifting the scale using the `<` and `>`
 * "skank": `!1 1 !1 1 !1 1 !1 1`
 * Repeated dotted eighth note and sixteenth note: `3 1 3 1 3 1 3 1`
 
-### Chord definitions
+### Arpeggio patterns
 
-The actual resulting chords depend on the used scale and the used voicing.
-
-* first jazz chord progression to learn: `2 5 1`
-* Pachelbel's Canon: `1 5 6 3 4 1 4 5`
-* modal interchange (chord defintions with `*` use the second scale, `**` is the third scale, etc.): `1 4* 3 1**`
+* deepest and highest pitch: `1 -1`
+* all pitches of a triad, descending: `3 2 1`
+* second highest pitch and then all following pitches after inversion of the selected chord in the order they appear in the voicing of the chord: `-2 >*`
+* deepest pitch and then all pitches played at once: `1 >*_`
+* deepest and highest note of the chord played together, and then the second lowest and the next pitch in order of the voicing played together `1_-1 2_>`
 
 Development
 ===========
