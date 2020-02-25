@@ -20,6 +20,11 @@ Features
 - Chords are visualized to be played on Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
 - Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
+Full examples
+-------------
+
+* [Example 1](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a%3A+1+2+6+4+5+6)%0D%0A(%24b%3A+8+7+6+5+4+3)%0D%0A%0D%0Aa+d%3Du+i%2B%3D2++A%3Db%0D%0A(a+b)%0D%0Ab+d%3Dd%0D%0Aa+d%3Dd+i%2B%3D1+t-%3D12%0D%0A&scale%5B0%5D=r1+2+b3+4+5+b6+7+k%3DD3&voicing=1+3+8+5+7+8&rhythms=1+1+1+1+1+1+1+1+q%3D4&arp=b%3A+%3E*%0D%0A1_%3E+%3E+%3E+4_%3E+%3E+%3E&instrument=zebra&bpm=117)
+
 Examples
 --------
 
