@@ -170,6 +170,10 @@ function normalizeVoices(voices) {
  * Inversions can be negative and there are more inversions than note count - 1.
  */
 function invertNotes(notes, inversion) {
+  if (notes.length <= 1)  {
+    // not returning here would result in an endless loop
+    return;
+  }
   // simple and effective....
   if (inversion > 0) {
     var highestNote = notes[notes.length - 1];
