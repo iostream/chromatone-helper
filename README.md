@@ -20,6 +20,15 @@ Features
 - Chords are visualized to be played on Chromatone and zebra keyboard (in the latest version also guitar, bass, etc.)
 - Reaper-DAW integration (MIDI editor contents get replaced by the tool in realtime when you alter the input)
 
+Full examples
+-------------
+
+All examples are originals.
+
+* [Example 1](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a%3A+1+2+6+4+5+6)%0D%0A(%24b%3A+8+7+6+5+4+3)%0D%0A%0D%0Aa+d%3Du+i%2B%3D2++A%3Db%0D%0A(a+b)%0D%0Ab+d%3Dd%0D%0Aa+d%3Dd+i%2B%3D1+t-%3D12%0D%0A&scale%5B0%5D=r1+2+b3+4+5+b6+7+k%3DD3&voicing=1+3+8+5+7+8&rhythms=1+1+1+1+1+1+1+1+q%3D4&arp=b%3A+%3E*%0D%0A1_%3E+%3E+%3E+4_%3E+%3E+%3E&instrument=zebra&bpm=117)
+* [Example 2](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a1%3A+1i1+6i0+2+5*+V%3Db)%0D%0A(%24a2%3A+1*+6*+2**+6**+V%3Dc+R%3Dc)%0D%0A%0D%0Aa1+A%3Da%0D%0Aa1+A%3Db%0D%0Aa2+A%3Db&scale%5B0%5D=r1+2+3+4+5+b6+7+k%3DB2&scale%5B1%5D=r1+2+3+4+5+6+7+k%3DB2&scale%5B2%5D=r1+2+b3+4+5+b6+b7+k%3DEb2&voicing=a%3A+1+5+8+10+12+%0D%0Ab%3A+1+5+8+9+10+12%0D%0Ac%3A+1+3+5+7+8%0D%0Aa&rhythms=1+1+!1+1+!1+1+!1+1+q%3D4%0D%0Ab%3A+1+!1+1+!1+1+!1+1+1%0D%0Ac%3A+1+1+1+1+1+1+1+1&arp=a%3A+1_3+%3E*+2_4%0D%0Ab%3A+1+2_3_4+2+3_4_5+-2+-1_-2_-3%0D%0A&instrument=guitar&bpm=146)
+* [Example 3](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(A%3A+%0D%0A+(2i3+4+5+V%3Db+3)+V%3Da%0D%0A)%0D%0A(B%3A%0D%0A+(2+4+6+8)+V%3Db%0D%0A)%0D%0A(B+B)&scale%5B0%5D=r1+2+b3+4+5+6+b7+k%3Dd2&voicing=a%3A+3+5+7+8%0D%0Ab%3A+3+6+8+10%0D%0A&rhythms=6+8+12+8+6+8+8+8+q%3D4%0D%0A&arp=1+-1+-3+-2+-3+-1+&instrument=chromatic&bpm=128)
+
 Examples
 --------
 
@@ -101,32 +110,11 @@ Creates `dist/chromatone/chromatone-combined-index.html` which contains everythi
 Feature wishes
 --------------
 
-**outdated**
-
-- Actual user reference
-- Reaper-DAW integration
-- Voicings
-   * allow usage of accidentals in voicings
-   * allow usage of all chord modifiers also in voicings
-   * [x] include voicing in MIDI export
-   * enable voicings like this (beginning from comma does not exist yet), examples:
-      * 1 3 5 6, -2 (drop 2 voicing)
-      * 1 3 5 6, -4 (African jazz voicing I learned on Youtube)
-      * how to enable doubling? `1 3 5 6 6, -4` is not possible, because it would interupt the inversions (or change invert() algorithm?)
-        maybe `1 3 5 6, -4 4`
-   * transposing using intervals: e.g. 1Tb3 (1tb3 should not be possible?), instead of 1t3
-   * Bug: Using the voicings definition: `defaultVoicing` leads to endless recursion ("too much recursion" error in Firefox)
-
 - GUI
    * make it possible to switch between note naming modes: `relative` (each note is named by its chord interval, no matter the inversion), `absolute` (shows the actual intervals, starting from the lowest note), and maybe make it so, that the absolute naming can be starting from the highest note
    * better diff to next chord: just superimpose the next chord!
-   * render chord specifications next to the chord visualisation and enable modifications of the chord definition via just clicking on the visualisations or symbols next to them (e.g. transpose via `+`,`-`)
 
 - Automatic Inversions
    * better/always working automatic chord transition inversion optimization
    * [x] allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
    * add new mode: optimize for best voice leading
-
-- [x] Chord-Length (first only for MIDI generation)
-   * default length of a chord is one bar
-   * chord length depends on the length of assigned rhythm of the chord definition
