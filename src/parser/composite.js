@@ -117,27 +117,7 @@ function createSubjectComposite(name, variables) {
     createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
       var subjects = [];
 
-      var optionsList = [_options];
-
-      // add options of parents to the list of options
-      parentOptionsList.forEach(function(parentOptions) {
-        var alteredParentOptions = false;
-        parentOptions.forEachOption(function(key, value, operator, isShort, isForced) {
-          // if the parent sets a value, then it only gets assigned to a child of it
-          // if the child does not assign a value itself to the same option
-          if (operator == '=' && _options.hasAssignedValue(key) && !isForced) {
-            // clone parent options, if it was not changed before
-            if (!alteredParentOptions) {
-              alteredParentOptions = parentOptions.clone();
-            }
-            alteredParentOptions.removeAssignedValue(key);
-          }
-        });
-        if (alteredParentOptions) {
-          parentOptions = alteredParentOptions;
-        }
-        optionsList.push(parentOptions);
-      });
+      var optionsList = [_options].concat(parentOptionsList);
 
       _children.forEach(function(child) {
         if (typeof child.createFlatSubjectListRecursive === 'function') {
@@ -146,12 +126,18 @@ function createSubjectComposite(name, variables) {
         }
         var assignments = {};
         var subjectBuilder = subjectBuilderFactory();
+        var childOptions = child.getOptions();
         subjectBuilder.withMatch(child.getMatch());
-        child.getOptions().forEachOption(function(key, value, operator, isShort, isForced) {
+        childOptions.forEachOption(function(key, value, operator, isShort, isForced) {
           subjectBuilder.withOption(key, value, operator, isShort, isForced);
         });
         optionsList.forEach(function(options) {
           options.forEachOption(function(key, value, operator, isShort, isForced) {
+            // if the parent sets a value, then it only gets assigned to a child of it
+            // if the child does not assign a value itself to the same option
+            if (operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
+              return;
+            }
             subjectBuilder.withOption(key, value, operator, isShort, isForced);
           });
         });
