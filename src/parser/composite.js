@@ -108,14 +108,13 @@ function createSubjectComposite(name, variables) {
      * - getResult() // returns the resulting subject
      */
     createFlatSubjectList: function(subjectBuilderFactory) {
-      // return this.createFlatSubjectListRecursive(subjectBuilderFactory, []);
-      return this.createFlatSubjectListRecursive2(subjectBuilderFactory, []);
+      return this.createFlatSubjectListRecursive(subjectBuilderFactory, []);
     },
     /**
      * In this version the outer parts are the more specific options. I think
      * this could make more sense.
      */
-    createFlatSubjectListRecursive2: function(subjectBuilderFactory, parentOptionsList) {
+    createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
       var subjects = [];
 
       /**
@@ -137,8 +136,8 @@ function createSubjectComposite(name, variables) {
       var optionsList = [_options].concat(parentOptionsList);
 
       _children.forEach(function(child) {
-        if (typeof child.createFlatSubjectListRecursive2 === 'function') {
-          subjects = subjects.concat(child.createFlatSubjectListRecursive2(subjectBuilderFactory, optionsList));
+        if (typeof child.createFlatSubjectListRecursive === 'function') {
+          subjects = subjects.concat(child.createFlatSubjectListRecursive(subjectBuilderFactory, optionsList));
           return;
         }
         var assignments = {};
@@ -161,32 +160,7 @@ function createSubjectComposite(name, variables) {
         subjects.push(subjectBuilder.getResult());
       });
       return subjects;
-    },
-    // XXX now unused:
-    /*createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
-      var subjects = [];
-
-      var optionsList = parentOptionsList.concat([_options]);
-
-      _children.forEach(function(child) {
-        if (typeof child.createFlatSubjectListRecursive === 'function') {
-          subjects = subjects.concat(child.createFlatSubjectListRecursive(subjectBuilderFactory, optionsList));
-          return;
-        }
-        var subjectBuilder = subjectBuilderFactory();
-        subjectBuilder.withMatch(child.getMatch());
-        optionsList.forEach(function(options) {
-          options.forEachOption(function(key, value, operator, isShort) {
-              subjectBuilder.withOption(key, value, operator, isShort);
-          });
-        });
-        child.getOptions().forEachOption(function(key, value, operator, isShort) {
-            subjectBuilder.withOption(key, value, operator, isShort);
-        });
-        subjects.push(subjectBuilder.getResult());
-      });
-      return subjects;
-    }*/
+    }
   };
 }
 
