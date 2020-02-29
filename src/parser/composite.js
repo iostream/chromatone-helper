@@ -134,7 +134,7 @@ function createSubjectComposite(name, variables) {
         return isForced;
       }
 
-      var optionsList = parentOptionsList.concat([_options]);
+      var optionsList = [_options].concat(parentOptionsList);
 
       _children.forEach(function(child) {
         if (typeof child.createFlatSubjectListRecursive2 === 'function') {
