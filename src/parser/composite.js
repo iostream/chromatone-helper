@@ -117,23 +117,27 @@ function createSubjectComposite(name, variables) {
     createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
       var subjects = [];
 
-      /**
-       * The builder only gets onOption calls for the operator "="
-       *  - when they are the first
-       *  - or they are forced
-       */
-      function isAssignable(key, operator, isForced, assignments) {
-        if (operator !== '=') {
-          return true;
-        }
-        if (typeof(assignments[key]) === 'undefined') {
-          assignments[key] = true;
-          return true;
-        }
-        return isForced;
-      }
+      var optionsList = [_options];
 
-      var optionsList = [_options].concat(parentOptionsList);
+      // add options of parents to the list of options
+      parentOptionsList.forEach(function(parentOptions) {
+        var alteredParentOptions = false;
+        parentOptions.forEachOption(function(key, value, operator, isShort, isForced) {
+          // if the parent sets a value, then it only gets assigned to a child of it
+          // if the child does not assign a value itself to the same option
+          if (operator == '=' && _options.hasAssignedValue(key) && !isForced) {
+            // clone parent options, if it was not changed before
+            if (!alteredParentOptions) {
+              alteredParentOptions = parentOptions.clone();
+            }
+            alteredParentOptions.removeAssignedValue(key);
+          }
+        });
+        if (alteredParentOptions) {
+          parentOptions = alteredParentOptions;
+        }
+        optionsList.push(parentOptions);
+      });
 
       _children.forEach(function(child) {
         if (typeof child.createFlatSubjectListRecursive === 'function') {
@@ -144,16 +148,10 @@ function createSubjectComposite(name, variables) {
         var subjectBuilder = subjectBuilderFactory();
         subjectBuilder.withMatch(child.getMatch());
         child.getOptions().forEachOption(function(key, value, operator, isShort, isForced) {
-          if (!isAssignable(key, operator, isForced, assignments)) {
-            return;
-          }
           subjectBuilder.withOption(key, value, operator, isShort, isForced);
         });
         optionsList.forEach(function(options) {
           options.forEachOption(function(key, value, operator, isShort, isForced) {
-            if (!isAssignable(key, operator, isForced, assignments)) {
-              return;
-            }
             subjectBuilder.withOption(key, value, operator, isShort, isForced);
           });
         });
@@ -219,6 +217,18 @@ function createOptions() {
     addOption: function(key, valueAsString, operator, isShort, isForced) {
       var options = isShort ? _shortOptions : _options;
       addOption(key, valueAsString, operator, isForced, options);
+    },
+    /**
+     * Returns the value of an option by key which was set using '=' or false.
+    */
+    hasAssignedValue: function(key) {
+      return typeof(_options[key]) !== 'undefined' && typeof(_options[key]['=']) !== 'undefined';
+    },
+    removeAssignedValue: function(key) {
+      if (!this.hasAssignedValue(key)) {
+        return;
+      }
+      delete _options[key]['='];
     },
     asString: function() {
       var shortOptions = createString(_shortOptions);
