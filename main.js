@@ -64,7 +64,7 @@ formLib.addForm(
     }
 
     var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
-    instrument.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite());
+    instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );

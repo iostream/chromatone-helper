@@ -1,9 +1,7 @@
 var lib = {};
 module.exports = lib;
 
-var keyboard = require("./keyboard.js");
-var zebra = require("./zebra.js");
-var stringInstrument = require("./string_instrument.js");
+var factoryLib = require('./factory.js');
 
 function $_(id) { return document.getElementById(id); }
 var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
@@ -24,7 +22,7 @@ lib.createInstrument = function(options, parentElement) {
  */
 function createInstrument1(options, parentElement) {
   var _options = options;
-  var _factory = createInstrumentFactory(options);
+  var _factory = factoryLib.createInstrumentFactory(options);
   var _parentElement = parentElement;
   var _lastInstrument = false;
 
@@ -48,20 +46,19 @@ function createInstrument1(options, parentElement) {
       _lastInstrument = instrument;
       _parentElement.appendChild(instrument.getElement());
     },
-    addChordProgressionUsingChordDefinitionComposit: function(progression, chordDefinitionComposit) {
-      var chords = progression.getChords();
-      var chordsCopy = chords.slice();
-      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
+    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposit) {
+      var chordsCopy = progression.getChords().slice();
+      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposite2) {
+        addChordsRecursive(chordsCopy, chordDefinitionOrComposite2, progression);
       });
     }
   };
 
-  function addChordsRecursive(chords, chordDefinitionOrComposit, progression) {
-    if (typeof chordDefinitionOrComposit.getChildren === "function") {
-      var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), _parentElement);
-      chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
+  function addChordsRecursive(chords, chordDefinitionOrComposite, progression) {
+    if (typeof chordDefinitionOrComposite.getChildren === "function") {
+      var groupElement = createChordReferenceGroup(chordDefinitionOrComposite.getName(), _parentElement);
+      chordDefinitionOrComposite.getChildren().forEach(function(chordDefinitionOrComposite2) {
+        addChordsRecursive(chords, chordDefinitionOrComposite2, progression);
       });
       _parentElement.appendChild(groupElement);
     } else {
@@ -71,39 +68,6 @@ function createInstrument1(options, parentElement) {
   }
 
   return instrument;
-}
-
-function createInstrumentFactory(options) {
-  var type = options.type || 'chromatic';
-
-  switch(type) {
-    case 'chromatic':
-      return {
-        create: function(lowestPosition, highestPosition) {
-          return keyboard.createKeyboard(lowestPosition, highestPosition, 4);
-        }
-      };
-      break;
-    case 'zebra':
-      return {
-        create: function(lowestPosition, highestPosition) {
-          return zebra.createZebraKeyboard(lowestPosition, highestPosition);
-        }
-      };
-      break;
-    default:
-      return {
-        create: function(lowestPosition, highestPosition) {
-          var instrument = stringInstrument.createStringInstrumentByType(type);
-          if (!instrument) {
-            console.error("create() - Unknown instrument type: " + type);
-            return;
-          }
-          return instrument;
-        }
-      };
-      break;
-  }
 }
 
 function createChordReferenceGroup(title, section) {
