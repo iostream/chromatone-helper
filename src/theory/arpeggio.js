@@ -91,7 +91,7 @@ var arpeggioParserDelegate = {
 
 lib.parseArpeggioPatterns = function(multilineString) {
   var patterns = recursiveParser.parseThingsRecursive(multilineString, arpeggioParserDelegate);
-  // assure defaultArpeggioPattern 
+  // assure defaultArpeggioPattern
   if (!patterns.defaultArpeggioPattern) {
     for (var p in patterns) {
       if (patterns.hasOwnProperty(p)) {
@@ -164,8 +164,8 @@ function createState(notes) {
       this.voicingIndex = (this.voicingIndex + 1) % _notes.length;
       var foundNoteIndex;
       // find the oressponding values for this.pitchIndex and this.noteIndex
-      this.pitchIndex = this.voicingIndexesByPitchIndex.indexOf(function(voicingIndexes) {
-          var noteIndex = voicingIndexes.indexOf(function(voicingIndex) {
+      this.pitchIndex = this.voicingIndexesByPitchIndex.findIndex(function(voicingIndexes) {
+          var noteIndex = voicingIndexes.findIndex(function(voicingIndex) {
             return voicingIndex === this.voicingIndex;
           });
           if (noteIndex !== -1) {
