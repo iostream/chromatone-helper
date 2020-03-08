@@ -571,7 +571,7 @@ formLib.addForm(
     }
 
     var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
-    instrument.addChordProgressionUsingChordDefinitionComposit(progression, chordDefParserResult.getComposite());
+    instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );
@@ -596,7 +596,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./resources/presets.js":11,"./src/audio/gm_player.js":12,"./src/gui/form.js":14,"./src/gui/instrument/proxy.js":16,"./src/midi.js":22,"./src/parser/composite.js":24,"./src/parser/composite_parser.js":25,"./src/server/client.js":28,"./src/theory/arpeggio.js":30,"./src/theory/base.js":31,"./src/theory/progression.js":35}],2:[function(require,module,exports){
+},{"./resources/presets.js":11,"./src/audio/gm_player.js":12,"./src/gui/form.js":14,"./src/gui/instrument/proxy.js":18,"./src/midi.js":24,"./src/parser/composite.js":26,"./src/parser/composite_parser.js":27,"./src/server/client.js":30,"./src/theory/arpeggio.js":32,"./src/theory/base.js":33,"./src/theory/progression.js":37}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -5808,7 +5808,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":31,"./theory/notes.js":34}],14:[function(require,module,exports){
+},{"./theory/base.js":33,"./theory/notes.js":36}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6173,7 +6173,56 @@ function initControlElements(form) {
   };
 }
 
-},{"../theory/arpeggio.js":30,"../theory/base.js":31,"../theory/rhythm.js":36,"./pocket_knife.js":19,"./presets.js":20,"./session.js":21,"form-serialize":4}],15:[function(require,module,exports){
+},{"../theory/arpeggio.js":32,"../theory/base.js":33,"../theory/rhythm.js":38,"./pocket_knife.js":21,"./presets.js":22,"./session.js":23,"form-serialize":4}],15:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var keyboard = require("./keyboard.js");
+var zebra = require("./zebra.js");
+var stringInstrument = require("./string_instrument.js");
+var pianoRollLib = require("./piano_roll.js");
+
+lib.createInstrumentFactory = function(options) {
+  var type = options.type || 'chromatic';
+
+  switch(type) {
+    case 'chromatic':
+      return {
+        create: function(lowestPosition, highestPosition) {
+          return keyboard.createKeyboard(lowestPosition, highestPosition, 4);
+        }
+      };
+      break;
+    case 'zebra':
+      return {
+        create: function(lowestPosition, highestPosition) {
+          return zebra.createZebraKeyboard(lowestPosition, highestPosition);
+        }
+      };
+      break;
+    case 'piano_roll':
+      return {
+        create: function(lowestPosition, highestPosition) {
+          return pianoRollLib.createPianoRoll(lowestPosition, highestPosition);
+        }
+      };
+      break;
+    default:
+      return {
+        create: function(lowestPosition, highestPosition) {
+          var instrument = stringInstrument.createStringInstrumentByType(type);
+          if (!instrument) {
+            console.error("create() - Unknown instrument type: " + type);
+            return;
+          }
+          return instrument;
+        }
+      };
+      break;
+  }
+}
+
+},{"./keyboard.js":16,"./piano_roll.js":17,"./string_instrument.js":19,"./zebra.js":20}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6305,13 +6354,51 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../../theory/base.js":31}],16:[function(require,module,exports){
+},{"../../theory/base.js":33}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var keyboard = require("./keyboard.js");
-var zebra = require("./zebra.js");
-var stringInstrument = require("./string_instrument.js");
+var tLib = require("../../theory/base.js");
+
+var pianoRollTemplate = document.getElementById("templates").getElementsByClassName("piano-roll")[0];
+
+function createPianoRoll(lowestPosition, highestPosition) {
+  var parentElement = chromaticKeyboardTemplate.cloneNode(true);
+  return construct(parentElement, lowestPosition, highestPosition);
+}
+
+function construct(keyboard, lowestPosition, highestPosition) {
+
+  return {
+    getElement: function() {
+      return keyboard;
+    },
+    // url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><linearGradient id='gradient'><stop offset='10%' stop-color='%23F00'/><stop offset='90%' stop-color='%23fcc'/> </linearGradient><rect fill='url(%23gradient)' x='0' y='0' width='100%' height='100%'/></svg>");
+    addEvents: function(events, description) {
+      var notes = tLib.parseNotes(notes);
+      // TODO
+      // add description
+      if (typeof description !== "undefined") {
+        var descriptionEl = keyboard.getElementsByClassName("description");
+        if (descriptionEl.length > 0) {
+          descriptionEl[0].innerHTML = description;
+        }
+      }
+    },
+    addDiff: function(notes) {
+      // noop
+    },
+    clone: function() {
+      return construct(keyboard.cloneNode(true));
+    }
+  };
+}
+
+},{"../../theory/base.js":33}],18:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var factoryLib = require('./factory.js');
 
 function $_(id) { return document.getElementById(id); }
 var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
@@ -6332,7 +6419,7 @@ lib.createInstrument = function(options, parentElement) {
  */
 function createInstrument1(options, parentElement) {
   var _options = options;
-  var _factory = createInstrumentFactory(options);
+  var _factory = factoryLib.createInstrumentFactory(options);
   var _parentElement = parentElement;
   var _lastInstrument = false;
 
@@ -6356,20 +6443,19 @@ function createInstrument1(options, parentElement) {
       _lastInstrument = instrument;
       _parentElement.appendChild(instrument.getElement());
     },
-    addChordProgressionUsingChordDefinitionComposit: function(progression, chordDefinitionComposit) {
-      var chords = progression.getChords();
-      var chordsCopy = chords.slice();
-      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
+    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposit) {
+      var chordsCopy = progression.getChords().slice();
+      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposite2) {
+        addChordsRecursive(chordsCopy, chordDefinitionOrComposite2, progression);
       });
     }
   };
 
-  function addChordsRecursive(chords, chordDefinitionOrComposit, progression) {
-    if (typeof chordDefinitionOrComposit.getChildren === "function") {
-      var groupElement = createChordReferenceGroup(chordDefinitionOrComposit.getName(), _parentElement);
-      chordDefinitionOrComposit.getChildren().forEach(function(chordDefinitionOrComposit2) {
-        addChordsRecursive(chords, chordDefinitionOrComposit2, progression);
+  function addChordsRecursive(chords, chordDefinitionOrComposite, progression) {
+    if (typeof chordDefinitionOrComposite.getChildren === "function") {
+      var groupElement = createChordReferenceGroup(chordDefinitionOrComposite.getName(), _parentElement);
+      chordDefinitionOrComposite.getChildren().forEach(function(chordDefinitionOrComposite2) {
+        addChordsRecursive(chords, chordDefinitionOrComposite2, progression);
       });
       _parentElement.appendChild(groupElement);
     } else {
@@ -6379,39 +6465,6 @@ function createInstrument1(options, parentElement) {
   }
 
   return instrument;
-}
-
-function createInstrumentFactory(options) {
-  var type = options.type || 'chromatic';
-
-  switch(type) {
-    case 'chromatic':
-      return {
-        create: function(lowestPosition, highestPosition) {
-          return keyboard.createKeyboard(lowestPosition, highestPosition, 4);
-        }
-      };
-      break;
-    case 'zebra':
-      return {
-        create: function(lowestPosition, highestPosition) {
-          return zebra.createZebraKeyboard(lowestPosition, highestPosition);
-        }
-      };
-      break;
-    default:
-      return {
-        create: function(lowestPosition, highestPosition) {
-          var instrument = stringInstrument.createStringInstrumentByType(type);
-          if (!instrument) {
-            console.error("create() - Unknown instrument type: " + type);
-            return;
-          }
-          return instrument;
-        }
-      };
-      break;
-  }
 }
 
 function createChordReferenceGroup(title, section) {
@@ -6425,7 +6478,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./keyboard.js":15,"./string_instrument.js":17,"./zebra.js":18}],17:[function(require,module,exports){
+},{"./factory.js":15}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6617,7 +6670,7 @@ function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
   }
 }
 
-},{"../../theory/notes.js":34}],18:[function(require,module,exports){
+},{"../../theory/notes.js":36}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6729,7 +6782,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":31}],19:[function(require,module,exports){
+},{"../../theory/base.js":33}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6750,7 +6803,7 @@ function handleUrlAction(value) {
       newUrlBase = 'http://localhost:3042/';
       break;
     case 'www':
-      newUrlBase = 'https://iostream.github.io/chromatone-helper/';
+      newUrlBase = 'https://iostream.github.io/chromatone-helper/v2-dev/';
       break;
     case 'file':
       newUrlBase = 'file:///home/iostream/chromatone-helper/chromatone-helper/chromatone-index.html';
@@ -6767,7 +6820,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6841,7 +6894,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -6906,7 +6959,7 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],22:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6956,7 +7009,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":6}],23:[function(require,module,exports){
+},{"midi-writer-js":6}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7285,7 +7338,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],24:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7396,51 +7449,34 @@ function createSubjectComposite(name, variables) {
      * - getResult() // returns the resulting subject
      */
     createFlatSubjectList: function(subjectBuilderFactory) {
-      // return this.createFlatSubjectListRecursive(subjectBuilderFactory, []);
-      return this.createFlatSubjectListRecursive2(subjectBuilderFactory, []);
+      return this.createFlatSubjectListRecursive(subjectBuilderFactory, []);
     },
     /**
      * In this version the outer parts are the more specific options. I think
      * this could make more sense.
      */
-    createFlatSubjectListRecursive2: function(subjectBuilderFactory, parentOptionsList) {
+    createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
       var subjects = [];
 
-      /**
-       * The builder only gets onOption calls for the operator "="
-       *  - when they are the first
-       *  - or they are forced
-       */
-      function isAssignable(key, operator, isForced, assignments) {
-        if (operator !== '=') {
-          return true;
-        }
-        if (typeof(assignments[key]) === 'undefined') {
-          assignments[key] = true;
-          return true;
-        }
-        return isForced;
-      }
-
-      var optionsList = parentOptionsList.concat([_options]);
+      var optionsList = [_options].concat(parentOptionsList);
 
       _children.forEach(function(child) {
-        if (typeof child.createFlatSubjectListRecursive2 === 'function') {
-          subjects = subjects.concat(child.createFlatSubjectListRecursive2(subjectBuilderFactory, optionsList));
+        if (typeof child.createFlatSubjectListRecursive === 'function') {
+          subjects = subjects.concat(child.createFlatSubjectListRecursive(subjectBuilderFactory, optionsList));
           return;
         }
         var assignments = {};
         var subjectBuilder = subjectBuilderFactory();
+        var childOptions = child.getOptions();
         subjectBuilder.withMatch(child.getMatch());
-        child.getOptions().forEachOption(function(key, value, operator, isShort, isForced) {
-          if (!isAssignable(key, operator, isForced, assignments)) {
-            return;
-          }
+        childOptions.forEachOption(function(key, value, operator, isShort, isForced) {
           subjectBuilder.withOption(key, value, operator, isShort, isForced);
         });
         optionsList.forEach(function(options) {
           options.forEachOption(function(key, value, operator, isShort, isForced) {
-            if (!isAssignable(key, operator, isForced, assignments)) {
+            // if the parent sets a value, then it only gets assigned to a child of it
+            // if the child does not assign a value itself to the same option
+            if (operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
               return;
             }
             subjectBuilder.withOption(key, value, operator, isShort, isForced);
@@ -7449,32 +7485,7 @@ function createSubjectComposite(name, variables) {
         subjects.push(subjectBuilder.getResult());
       });
       return subjects;
-    },
-    // XXX now unused:
-    /*createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
-      var subjects = [];
-
-      var optionsList = parentOptionsList.concat([_options]);
-
-      _children.forEach(function(child) {
-        if (typeof child.createFlatSubjectListRecursive === 'function') {
-          subjects = subjects.concat(child.createFlatSubjectListRecursive(subjectBuilderFactory, optionsList));
-          return;
-        }
-        var subjectBuilder = subjectBuilderFactory();
-        subjectBuilder.withMatch(child.getMatch());
-        optionsList.forEach(function(options) {
-          options.forEachOption(function(key, value, operator, isShort) {
-              subjectBuilder.withOption(key, value, operator, isShort);
-          });
-        });
-        child.getOptions().forEachOption(function(key, value, operator, isShort) {
-            subjectBuilder.withOption(key, value, operator, isShort);
-        });
-        subjects.push(subjectBuilder.getResult());
-      });
-      return subjects;
-    }*/
+    }
   };
 }
 
@@ -7534,6 +7545,18 @@ function createOptions() {
       var options = isShort ? _shortOptions : _options;
       addOption(key, valueAsString, operator, isForced, options);
     },
+    /**
+     * Returns the value of an option by key which was set using '=' or false.
+    */
+    hasAssignedValue: function(key) {
+      return typeof(_options[key]) !== 'undefined' && typeof(_options[key]['=']) !== 'undefined';
+    },
+    removeAssignedValue: function(key) {
+      if (!this.hasAssignedValue(key)) {
+        return;
+      }
+      delete _options[key]['='];
+    },
     asString: function() {
       var shortOptions = createString(_shortOptions);
       var options = createString(_options);
@@ -7564,7 +7587,7 @@ function createOptions() {
   };
 }
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7726,7 +7749,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":23,"./message.js":26}],26:[function(require,module,exports){
+},{"./async_lexer.js":25,"./message.js":28}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7758,7 +7781,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],27:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7842,7 +7865,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7909,13 +7932,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":29}],29:[function(require,module,exports){
+},{"./host.js":31}],31:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],30:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8009,7 +8032,7 @@ var arpeggioParserDelegate = {
 
 lib.parseArpeggioPatterns = function(multilineString) {
   var patterns = recursiveParser.parseThingsRecursive(multilineString, arpeggioParserDelegate);
-  // assure defaultArpeggioPattern 
+  // assure defaultArpeggioPattern
   if (!patterns.defaultArpeggioPattern) {
     for (var p in patterns) {
       if (patterns.hasOwnProperty(p)) {
@@ -8082,8 +8105,8 @@ function createState(notes) {
       this.voicingIndex = (this.voicingIndex + 1) % _notes.length;
       var foundNoteIndex;
       // find the oressponding values for this.pitchIndex and this.noteIndex
-      this.pitchIndex = this.voicingIndexesByPitchIndex.indexOf(function(voicingIndexes) {
-          var noteIndex = voicingIndexes.indexOf(function(voicingIndex) {
+      this.pitchIndex = this.voicingIndexesByPitchIndex.findIndex(function(voicingIndexes) {
+          var noteIndex = voicingIndexes.findIndex(function(voicingIndex) {
             return voicingIndex === this.voicingIndex;
           });
           if (noteIndex !== -1) {
@@ -8425,7 +8448,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":27}],31:[function(require,module,exports){
+},{"../recursive_parser.js":29}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8440,7 +8463,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":33,"./notes.js":34,"./scale.js":37,"./voicing.js":38}],32:[function(require,module,exports){
+},{"./chord_definition.js":35,"./notes.js":36,"./scale.js":39,"./voicing.js":40}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8551,7 +8574,7 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8836,7 +8859,7 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":24,"../parser/composite_parser.js":25,"./chord.js":32,"./voicing.js":38}],34:[function(require,module,exports){
+},{"../parser/composite.js":26,"../parser/composite_parser.js":27,"./chord.js":34,"./voicing.js":40}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -9201,7 +9224,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],35:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -9359,7 +9382,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":13,"./base.js":31}],36:[function(require,module,exports){
+},{"../fingering.js":13,"./base.js":33}],38:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9590,7 +9613,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":27}],37:[function(require,module,exports){
+},{"../recursive_parser.js":29}],39:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9706,7 +9729,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":34}],38:[function(require,module,exports){
+},{"./notes.js":36}],40:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9879,6 +9902,10 @@ function normalizeVoices(voices) {
  * Inversions can be negative and there are more inversions than note count - 1.
  */
 function invertNotes(notes, inversion) {
+  if (notes.length <= 1)  {
+    // not returning here would result in an endless loop
+    return;
+  }
   // simple and effective....
   if (inversion > 0) {
     var highestNote = notes[notes.length - 1];
@@ -9931,7 +9958,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":27}]},{},[1]);
+},{"../recursive_parser.js":29}]},{},[1]);
 </script>
   </body>
 </html>
