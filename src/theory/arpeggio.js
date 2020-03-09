@@ -371,20 +371,6 @@ function getNextVoicingPitchStep() {
   return nextVoicingPitchStep;
 }
 
-var nextVoicingPitchStep2 = {
-  // XXX Implement me or remove me!
-  getPitch: function(status) {
-    var notes = status.getNotes();
-    var voicingIndex = status.incrementVoicingIndex();
-    return createPitch(notes[voicingIndex].getPosition());
-  }
-};
-
-function getNextVoicingPitchStep2() {
-  return nextVoicingPitchStep2;
-}
-
-
 /**
  * Returns undefined, if no valid string was passed to parse.
  *
@@ -401,98 +387,21 @@ function createPitchByRelativePitchIndexStep(pitchIndexOperation) {
   }
 
   if (_pitchIndex > 0) {
-    // make 0 based index, but let negative numbers as they are
+    // make 0 based index, but let negative numbers stay as they are
     --_pitchIndex;
   }
 
   return {
     getPitch: function(status) {
-      var note = status.nextPitchByIndex(_pitchIndex);
+       var note = status.nextPitchByIndex(_pitchIndex);
       return createPitch(note.getPosition());
     }
   };
 }
 
-// XXX Should be replaced:
-function createPitchStepOperation(inputString) {
-  var _childStep;
-  var _diatonicSteps = 0;
-  var _transposition = 0;
-
-  // replace occurances of "-" with "-+", but only if
-  //   - the "-" is not the first character of the string
-  //   - after the "-" not already follows a "+"
-  // (this makes the following operation simpler)
-  var operation = "";
-  var tokens = inputString.split("-");
-  tokens.forEach(function(token, i) {
-    if (i > 0 && i < tokens.length && tokens[i + 1] !== "+") {
-      operation += "+-";
-    } else if (i + 1 < tokens.length && i > 0) {
-      operation += "-";
-    }
-    operation += token;
-  });
-
-  operation.split("+").forEach(function(operationToken) {
-    if (!_childStep) {
-
-      if (operationToken.lastIndexOf("-") > 0) {
-
-      }
-      _childStep = createArpeggioStep(operationToken);
-      if (!_childStep) {
-        _childStep = createArpeggioStep(operationToken[0]);
-      }
-      if (!_childStep) {
-        console.warn("createPitchStepOperation() - Invalid child step: " + operationToken + " in arpeggio pattern step operation: " + token);
-      }
-      return;
-    }
-    var integerNumber = parseInt(operationToken);
-    if (isNaN(integerNumber)) {
-      console.warn("createPitchStepOperation() - Invalid operation number: " + operationToken + " in arpeggio pattern step operation: " + token);
-      return;
-    }
-
-    // assess type of operation
-    var lookupIndex = 0;
-    // XXX the tokens are now a bit all over here...
-    if (operationToken[lookupIndex] === "-" || operationToken[lookupIndex] === ">") {
-      ++lookupIndex;
-    }
-    while (lookupIndex < operationToken.length && !isNaN(parseInt(operationToken[lookupIndex]))) {
-      ++lookupIndex;
-    }
-    if (lookupIndex < operationToken.length) {
-      var operationType = operationToken[lookupIndex];
-      if (operationType === "d") {
-        _diatonicSteps += integerNumber;
-      } else if (operationType === "t") {
-        _transposition += integerNumber;
-      } else {
-        console.warn("createPitchByRelativePitchIndexStep() - Invalid arpeggio pattern step operation type: " + operationType + " in step: " + operationToken);
-      }
-    }
-  });
-
-  return {
-    getPitch: function(status) {
-      var note = _childStep.getPitch(status);
-      var transposition = _transposition;
-      note = createPitch(note.getPosition() + transposition);
-      return note;
-    }
-  };
-}
-
 function createArpeggioStep(token) {
-  if (token.indexOf("+") !== -1 || token.lastIndexOf("-") > 0) {
-    return createPitchStepOperation(token);
-  } else if (token === ">") {
+  if (token === ">") {
     return getNextVoicingPitchStep();
-  } else if (token === ">i") {
-    return getNextVoicingPitchStep2();
   } else {
     return createPitchByRelativePitchIndexStep(token);
   }
