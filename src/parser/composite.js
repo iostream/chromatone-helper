@@ -131,11 +131,11 @@ function createSubjectComposite(name, variables) {
         childOptions.forEachOption(function(key, value, operator, isShort, isForced) {
           subjectBuilder.withOption(key, value, operator, isShort, isForced);
         });
-        optionsList.forEach(function(options) {
+        optionsList.forEach(function(options, index) {
           options.forEachOption(function(key, value, operator, isShort, isForced) {
-            // if the parent sets a value, then it only gets assigned to a child of it
+            // if the (direct) parent sets a value, then it only gets assigned to a child of it
             // if the child does not assign a value itself to the same option
-            if (operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
+            if (index === 0 && operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
               return;
             }
             subjectBuilder.withOption(key, value, operator, isShort, isForced);
