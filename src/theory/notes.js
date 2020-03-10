@@ -75,13 +75,18 @@ lib.findKeyName = function(keyPosition, preferB) {
   if (chromaticKeyMap.hasOwnProperty(relativeKeyPosition)) {
     return chromaticKeyMap[relativeKeyPosition].toUpperCase() + register;
   }
-  var index;
+  var nextIndex = (relativeKeyPosition + 1) % 7;
+  if (chromaticKeyMap[nextIndex] === keyPosition) {
+    return chromaticKeyMap[nextIndex].toUpperCase() + register;
+  }
+  var previousIndex = (relativeKeyPosition == 0) ? 7 : relativeKeyPosition - 1;
+  if (chromaticKeyMap[previousIndex] === keyPosition) {
+    return chromaticKeyMap[previousIndex].toUpperCase() + register;
+  }
   if (preferB) {
-    index = (relativeKeyPosition + 1) % 7;
-    return chromaticKeyMap[index].toUpperCase() + 'b' + register;
+    return chromaticKeyMap[nextIndex].toUpperCase() + 'b' + register;
   } else {
-    index = (relativeKeyPosition == 0) ? 7 : relativeKeyPosition - 1;
-    return chromaticKeyMap[index].toUpperCase() + '#' + register;
+    return chromaticKeyMap[previousIndex].toUpperCase() + '#' + register;
   }
 };
 
