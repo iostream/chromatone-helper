@@ -72,14 +72,19 @@ for (var i = 0; i < 7; ++i) {
 lib.findKeyName = function(keyPosition, preferB) {
   var relativeKeyPosition = keyPosition % 12;
   var register = Math.floor(keyPosition / 12) - 1;
+  if (relativeKeyPosition < 0) {
+    // the chromaticKeyMap only works with positive indexes, so relativeKeyPosition
+    // must be compensated
+    relativeKeyPosition += 12;
+  }
   if (chromaticKeyMap.hasOwnProperty(relativeKeyPosition)) {
     return chromaticKeyMap[relativeKeyPosition].toUpperCase() + register;
   }
-  var nextIndex = (relativeKeyPosition + 1) % 7;
+  var nextIndex = (relativeKeyPosition + 1) % 12;
   if (chromaticKeyMap[nextIndex] === keyPosition) {
     return chromaticKeyMap[nextIndex].toUpperCase() + register;
   }
-  var previousIndex = (relativeKeyPosition == 0) ? 7 : relativeKeyPosition - 1;
+  var previousIndex = (relativeKeyPosition - 1) % 12;
   if (chromaticKeyMap[previousIndex] === keyPosition) {
     return chromaticKeyMap[previousIndex].toUpperCase() + register;
   }
