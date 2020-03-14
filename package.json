@@ -30,10 +30,10 @@
     "watchify": "^3.11.1"
   },
   "scripts": {
-    "build": "browserify main.js > bundle.js && ./build/build-combined.sh",
-    "watch": "watchify main.js -o bundle.js -v",
-    "build_watch": "watchify main.js -o \"browserify main.js > bundle.js && ./build/build-combined.sh\" -v",
-    "deploy": "browserify main.js > bundle.js && ./build/build-combined.sh && ./build/deploy-branch-on-github-pages.sh",
-    "build_": "npm explore browserify -- npm run 'bin/cmd.js main.js > bundle.js"
+    "build": "browserify src/main.js > bundle.js && ./build/build-combined.sh",
+    "watch": "watchify src/main.js -o bundle.js -v",
+    "build_watch": "watchify src/main.js -o \"browserify src/main.js > bundle.js && ./build/build-combined.sh\" -v",
+    "deploy": "browserify src/main.js > bundle.js && ./build/build-combined.sh && ./build/deploy-branch-on-github-pages.sh",
+    "build_": "npm explore browserify -- npm run 'bin/cmd.js src/main.js > bundle.js"
   }
 }
