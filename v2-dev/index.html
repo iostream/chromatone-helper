@@ -258,6 +258,10 @@ margin-top: 4pt;
 .zebra.keyboard .row span.selected.root {
   background-color: var(--key-root-color);
 }
+.zebra.keyboard .row span.played {
+  background-color: red !important;
+}
+
 .zebra.keyboard .row span .note-text {
   --border-color: var(--key-color);
   --shadow-offset: 1pt;
@@ -505,98 +509,6 @@ margin-top: 4pt;
     <!-- see main.js -->
 <script>
 (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-var instrumentLib = require("./src/gui/instrument/proxy.js"),
- formLib = require("./src/gui/form.js"),
- t = require("./src/theory/base.js"),
- p = require("./src/theory/progression.js"),
- compositeParser = require("./src/parser/composite_parser.js"),
- compositeLib = require("./src/parser/composite.js"),
- arpeggioLib = require("./src/theory/arpeggio.js"),
- midi = require("./src/midi.js"),
- serverClient = require("./src/server/client.js"),
- presets = require("./resources/presets.js"),
- gmPlayerLib = require("./src/audio/gm_player.js");
-
-var gmPlayer = gmPlayerLib.createGmPlayer();
-
-// TODO move this code into an own file / layer?
-formLib.addForm(
-  function(controls) {
-    var instrument = controls.instrument;
-    var option;
-    gmPlayer.getInstruments().forEach(function(name, index) {
-      option = document.createElement('option');
-      option.appendChild(document.createTextNode(name));
-      option.value = index;
-      instrument.appendChild(option);
-    });
-    instrument.addEventListener("change", function() {
-      if (instrument.selectedIndex > -1) {
-        gmPlayer.setInstrument(controls.instrument.options[instrument.selectedIndex].value);
-      }
-    });1
-    controls.play.addEventListener("click", function() {
-      gmPlayer.start();
-    });
-    controls.stop.addEventListener("click", function() {
-      gmPlayer.stop();
-    });
-    controls.loop.addEventListener("click", function() {
-      gmPlayer.setLoop(controls.loop.checked);
-    });
-    controls.bpm.addEventListener("input", function() {
-      gmPlayer.setBpm(controls.bpm.value);
-    });
-    controls.bpm.dispatchEvent(new Event('input'));
-  },
-  function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-    var progression = p.createChordProgression(chordDefParserResult.getList());
-    var chords = progression.getChords();
-
-    var events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-    gmPlayer.setEvents(events);
-
-    if (options.uploadToDAW) {
-      serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-    }
-
-    if (options.uploadMidi || options.generateMidi) {
-      var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-      if (options.generateMidi) {
-        downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
-      }
-      if (options.uploadMidi) {
-        serverClient.uploadMidi(midiWriter.dataUri());
-      }
-    }
-
-    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
-    instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
-  },
-  presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
-);
-
-function buildGeneratorUrl(serializedForm) {
-  var url = new URL("#" + serializedForm, document.location.href);
-  return url.href;
-}
-
-/**
- * @see https://stackoverflow.com/questions/23451726/saving-binary-data-as-file-using-javascript-from-a-browser
- */
-var downloadDataUri = (function () {
-  var a = document.createElement("a");
-  document.body.appendChild(a);
-  // a.style = "display: none";
-  a.text = "MIDI";
-  return function (dataUri, name) {
-    a.href = dataUri;
-    a.download = name;
-    a.click();
-  };
-}());
-
-},{"./resources/presets.js":11,"./src/audio/gm_player.js":12,"./src/gui/form.js":14,"./src/gui/instrument/proxy.js":18,"./src/midi.js":24,"./src/parser/composite.js":26,"./src/parser/composite_parser.js":27,"./src/server/client.js":30,"./src/theory/arpeggio.js":32,"./src/theory/base.js":33,"./src/theory/progression.js":37}],2:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -749,7 +661,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],3:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2528,7 +2440,7 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":2,"ieee754":5}],4:[function(require,module,exports){
+},{"base64-js":1,"ieee754":4}],3:[function(require,module,exports){
 // get successful control from form and assemble into object
 // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2
 
@@ -2790,7 +2702,7 @@ function str_serialize(result, key, value) {
 
 module.exports = serialize;
 
-},{}],5:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -2876,7 +2788,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],6:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 (function (process,Buffer){
 'use strict';
 
@@ -3911,11 +3823,11 @@ exports.Writer = Writer;
 
 
 }).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":8,"buffer":3,"tonal-midi":9}],7:[function(require,module,exports){
+},{"_process":7,"buffer":2,"tonal-midi":8}],6:[function(require,module,exports){
 !function(t,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports):"function"==typeof define&&define.amd?define(["exports"],n):n(t.NoteParser=t.NoteParser||{})}(this,function(t){"use strict";function n(t,n){return Array(n+1).join(t)}function r(t){return"number"==typeof t}function e(t){return"string"==typeof t}function u(t){return void 0!==t}function c(t,n){return Math.pow(2,(t-69)/12)*(n||440)}function o(){return b}function i(t,n,r){if("string"!=typeof t)return null;var e=b.exec(t);if(!e||!n&&e[4])return null;var u={letter:e[1].toUpperCase(),acc:e[2].replace(/x/g,"##")};u.pc=u.letter+u.acc,u.step=(u.letter.charCodeAt(0)+3)%7,u.alt="b"===u.acc[0]?-u.acc.length:u.acc.length;var o=A[u.step]+u.alt;return u.chroma=o<0?12+o:o%12,e[3]&&(u.oct=+e[3],u.midi=o+12*(u.oct+1),u.freq=c(u.midi,r)),n&&(u.tonicOf=e[4]),u}function f(t){return r(t)?t<0?n("b",-t):n("#",t):""}function a(t){return r(t)?""+t:""}function l(t,n,r){return null===t||void 0===t?null:t.step?l(t.step,t.alt,t.oct):t<0||t>6?null:C.charAt(t)+f(n)+a(r)}function p(t){if((r(t)||e(t))&&t>=0&&t<128)return+t;var n=i(t);return n&&u(n.midi)?n.midi:null}function s(t,n){var r=p(t);return null===r?null:c(r,n)}function d(t){return(i(t)||{}).letter}function m(t){return(i(t)||{}).acc}function h(t){return(i(t)||{}).pc}function v(t){return(i(t)||{}).step}function g(t){return(i(t)||{}).alt}function x(t){return(i(t)||{}).chroma}function y(t){return(i(t)||{}).oct}var b=/^([a-gA-G])(#{1,}|b{1,}|x{1,}|)(-?\d*)\s*(.*)\s*$/,A=[0,2,4,5,7,9,11],C="CDEFGAB";t.regex=o,t.parse=i,t.build=l,t.midi=p,t.freq=s,t.letter=d,t.acc=m,t.pc=h,t.step=v,t.alt=g,t.chroma=x,t.oct=y});
 
 
-},{}],8:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -4101,7 +4013,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],9:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -4171,7 +4083,7 @@ function note (num, sharps) {
 exports.toMidi = toMidi;
 exports.note = note;
 
-},{"note-parser":7}],10:[function(require,module,exports){
+},{"note-parser":6}],9:[function(require,module,exports){
 ( function(window){
 "use strict";
 
@@ -5610,7 +5522,7 @@ else{
 
 })(this);
 
-},{}],11:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var std4Voicing = "1 3 5 7";
 var std6Voicing = "1 3 5 6";
 module.exports.progressions = [
@@ -5670,95 +5582,60 @@ module.exports.rhythmPatterns = [
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
 ];
 
-},{}],12:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var WebAudioTinySynth = require('webaudio-tinysynth');
 
-lib.createGmPlayer = function(channel) {
-  var _channel = channel || 0;
-  var _events = [];
-  var _loop = false;
-  var _playIndex = 0;
-  var _isPlaying = false;
-  var _noteOffs = [];
-  var _msPerQuarterNote;
-  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+var INSTRUMENT_FACTORIES = {
+  'webaudio-tinysynth': createTinySynthInstrument
+};
 
-  function turnOffNotes() {
-    _noteOffs.forEach(function(position) {
-      _synth.noteOff(_channel, position);
-    });
-    _noteOffs = [];
+lib.getInstrumentNames = function() {
+  return INSTRUMENT_FACTORIES.keys();
+}
+
+lib.createInstrument = function(instrumentName) {
+  if (typeof(instrumentName) === 'undefined') {
+    return createTinySynthInstrument();
   }
+  if (typeof(INSTRUMENT_FACTORIES[instrumentName] === 'undefined')) {
+    console.error('createInstrument() - Unknown instrument name: ' + instrumentName);
+    return createTinySynthInstrument();
+  }
+  return INSTRUMENT_FACTORIES[instrumentName]();
+}
 
-  var player = {
-    getInstruments: function() {
+/**
+ * XXX When there will be many tracks (and hence many audio instruments), then use one
+ *     tiny synth for many tracks using the channels!
+ */
+function createTinySynthInstrument() {
+  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+  var _channel = 0;
+
+  var instrument = {
+    noteOn: function(position, velocity) {
+      _synth.noteOn(_channel, position, velocity);
+    },
+    noteOff: function(position) {
+      _synth.noteOff(_channel, position);
+    },
+    getPresetNames: function() {
       return _synth.program.map(function(programEntry) {
         return programEntry.name;
       });
     },
-    setEvents: function(events) {
-      _events = events;
-    },
-    setLoop: function(loop) {
-      _loop = loop;
-    },
-    setBpm: function(bpm) {
-      _msPerQuarterNote = 60000 / bpm;
-    },
-    stop: function() {
-      _isPlaying = false;
-      _playIndex = 0;
-      turnOffNotes();
-    },
-    setInstrument: function(index) {
+    setPreset: function(index) {
       _synth.setTimbre(0, _channel, _synth.program[index].p);
-    },
-    start: function() {
-      _isPlaying = true;
-      var channel = 1;
-      var velocity = 100;
-
-      var me = this;
-      function playNextEvent() {
-        _noteOffs.forEach(function(position) {
-          _synth.noteOff(_channel, position);
-        });
-        _noteOffs = [];
-        if (!_isPlaying) {
-          return;
-        }
-        if (_playIndex >= _events.length) {
-          if (!_loop) {
-            me.stop();
-            return;
-          }
-          // if loop is active, then start from the beginning when the last
-          // event was already played
-          _playIndex = 0;
-        }
-        var event = _events[_playIndex++];
-        if (!event.isRest()) {
-          event.getPitches().forEach(function(note) {
-            _noteOffs.push(note.getPosition());
-            _synth.noteOn(_channel, note.getPosition(), velocity);
-          });
-        }
-        // play next note after this note ended
-        setTimeout(playNextEvent, event.getLengthInQN() * _msPerQuarterNote);
-      }
-
-      playNextEvent();
     }
   };
 
-  player.setBpm(120);
-  return player;
-};
+  return instrument;
+}
 
-},{"webaudio-tinysynth":10}],13:[function(require,module,exports){
+},{"webaudio-tinysynth":9}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5808,7 +5685,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":33,"./theory/notes.js":36}],14:[function(require,module,exports){
+},{"./theory/base.js":35,"./theory/notes.js":38}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6173,7 +6050,7 @@ function initControlElements(form) {
   };
 }
 
-},{"../theory/arpeggio.js":32,"../theory/base.js":33,"../theory/rhythm.js":38,"./pocket_knife.js":21,"./presets.js":22,"./session.js":23,"form-serialize":4}],15:[function(require,module,exports){
+},{"../theory/arpeggio.js":34,"../theory/base.js":35,"../theory/rhythm.js":40,"./pocket_knife.js":20,"./presets.js":21,"./session.js":22,"form-serialize":3}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6222,7 +6099,7 @@ lib.createInstrumentFactory = function(options) {
   }
 }
 
-},{"./keyboard.js":16,"./piano_roll.js":17,"./string_instrument.js":19,"./zebra.js":20}],16:[function(require,module,exports){
+},{"./keyboard.js":15,"./piano_roll.js":16,"./string_instrument.js":18,"./zebra.js":19}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6354,7 +6231,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../../theory/base.js":33}],17:[function(require,module,exports){
+},{"../../theory/base.js":35}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6394,7 +6271,7 @@ function construct(keyboard, lowestPosition, highestPosition) {
   };
 }
 
-},{"../../theory/base.js":33}],18:[function(require,module,exports){
+},{"../../theory/base.js":35}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6421,14 +6298,14 @@ function createInstrument1(options, parentElement) {
   var _options = options;
   var _factory = factoryLib.createInstrumentFactory(options);
   var _parentElement = parentElement;
-  var _lastInstrument = false;
+  var _instruments = []; // <- one instrument per chord
 
   var instrument = {
     // XXX This is the first mode: add one new GUI per chordDef
     addChord: function(chord, progression) {
       var instrument = _factory.create(
         progression.getLowestPosition(),
-        chord.getHighestNote().getPosition(),
+        chord.getHighestNote().getPosition()
       );
 
       var name;
@@ -6437,15 +6314,38 @@ function createInstrument1(options, parentElement) {
       }
       instrument.add(chord, name, _options);
 
-      if (_lastInstrument) {
-        _lastInstrument.addDiff(chord);
+      if (_instruments.length > 0) {
+        // add diff to last added instrument
+        _instruments[_instruments.length - 1 ].addDiff(chord);
       }
-      _lastInstrument = instrument;
+      _instruments.push(instrument);
       _parentElement.appendChild(instrument.getElement());
     },
-    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposit) {
+    highlightEvent: function(event, chordIndex, dehighlight) {
+      if (chordIndex >= _instruments.length) {
+        return;
+      }
+      if (event.isRest()) {
+        return;
+      }
+      var instrument = _instruments[chordIndex];
+
+      if (dehighlight) {
+        event.getPitches().forEach(function(pitch) {
+          instrument.dehighlightPitch(pitch);
+        });
+      } else {
+        event.getPitches().forEach(function(pitch) {
+          instrument.highlightPitch(pitch);
+        });
+      }
+    },
+    dehighlightEvent: function(event, chordIndex) {
+      return this.highlightEvent(event, chordIndex, true);
+    },
+    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
       var chordsCopy = progression.getChords().slice();
-      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposite2) {
+      chordDefinitionComposite.getChildren().forEach(function(chordDefinitionOrComposite2) {
         addChordsRecursive(chordsCopy, chordDefinitionOrComposite2, progression);
       });
     }
@@ -6478,7 +6378,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./factory.js":15}],19:[function(require,module,exports){
+},{"./factory.js":14}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6670,7 +6570,7 @@ function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
   }
 }
 
-},{"../../theory/notes.js":36}],20:[function(require,module,exports){
+},{"../../theory/notes.js":38}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6701,6 +6601,16 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
     var button = createButton(chromatic);
     button.className += " half";
     return button;
+  }
+  function findNoteElement(note) {
+    var absoluteChromatic = note.getPosition();
+    // find buttons to light
+    var query = "span.c" + absoluteChromatic;
+    var noteEl = keyboard.querySelector(query);
+    if (noteEl === null || typeof noteEl === "undefined") {
+      return false;
+    }
+    return noteEl;
   }
 
   var keyboard = zebraKeyboardTemplate.cloneNode(true);
@@ -6742,17 +6652,13 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
         // add each
         for (var i=0; i<notes.length; ++i) {
           var note = notes[i];
-          var absoluteChromatic = note.getPosition();
-          var name = note.findIntervalName();
-
-          // find buttons to light
-          var query = "span.c" + absoluteChromatic;
-          var noteEl = keyboard.querySelector(query);
-          if (noteEl === null || typeof noteEl === "undefined") {
+          var noteEl = findNoteElement(note);
+          if (!noteEl) {
             console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
             continue;
           }
           // add label
+          var name = note.findIntervalName();
           noteEl.setAttribute("title", name);
           noteEl.innerHTML = '<p class="note-text">' + name + "</p>";
           noteEl.classList.add("selected");
@@ -6773,6 +6679,24 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
       addDiff: function(notes) {
         // currently noop
       },
+      highlightPitch: function(pitch) {
+        var noteEl = findNoteElement(pitch);
+        if (!noteEl) {
+          // XXX skip this error to not flood the console...?!
+          console.error("highlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.add('played');
+      },
+      dehighlightPitch: function(pitch) {
+        var noteEl = findNoteElement(pitch);
+        if (!noteEl) {
+          // XXX skip this error to not flood the console...?!
+          console.error("dehighlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.remove('played');
+      },
       clone: function() {
         return construct(keyboard.cloneNode(true));
       }
@@ -6782,7 +6706,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":33}],21:[function(require,module,exports){
+},{"../../theory/base.js":35}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6820,7 +6744,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],22:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6894,7 +6818,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -6959,7 +6883,102 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],24:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
+var instrumentLib = require("./gui/instrument/proxy.js"),
+ formLib = require("./gui/form.js"),
+ t = require("./theory/base.js"),
+ p = require("./theory/progression.js"),
+ compositeParser = require("./parser/composite_parser.js"),
+ compositeLib = require("./parser/composite.js"),
+ arpeggioLib = require("./theory/arpeggio.js"),
+ midi = require("./midi.js"),
+ serverClient = require("./server/client.js"),
+ presets = require("../resources/presets.js"),
+ sequencerLib = require("./sequencer/sequencer.js");
+
+var sequencer = sequencerLib.createSequencer();
+var track = sequencer.createTrack();
+
+// TODO move this code into an own file / layer?
+formLib.addForm(
+  function(controls) {
+    var instrument = controls.instrument;
+    var option;
+    track.getAudioInstrument().getPresetNames().forEach(function(name, index) {
+      option = document.createElement('option');
+      option.appendChild(document.createTextNode(name));
+      option.value = index;
+      instrument.appendChild(option);
+    });
+    instrument.addEventListener("change", function() {
+      if (instrument.selectedIndex > -1) {
+        track.getAudioInstrument().setPreset(controls.instrument.options[instrument.selectedIndex].value);
+      }
+    });1
+    controls.play.addEventListener("click", function() {
+      sequencer.start();
+    });
+    controls.stop.addEventListener("click", function() {
+      sequencer.stop();
+    });
+    controls.loop.addEventListener("click", function() {
+      sequencer.setLoop(controls.loop.checked);
+    });
+    controls.bpm.addEventListener("input", function() {
+      sequencer.setBpm(controls.bpm.value);
+    });
+    controls.bpm.dispatchEvent(new Event('input'));
+  },
+  function(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
+    var progression = p.createChordProgression(chordDefParserResult.getList());
+    var chords = progression.getChords();
+
+    var events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    track.setEvents(events);
+
+    if (options.uploadToDAW) {
+      serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
+    }
+
+    if (options.uploadMidi || options.generateMidi) {
+      var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
+      if (options.generateMidi) {
+        downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
+      }
+      if (options.uploadMidi) {
+        serverClient.uploadMidi(midiWriter.dataUri());
+      }
+    }
+
+    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
+    instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
+    
+    track.setInstrumentGUI(instrument);
+  },
+  presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
+);
+
+function buildGeneratorUrl(serializedForm) {
+  var url = new URL("#" + serializedForm, document.location.href);
+  return url.href;
+}
+
+/**
+ * @see https://stackoverflow.com/questions/23451726/saving-binary-data-as-file-using-javascript-from-a-browser
+ */
+var downloadDataUri = (function () {
+  var a = document.createElement("a");
+  document.body.appendChild(a);
+  // a.style = "display: none";
+  a.text = "MIDI";
+  return function (dataUri, name) {
+    a.href = dataUri;
+    a.download = name;
+    a.click();
+  };
+}());
+
+},{"../resources/presets.js":10,"./gui/form.js":13,"./gui/instrument/proxy.js":17,"./midi.js":24,"./parser/composite.js":26,"./parser/composite_parser.js":27,"./sequencer/sequencer.js":30,"./server/client.js":32,"./theory/arpeggio.js":34,"./theory/base.js":35,"./theory/progression.js":39}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7009,7 +7028,7 @@ lib.createMidi = function(events, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":6}],25:[function(require,module,exports){
+},{"midi-writer-js":5}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7869,6 +7888,167 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
 var lib = {};
 module.exports = lib;
 
+var trackLib = require('./track.js');
+
+lib.createSequencer = function() {
+  var _tracks = [];
+  var _loop = false;
+  var _playIndex = 0;
+  var _isPlaying = false;
+  var _noteOffs = [];
+  var _msPerQuarterNote;
+
+  function turnOffNotes() {
+    var synth = _tracks[0].getAudioInstrument();
+    _noteOffs.forEach(function(position) {
+      synth.noteOff(position);
+    });
+    _noteOffs = [];
+  }
+
+  var seq = {
+    createTrack: function() {
+      var track = trackLib.createTrack();
+      _tracks.push(track);
+      return track;
+    },
+    setLoop: function(loop) {
+      _loop = loop;
+    },
+    setBpm: function(bpm) {
+      _msPerQuarterNote = 60000 / bpm;
+    },
+    start: function() {
+      _isPlaying = true;
+      var channel = 1;
+      var velocity = 100;
+
+      var me = this;
+      function playNextEvent() {
+        turnOffNotes();
+        if (!_isPlaying || _tracks.length === 0) {
+          return;
+        }
+        var track = _tracks[0];
+        var event = track.nextEvent();
+        if (!event) {
+          if (!_loop) {
+            me.stop();
+            return;
+          }
+
+          track.reset();
+          event = track.nextEvent();
+          // * if loop is active, then start from the beginning when the last
+          // event was already played
+          // * if reset also returns nothing, then it seems that there is nothing
+          // to be played, so the sequencer should be stopped
+          if (!event) {
+            me.stop();
+            return;
+          }
+        }
+
+        if (!event.isRest()) {
+          var synth = track.getAudioInstrument()
+          event.getPitches().forEach(function(note) {
+            _noteOffs.push(note.getPosition());
+            synth.noteOn(note.getPosition(), velocity);
+          });
+        }
+        // play next note after this note ended
+        setTimeout(playNextEvent, event.getLengthInQN() * _msPerQuarterNote);
+
+        track.updateGUI();
+      }
+
+      playNextEvent();
+    },
+    stop: function() {
+      _isPlaying = false;
+      _playIndex = 0;
+      turnOffNotes();
+      _tracks[0].reset();
+      _tracks[0].updateGUI();
+    }
+  };
+  return seq;
+}
+
+},{"./track.js":31}],31:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var audioInstrumentLib = require('../audio/instrument.js');
+
+lib.createTrack = function() {
+  var _audioInstrument = audioInstrumentLib.createInstrument();
+  var _instrumentGUI;
+  var _events = [];
+
+  var _chordIndex = 0;
+  var _eventIndex = -1; // <- index "within" the current chord
+
+  var _lastHighlighted = false;
+
+  var track = {
+    setEvents: function(events) {
+      _events = events;
+    },
+    reset: function() {
+      _chordIndex = 0;
+      _eventIndex = -1;
+    },
+    nextEvent: function() {
+      // check whether the current chord/event indexes are still in their array bounds:
+      if (_chordIndex >= _events.length) {
+        return false;
+      }
+      // does the chord need to be advanced?
+      if ((_eventIndex + 1) >= _events[_chordIndex].length) {
+        // yes
+        ++_chordIndex;
+        _eventIndex = 0;
+        if (_chordIndex >= _events.length) {
+          // there are no more chords
+          return false;
+        }
+      } else {
+        ++_eventIndex;
+      }
+      return _events[_chordIndex][_eventIndex];
+    },
+    getAudioInstrument: function() {
+      return _audioInstrument;
+    },
+    setInstrumentGUI: function(instrumentGUI) {
+      _instrumentGUI = instrumentGUI;
+    },
+    updateGUI: function() {
+      if (!_instrumentGUI || _chordIndex >= _events.length) {
+        return;
+      }
+
+      if (_lastHighlighted && _events.length > _lastHighlighted[0] && _events[_lastHighlighted[0]].length > _lastHighlighted[1]) {
+        _instrumentGUI.dehighlightEvent(_events[_lastHighlighted[0]][_lastHighlighted[1]], _lastHighlighted[0]);
+      }
+
+      if (_eventIndex == -1) {
+        return;
+      }
+
+      _instrumentGUI.highlightEvent(_events[_chordIndex][_eventIndex], _chordIndex);
+      _lastHighlighted = [_chordIndex, _eventIndex];
+    }
+  };
+
+  return track;
+};
+
+},{"../audio/instrument.js":11}],32:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
 const host = require("./host.js");
 
 /**
@@ -7932,13 +8112,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":31}],31:[function(require,module,exports){
+},{"./host.js":33}],33:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],32:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7947,12 +8127,14 @@ var recursiveParser = require("../recursive_parser.js");
 var WHITESPACE_REGEX = /\s+/;
 
 /**
- * Returns events being rests or pitch events.
+ * Returns an array (one array per chord) of an array of events being rests or
+ * pitch events, e.g. for an input progression containing two chords: [[event1, event2], [event3, event4]].
  */
 lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPattern) {
-  var events = []; // <- the result
+  var eventsPerChord = []; // <- the result
   var patternPos = 0;
   progression.getChords().forEach(function(chord) {
+    var events = [];
     var nextRhythmPattern = chord.getChordDefinition().getRhythmPattern() || defaultRhythmPattern;
     var nextArpPattern = chord.getChordDefinition().getArpeggioPattern() || defaultArpeggioPattern;
     var pitchIterator = nextArpPattern.createPitchIterator(chord);
@@ -7964,8 +8146,9 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
         events.push(createPitchEvent(event, nextPitches));
       }
     });
+    eventsPerChord.push(events);
   });
-  return events;
+  return eventsPerChord;
 }
 
 /**
@@ -8357,7 +8540,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":29}],33:[function(require,module,exports){
+},{"../recursive_parser.js":29}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8372,7 +8555,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":35,"./notes.js":36,"./scale.js":39,"./voicing.js":40}],34:[function(require,module,exports){
+},{"./chord_definition.js":37,"./notes.js":38,"./scale.js":41,"./voicing.js":42}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8483,7 +8666,7 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],35:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8768,7 +8951,7 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":26,"../parser/composite_parser.js":27,"./chord.js":34,"./voicing.js":40}],36:[function(require,module,exports){
+},{"../parser/composite.js":26,"../parser/composite_parser.js":27,"./chord.js":36,"./voicing.js":42}],38:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -9143,7 +9326,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],37:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -9301,7 +9484,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":13,"./base.js":33}],38:[function(require,module,exports){
+},{"../fingering.js":12,"./base.js":35}],40:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9532,7 +9715,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":29}],39:[function(require,module,exports){
+},{"../recursive_parser.js":29}],41:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9648,7 +9831,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":36}],40:[function(require,module,exports){
+},{"./notes.js":38}],42:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9877,7 +10060,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":29}]},{},[1]);
+},{"../recursive_parser.js":29}]},{},[23]);
 </script>
   </body>
 </html>
