@@ -1,23 +1,24 @@
-var instrumentLib = require("./src/gui/instrument/proxy.js"),
- formLib = require("./src/gui/form.js"),
- t = require("./src/theory/base.js"),
- p = require("./src/theory/progression.js"),
- compositeParser = require("./src/parser/composite_parser.js"),
- compositeLib = require("./src/parser/composite.js"),
- arpeggioLib = require("./src/theory/arpeggio.js"),
- midi = require("./src/midi.js"),
- serverClient = require("./src/server/client.js"),
- presets = require("./resources/presets.js"),
- gmPlayerLib = require("./src/audio/gm_player.js");
+var instrumentLib = require("./gui/instrument/proxy.js"),
+ formLib = require("./gui/form.js"),
+ t = require("./theory/base.js"),
+ p = require("./theory/progression.js"),
+ compositeParser = require("./parser/composite_parser.js"),
+ compositeLib = require("./parser/composite.js"),
+ arpeggioLib = require("./theory/arpeggio.js"),
+ midi = require("./midi.js"),
+ serverClient = require("./server/client.js"),
+ presets = require("../resources/presets.js"),
+ sequencerLib = require("./sequencer/sequencer.js");
 
-var gmPlayer = gmPlayerLib.createGmPlayer();
+var sequencer = sequencerLib.createSequencer();
+var track = sequencer.createTrack();
 
 // TODO move this code into an own file / layer?
 formLib.addForm(
   function(controls) {
     var instrument = controls.instrument;
     var option;
-    gmPlayer.getInstruments().forEach(function(name, index) {
+    track.getAudioInstrument().getPresetNames().forEach(function(name, index) {
       option = document.createElement('option');
       option.appendChild(document.createTextNode(name));
       option.value = index;
@@ -25,20 +26,20 @@ formLib.addForm(
     });
     instrument.addEventListener("change", function() {
       if (instrument.selectedIndex > -1) {
-        gmPlayer.setInstrument(controls.instrument.options[instrument.selectedIndex].value);
+        track.getAudioInstrument().setPreset(controls.instrument.options[instrument.selectedIndex].value);
       }
     });1
     controls.play.addEventListener("click", function() {
-      gmPlayer.start();
+      sequencer.start();
     });
     controls.stop.addEventListener("click", function() {
-      gmPlayer.stop();
+      sequencer.stop();
     });
     controls.loop.addEventListener("click", function() {
-      gmPlayer.setLoop(controls.loop.checked);
+      sequencer.setLoop(controls.loop.checked);
     });
     controls.bpm.addEventListener("input", function() {
-      gmPlayer.setBpm(controls.bpm.value);
+      sequencer.setBpm(controls.bpm.value);
     });
     controls.bpm.dispatchEvent(new Event('input'));
   },
@@ -47,7 +48,7 @@ formLib.addForm(
     var chords = progression.getChords();
 
     var events = arpeggioLib.arpeggiate(progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-    gmPlayer.setEvents(events);
+    track.setEvents(events);
 
     if (options.uploadToDAW) {
       serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
@@ -65,6 +66,8 @@ formLib.addForm(
 
     var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
     instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
+    
+    track.setInstrumentGUI(instrument);
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );

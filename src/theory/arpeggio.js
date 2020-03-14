@@ -6,12 +6,14 @@ var recursiveParser = require("../recursive_parser.js");
 var WHITESPACE_REGEX = /\s+/;
 
 /**
- * Returns events being rests or pitch events.
+ * Returns an array (one array per chord) of an array of events being rests or
+ * pitch events, e.g. for an input progression containing two chords: [[event1, event2], [event3, event4]].
  */
 lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPattern) {
-  var events = []; // <- the result
+  var eventsPerChord = []; // <- the result
   var patternPos = 0;
   progression.getChords().forEach(function(chord) {
+    var events = [];
     var nextRhythmPattern = chord.getChordDefinition().getRhythmPattern() || defaultRhythmPattern;
     var nextArpPattern = chord.getChordDefinition().getArpeggioPattern() || defaultArpeggioPattern;
     var pitchIterator = nextArpPattern.createPitchIterator(chord);
@@ -23,8 +25,9 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
         events.push(createPitchEvent(event, nextPitches));
       }
     });
+    eventsPerChord.push(events);
   });
-  return events;
+  return eventsPerChord;
 }
 
 /**

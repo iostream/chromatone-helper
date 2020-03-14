@@ -46,6 +46,10 @@
 .zebra.keyboard .row span.selected.root {
   background-color: var(--key-root-color);
 }
+.zebra.keyboard .row span.played {
+  background-color: red !important;
+}
+
 .zebra.keyboard .row span .note-text {
   --border-color: var(--key-color);
   --shadow-offset: 1pt;

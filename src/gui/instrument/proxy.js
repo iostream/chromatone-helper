@@ -24,14 +24,14 @@ function createInstrument1(options, parentElement) {
   var _options = options;
   var _factory = factoryLib.createInstrumentFactory(options);
   var _parentElement = parentElement;
-  var _lastInstrument = false;
+  var _instruments = []; // <- one instrument per chord
 
   var instrument = {
     // XXX This is the first mode: add one new GUI per chordDef
     addChord: function(chord, progression) {
       var instrument = _factory.create(
         progression.getLowestPosition(),
-        chord.getHighestNote().getPosition(),
+        chord.getHighestNote().getPosition()
       );
 
       var name;
@@ -40,15 +40,38 @@ function createInstrument1(options, parentElement) {
       }
       instrument.add(chord, name, _options);
 
-      if (_lastInstrument) {
-        _lastInstrument.addDiff(chord);
+      if (_instruments.length > 0) {
+        // add diff to last added instrument
+        _instruments[_instruments.length - 1 ].addDiff(chord);
       }
-      _lastInstrument = instrument;
+      _instruments.push(instrument);
       _parentElement.appendChild(instrument.getElement());
     },
-    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposit) {
+    highlightEvent: function(event, chordIndex, dehighlight) {
+      if (chordIndex >= _instruments.length) {
+        return;
+      }
+      if (event.isRest()) {
+        return;
+      }
+      var instrument = _instruments[chordIndex];
+
+      if (dehighlight) {
+        event.getPitches().forEach(function(pitch) {
+          instrument.dehighlightPitch(pitch);
+        });
+      } else {
+        event.getPitches().forEach(function(pitch) {
+          instrument.highlightPitch(pitch);
+        });
+      }
+    },
+    dehighlightEvent: function(event, chordIndex) {
+      return this.highlightEvent(event, chordIndex, true);
+    },
+    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
       var chordsCopy = progression.getChords().slice();
-      chordDefinitionComposit.getChildren().forEach(function(chordDefinitionOrComposite2) {
+      chordDefinitionComposite.getChildren().forEach(function(chordDefinitionOrComposite2) {
         addChordsRecursive(chordsCopy, chordDefinitionOrComposite2, progression);
       });
     }

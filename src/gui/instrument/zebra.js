@@ -29,6 +29,16 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
     button.className += " half";
     return button;
   }
+  function findNoteElement(note) {
+    var absoluteChromatic = note.getPosition();
+    // find buttons to light
+    var query = "span.c" + absoluteChromatic;
+    var noteEl = keyboard.querySelector(query);
+    if (noteEl === null || typeof noteEl === "undefined") {
+      return false;
+    }
+    return noteEl;
+  }
 
   var keyboard = zebraKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
@@ -69,17 +79,13 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
         // add each
         for (var i=0; i<notes.length; ++i) {
           var note = notes[i];
-          var absoluteChromatic = note.getPosition();
-          var name = note.findIntervalName();
-
-          // find buttons to light
-          var query = "span.c" + absoluteChromatic;
-          var noteEl = keyboard.querySelector(query);
-          if (noteEl === null || typeof noteEl === "undefined") {
+          var noteEl = findNoteElement(note);
+          if (!noteEl) {
             console.error("Could not find button to light by note \"" + note.toString() + "\" using query " + query);
             continue;
           }
           // add label
+          var name = note.findIntervalName();
           noteEl.setAttribute("title", name);
           noteEl.innerHTML = '<p class="note-text">' + name + "</p>";
           noteEl.classList.add("selected");
@@ -99,6 +105,24 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
       },
       addDiff: function(notes) {
         // currently noop
+      },
+      highlightPitch: function(pitch) {
+        var noteEl = findNoteElement(pitch);
+        if (!noteEl) {
+          // XXX skip this error to not flood the console...?!
+          console.error("highlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.add('played');
+      },
+      dehighlightPitch: function(pitch) {
+        var noteEl = findNoteElement(pitch);
+        if (!noteEl) {
+          // XXX skip this error to not flood the console...?!
+          console.error("dehighlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.remove('played');
       },
       clone: function() {
         return construct(keyboard.cloneNode(true));
