@@ -356,6 +356,7 @@ function initControlElements(form) {
   return {
     play: form.play,
     stop: form.stop,
+    pause: form.pause,
     loop: form.loop,
     bpm: form.bpm,
     instrument: form.getElementsByClassName('play-instrument-select')[0]

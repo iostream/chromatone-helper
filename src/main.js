@@ -32,6 +32,9 @@ formLib.addForm(
     controls.play.addEventListener("click", function() {
       sequencer.start();
     });
+    controls.pause.addEventListener("click", function() {
+      sequencer.pause();
+    });
     controls.stop.addEventListener("click", function() {
       sequencer.stop();
     });
@@ -66,7 +69,7 @@ formLib.addForm(
 
     var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
     instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
-    
+
     track.setInstrumentGUI(instrument);
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns

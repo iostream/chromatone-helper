@@ -77,6 +77,9 @@ lib.createSequencer = function() {
 
       playNextEvent();
     },
+    pause: function() {
+      _isPlaying = false;
+    },
     stop: function() {
       _isPlaying = false;
       _playIndex = 0;

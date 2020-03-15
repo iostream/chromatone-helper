@@ -99,9 +99,13 @@
           <div class="secondary-form-elements">
           <span class="form-element">
             <span class="form-element">
-              <input type="button" value="▶" name="play" title="plays the last generated progression directly in the browser">
-              <input type="button" value="⏹" name="stop" title="stops the currently playing progression">
-              <input type="checkbox" name="loop" title="Whether to repeat the played sequence over and over.">
+              <input type="button" value="▶" name="play" title="play progression"><!--
+              --><input type="button" value="⏸" name="pause" title="pause progression"><!--
+              --><input type="button" value="⏹" name="stop" title="stop progression">
+              <span class="form-element">
+                <label for="loop">loop</label>
+                <input type="checkbox" name="loop" title="Whether to repeat the played sequence over and over.">
+              </span>
             </span>
             <span class="form-element">
             <input type="range" min="1" max="350" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
