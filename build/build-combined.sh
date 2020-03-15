@@ -12,7 +12,8 @@ mkdir -p chromatone
 rm -fr chromatone/*
 
 cp ../chromatone-index.html chromatone
-cp bundle.js chromatone
+mkdir -p  chromatone/dist
+cp bundle.js chromatone/dist
 cp -r ../resources chromatone
 
 cd chromatone
