@@ -12,7 +12,7 @@ mkdir -p chromatone
 rm -fr chromatone/*
 
 cp ../chromatone-index.html chromatone
-cp ../bundle.js chromatone
+cp bundle.js chromatone
 cp -r ../resources chromatone
 
 cd chromatone
@@ -35,4 +35,4 @@ replaceStyleFile() {
 replaceStyleFile "$indexFileName" "resources/style.css"
 replaceStyleFile "$indexFileName" "resources/zebra.css"
 replaceStyleFile "$indexFileName" "resources/string_instrument.css"
-replaceScriptFile "$indexFileName" "bundle.js"
+replaceScriptFile "$indexFileName" "dist/bundle.js"
