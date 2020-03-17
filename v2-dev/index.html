@@ -77,6 +77,9 @@ section#templates {
 .chromatic.keyboard span.selected {
   background-color: #ffa17a;
 }
+.chromatic.keyboard span.played {
+  background-color: red !important;
+}
 .chromatic.keyboard span.root {
   border-color: #354b45;
   background-color: yellow;
@@ -357,6 +360,10 @@ margin-top: 4pt;
 .string-instrument .frets > .fret > p.selected.root > .note-text {
   background-color: yellow;
 }
+.string-instrument .frets > .fret > p.played > .note-text {
+  background-color: blue !important;
+  color: white !important;
+}
 .string-instrument .frets > .fret > p.ignore > .note-text,
 .string-instrument .frets > .fret > p.selected.root.ignore > .note-text {
   background-color: var(--fretboard-color);
@@ -441,6 +448,10 @@ margin-top: 4pt;
                 <option class="stringed" value="bass_guitar">Bass guitar</option>
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
               </select>
+            </span>
+            <span class="form-element">
+              <label for="compact">compact</label>
+              <input type="checkbox" name="compact"></input>
             </span>
             <span class="stringed-options hidden">
               <span class="form-element">
@@ -5736,7 +5747,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.rhythms, form.arp, form.instrument, stringedOptionElements[0], stringedOptionElements[1]].forEach(function(element) {
+  [form.chords, form.voicing, form.rhythms, form.arp, form.instrument, form.compact, stringedOptionElements[0], stringedOptionElements[1]].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -6032,7 +6043,7 @@ function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpe
 
 function collectInstrumentOptions(form, stringedOptionElements) {
   // XXX Am I writing my own form serialize (to hash)?
-  var options = { type: form.instrument.value };
+  var options = {type: form.instrument.value, compact: form.compact.checked};
   for (var i = 0; i < stringedOptionElements.length; ++i) {
     var el = stringedOptionElements[i];
     options[el.name] = el.checked;
@@ -6156,6 +6167,16 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
       getElement: function() {
         return keyboard;
       },
+      clear: function() {
+        var button;
+        var selectedButtons = keyboard.getElementsByClassName('selected');
+        while (selectedButtons.length) {
+          button = selectedButtons[0];
+          button.innerHTML = '';
+          button.classList.remove('selected');
+          button.classList.remove('root');
+        }
+      },
       add: function(notes, description) {
         var notes = tLib.parseNotes(notes);
         if (debug) {
@@ -6195,6 +6216,26 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
             descriptionEl[0].innerHTML = description;
           }
         }
+      },
+      highlightPitch: function(pitch) {
+        var query = ".row span.selected.c" + pitch.getPosition();
+        var noteEl = keyboard.querySelector(query);
+        if (noteEl === null || typeof noteEl === "undefined") {
+          // XXX skip this error to not flood the console...?!
+          console.error("highlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.add('played');
+      },
+      dehighlightPitch: function(pitch) {
+        var query = ".row span.selected.c" + pitch.getPosition();
+        var noteEl = keyboard.querySelector(query);
+        if (noteEl === null || typeof noteEl === "undefined") {
+          // XXX skip this error to not flood the console...?!
+          console.error("dehighlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.remove('played');
       },
       addDiff: function(notes) {
         notes = tLib.parseNotes(notes);
@@ -6295,7 +6336,64 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
  * some features, so the actual instrument implementations can be simple.
  */
 lib.createInstrument = function(options, parentElement) {
+  if (options.compact) {
+    return createCompactInstrument(options, parentElement);
+  }
   return createInstrument1(options, parentElement);
+}
+
+/**
+ * All chords are shown on the same instrument and only one at a time.
+ */
+function createCompactInstrument(options, parentElement) {
+  var _options = options;
+  var _parentElement = parentElement;
+  var _chords;
+  var _instrument;
+  var _chordIndex = -1;
+  return {
+    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
+      _chords = progression.getChords();
+      var factory = factoryLib.createInstrumentFactory(options);
+      // create one instrument which fits the whole progression:
+      _instrument = factory.create(progression.getLowestPosition(), progression.getHighestPosition());
+      _parentElement.appendChild(_instrument.getElement());
+    },
+    addChord: function(chord, progression) {
+      // noop, initially there is nothing to be seen
+    },
+    highlightEvent: function(event, chordIndex, dehighlight) {
+      if (!_chords || chordIndex >= _chords.length) {
+        return;
+      }
+
+      // update currently shown chord if needed
+      if (_chordIndex != chordIndex) {
+        // TODO also remove last chord
+        var chord = _chords[chordIndex];
+        _instrument.clear();
+        _instrument.add(chord, chord.getName(), _options);
+        _chordIndex = chordIndex;
+      }
+
+      if (event.isRest()) {
+        return;
+      }
+
+      if (dehighlight) {
+        event.getPitches().forEach(function(pitch) {
+          _instrument.dehighlightPitch(pitch);
+        });
+      } else {
+        event.getPitches().forEach(function(pitch) {
+          _instrument.highlightPitch(pitch);
+        });
+      }
+    },
+    dehighlightEvent: function(event, chordIndex) {
+      return this.highlightEvent(event, chordIndex, true);
+    }
+  };
 }
 
 /**
@@ -6315,11 +6413,7 @@ function createInstrument1(options, parentElement) {
         chord.getHighestNote().getPosition()
       );
 
-      var name;
-      if (typeof chord.getName !== "undefined") {
-        name = chord.getName();
-      }
-      instrument.add(chord, name, _options);
+      instrument.add(chord, chord.getName(), _options);
 
       if (_instruments.length > 0) {
         // add diff to last added instrument
@@ -6427,6 +6521,7 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
   var _fretBoard = _container.getElementsByClassName('frets')[0];
   var _fretCount = fretCount;
   var _frets = [];
+  var _markedNoteElements = [];
   // all chords get a style applied using this class; its name contains
   // everything which makes the style unique
   var _className = 's' + gauges.join("-").replace(/\./g, '');
@@ -6447,9 +6542,52 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
     initializedStyles[_className] = true;
   }
 
+  function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
+    var selected = noteEl.classList.contains('selected');
+    if (isDifferentRegister && selected && !allIntervals) {
+      // do nothing, if this is a different register and the note is already
+      // marked
+      return;
+    }
+
+    // add label
+    var name = note.findIntervalName();
+    if (isDifferentRegister) {
+      name = '(' + name + ')';
+    }
+
+    if (selected && allIntervals) {
+      // append to existing name
+      var existingName = noteEl.getAttribute("title");
+      name = existingName + "/" + name;
+    }
+
+    noteEl.setAttribute("title", name);
+    noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
+    noteEl.classList.add("selected");
+
+    // mark root
+    if (note.isRoot()) {
+      noteEl.classList.add("root");
+    }
+
+    _markedNoteElements.push([note.getPosition(), noteEl]);
+  }
+
   var instrument = {
     getElement: function() {
       return _container;
+    },
+    clear: function() {
+      var button;
+      var selectedButtons = _container.getElementsByClassName('selected');
+      while (selectedButtons.length) {
+        button = selectedButtons[0];
+        button.innerHTML = '';
+        button.title = '';
+        button.classList.remove('selected');
+        button.classList.remove('root');
+      }
     },
     add: function(notes, description, options) {
       var notes = notesLib.parseNotes(notes);
@@ -6492,7 +6630,20 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
           }
         });
       });
-      // also mark notes which are in different registers....
+    },
+    highlightPitch: function(pitch) {
+      _markedNoteElements.forEach(function(noteElArray) {
+        if (noteElArray[0] === pitch.getPosition()) {
+          noteElArray[1].classList.add('played');
+        }
+      });
+    },
+    dehighlightPitch: function(pitch) {
+      _markedNoteElements.forEach(function(noteElArray) {
+        if (noteElArray[0] === pitch.getPosition()) {
+          noteElArray[1].classList.remove('played');  
+        }
+      });
     },
     addDiff: function(notes) {
       // noop
@@ -6522,7 +6673,7 @@ function createString() {
 }
 
 var markingsPerFret = {
-  // fret index => count of markings
+  // relative fret index => count of markings
   0: 2, 3: 1, 5: 1, 7: 1, 9: 1
 };
 function createFret(index) {
@@ -6545,36 +6696,6 @@ function createFret(index) {
     }
   }
   return el;
-}
-
-function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
-  var selected = noteEl.classList.contains('selected');
-  if (isDifferentRegister && selected && !allIntervals) {
-    // do nothing, if this is a different register and the note is already
-    // marked
-    return;
-  }
-
-  // add label
-  var name = note.findIntervalName();
-  if (isDifferentRegister) {
-    name = '(' + name + ')';
-  }
-
-  if (selected && allIntervals) {
-    // append to existing name
-    var existingName = noteEl.getAttribute("title");
-    name = existingName + "/" + name;
-  }
-
-  noteEl.setAttribute("title", name);
-  noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
-  noteEl.classList.add("selected");
-
-  // mark root
-  if (note.isRoot()) {
-    noteEl.classList.add("root");
-  }
 }
 
 },{"../../theory/notes.js":38}],19:[function(require,module,exports){
@@ -6649,6 +6770,17 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
     return {
       getElement: function() {
         return keyboard;
+      },
+      clear: function() {
+        var button;
+        var selectedButtons = keyboard.getElementsByClassName('selected');
+        while (selectedButtons.length) {
+          button = selectedButtons[0];
+          button.title = '';
+          button.innerHTML = '';
+          button.classList.remove('selected');
+          button.classList.remove('root');
+        }
       },
       add: function(notes, description) {
         var notes = tLib.parseNotes(notes);
@@ -9380,6 +9512,13 @@ function findLowestPosition(chords) {
   return lowestPosition;
 }
 
+function findHighestPosition(chords) {
+  return chords.reduce(function(highestPosition, chord) {
+    var chordHighestPosition = chord.getHighestNote().getPosition();
+    return (chordHighestPosition > highestPosition) ? chordHighestPosition : highestPosition;
+  }, chords[0].getHighestNote().getPosition());
+}
+
 /**
  *
  */
@@ -9387,17 +9526,21 @@ lib.createChordProgression = function(chordDefinitions) {
   var _chordDefs = chordDefinitions;
   var _chords = false;
   var _lowestPosition = false; // lowest chromatic position
+  var _highestPosition = false; // highest chromatic position
   return {
-    /**
-     * XXX Once fixed they stay fixed.... so this becomes a thing of using it
-     * in the right order! must return a co py instead!
-     */
     getLowestPosition: function() {
       // lazy init
       if (_lowestPosition === false) {
         _lowestPosition = findLowestPosition(_chords);
       }
       return _lowestPosition;
+    },
+    getHighestPosition: function() {
+      // lazy init
+      if (_highestPosition === false) {
+        _highestPosition = findHighestPosition(_chords);
+      }
+      return _highestPosition;
     },
     getChords: function() {
       // lazy init
@@ -9955,7 +10098,7 @@ function createVoicing(voices1, voices2) {
 
       var arpeggioNotes = [];
       _voices1.forEach(function(voice) {
-        arpeggioNotes.push(voiceToNoteMap.get(voice));
+        arpeggioNotes.push(voiceToNoteMap.get(voice).clone());
       });
 
       return arpeggioNotes;
