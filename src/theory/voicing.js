@@ -108,7 +108,7 @@ function createVoicing(voices1, voices2) {
 
       var arpeggioNotes = [];
       _voices1.forEach(function(voice) {
-        arpeggioNotes.push(voiceToNoteMap.get(voice));
+        arpeggioNotes.push(voiceToNoteMap.get(voice).clone());
       });
 
       return arpeggioNotes;
