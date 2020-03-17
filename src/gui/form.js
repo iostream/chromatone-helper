@@ -42,7 +42,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.rhythms, form.arp, form.instrument, stringedOptionElements[0], stringedOptionElements[1]].forEach(function(element) {
+  [form.chords, form.voicing, form.rhythms, form.arp, form.instrument, form.compact, stringedOptionElements[0], stringedOptionElements[1]].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -338,7 +338,7 @@ function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpe
 
 function collectInstrumentOptions(form, stringedOptionElements) {
   // XXX Am I writing my own form serialize (to hash)?
-  var options = { type: form.instrument.value };
+  var options = {type: form.instrument.value, compact: form.compact.checked};
   for (var i = 0; i < stringedOptionElements.length; ++i) {
     var el = stringedOptionElements[i];
     options[el.name] = el.checked;

@@ -38,6 +38,13 @@ function findLowestPosition(chords) {
   return lowestPosition;
 }
 
+function findHighestPosition(chords) {
+  return chords.reduce(function(highestPosition, chord) {
+    var chordHighestPosition = chord.getHighestNote().getPosition();
+    return (chordHighestPosition > highestPosition) ? chordHighestPosition : highestPosition;
+  }, chords[0].getHighestNote().getPosition());
+}
+
 /**
  *
  */
@@ -45,17 +52,21 @@ lib.createChordProgression = function(chordDefinitions) {
   var _chordDefs = chordDefinitions;
   var _chords = false;
   var _lowestPosition = false; // lowest chromatic position
+  var _highestPosition = false; // highest chromatic position
   return {
-    /**
-     * XXX Once fixed they stay fixed.... so this becomes a thing of using it
-     * in the right order! must return a co py instead!
-     */
     getLowestPosition: function() {
       // lazy init
       if (_lowestPosition === false) {
         _lowestPosition = findLowestPosition(_chords);
       }
       return _lowestPosition;
+    },
+    getHighestPosition: function() {
+      // lazy init
+      if (_highestPosition === false) {
+        _highestPosition = findHighestPosition(_chords);
+      }
+      return _highestPosition;
     },
     getChords: function() {
       // lazy init

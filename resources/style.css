@@ -71,6 +71,9 @@ section#templates {
 .chromatic.keyboard span.selected {
   background-color: #ffa17a;
 }
+.chromatic.keyboard span.played {
+  background-color: red !important;
+}
 .chromatic.keyboard span.root {
   border-color: #354b45;
   background-color: yellow;

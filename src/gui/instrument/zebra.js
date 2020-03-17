@@ -70,6 +70,17 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
       getElement: function() {
         return keyboard;
       },
+      clear: function() {
+        var button;
+        var selectedButtons = keyboard.getElementsByClassName('selected');
+        while (selectedButtons.length) {
+          button = selectedButtons[0];
+          button.title = '';
+          button.innerHTML = '';
+          button.classList.remove('selected');
+          button.classList.remove('root');
+        }
+      },
       add: function(notes, description) {
         var notes = tLib.parseNotes(notes);
         if (debug) {
