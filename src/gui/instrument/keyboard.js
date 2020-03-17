@@ -47,6 +47,16 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
       getElement: function() {
         return keyboard;
       },
+      clear: function() {
+        var button;
+        var selectedButtons = keyboard.getElementsByClassName('selected');
+        while (selectedButtons.length) {
+          button = selectedButtons[0];
+          button.innerHTML = '';
+          button.classList.remove('selected');
+          button.classList.remove('root');
+        }
+      },
       add: function(notes, description) {
         var notes = tLib.parseNotes(notes);
         if (debug) {
@@ -86,6 +96,26 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
             descriptionEl[0].innerHTML = description;
           }
         }
+      },
+      highlightPitch: function(pitch) {
+        var query = ".row span.selected.c" + pitch.getPosition();
+        var noteEl = keyboard.querySelector(query);
+        if (noteEl === null || typeof noteEl === "undefined") {
+          // XXX skip this error to not flood the console...?!
+          console.error("highlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.add('played');
+      },
+      dehighlightPitch: function(pitch) {
+        var query = ".row span.selected.c" + pitch.getPosition();
+        var noteEl = keyboard.querySelector(query);
+        if (noteEl === null || typeof noteEl === "undefined") {
+          // XXX skip this error to not flood the console...?!
+          console.error("dehighlightPitch() - Could not find pitch: " + pitch.getPosition());
+          return;
+        }
+        noteEl.classList.remove('played');
       },
       addDiff: function(notes) {
         notes = tLib.parseNotes(notes);
