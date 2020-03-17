@@ -39,6 +39,7 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
   var _fretBoard = _container.getElementsByClassName('frets')[0];
   var _fretCount = fretCount;
   var _frets = [];
+  var _markedNoteElements = [];
   // all chords get a style applied using this class; its name contains
   // everything which makes the style unique
   var _className = 's' + gauges.join("-").replace(/\./g, '');
@@ -59,9 +60,52 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
     initializedStyles[_className] = true;
   }
 
+  function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
+    var selected = noteEl.classList.contains('selected');
+    if (isDifferentRegister && selected && !allIntervals) {
+      // do nothing, if this is a different register and the note is already
+      // marked
+      return;
+    }
+
+    // add label
+    var name = note.findIntervalName();
+    if (isDifferentRegister) {
+      name = '(' + name + ')';
+    }
+
+    if (selected && allIntervals) {
+      // append to existing name
+      var existingName = noteEl.getAttribute("title");
+      name = existingName + "/" + name;
+    }
+
+    noteEl.setAttribute("title", name);
+    noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
+    noteEl.classList.add("selected");
+
+    // mark root
+    if (note.isRoot()) {
+      noteEl.classList.add("root");
+    }
+
+    _markedNoteElements.push([note.getPosition(), noteEl]);
+  }
+
   var instrument = {
     getElement: function() {
       return _container;
+    },
+    clear: function() {
+      var button;
+      var selectedButtons = _container.getElementsByClassName('selected');
+      while (selectedButtons.length) {
+        button = selectedButtons[0];
+        button.innerHTML = '';
+        button.title = '';
+        button.classList.remove('selected');
+        button.classList.remove('root');
+      }
     },
     add: function(notes, description, options) {
       var notes = notesLib.parseNotes(notes);
@@ -104,7 +148,20 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
           }
         });
       });
-      // also mark notes which are in different registers....
+    },
+    highlightPitch: function(pitch) {
+      _markedNoteElements.forEach(function(noteElArray) {
+        if (noteElArray[0] === pitch.getPosition()) {
+          noteElArray[1].classList.add('played');
+        }
+      });
+    },
+    dehighlightPitch: function(pitch) {
+      _markedNoteElements.forEach(function(noteElArray) {
+        if (noteElArray[0] === pitch.getPosition()) {
+          noteElArray[1].classList.remove('played');  
+        }
+      });
     },
     addDiff: function(notes) {
       // noop
@@ -134,7 +191,7 @@ function createString() {
 }
 
 var markingsPerFret = {
-  // fret index => count of markings
+  // relative fret index => count of markings
   0: 2, 3: 1, 5: 1, 7: 1, 9: 1
 };
 function createFret(index) {
@@ -157,34 +214,4 @@ function createFret(index) {
     }
   }
   return el;
-}
-
-function markNoteElement(noteEl, note, isDifferentRegister, allIntervals) {
-  var selected = noteEl.classList.contains('selected');
-  if (isDifferentRegister && selected && !allIntervals) {
-    // do nothing, if this is a different register and the note is already
-    // marked
-    return;
-  }
-
-  // add label
-  var name = note.findIntervalName();
-  if (isDifferentRegister) {
-    name = '(' + name + ')';
-  }
-
-  if (selected && allIntervals) {
-    // append to existing name
-    var existingName = noteEl.getAttribute("title");
-    name = existingName + "/" + name;
-  }
-
-  noteEl.setAttribute("title", name);
-  noteEl.innerHTML = '<span class="note-text">' + name + "</span>";
-  noteEl.classList.add("selected");
-
-  // mark root
-  if (note.isRoot()) {
-    noteEl.classList.add("root");
-  }
 }

@@ -64,6 +64,10 @@
 .string-instrument .frets > .fret > p.selected.root > .note-text {
   background-color: yellow;
 }
+.string-instrument .frets > .fret > p.played > .note-text {
+  background-color: blue !important;
+  color: white !important;
+}
 .string-instrument .frets > .fret > p.ignore > .note-text,
 .string-instrument .frets > .fret > p.selected.root.ignore > .note-text {
   background-color: var(--fretboard-color);
