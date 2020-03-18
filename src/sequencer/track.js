@@ -21,6 +21,22 @@ lib.createTrack = function() {
       _chordIndex = 0;
       _eventIndex = -1;
     },
+    previousEvent: function() {
+      // does the chord index need to be decreased?
+      if (_eventIndex === 0) {
+        // yes
+        --_chordIndex;
+        _eventIndex = -1;
+        if (_chordIndex < 0) {
+          // there are no more chords
+          return false;
+        }
+        _eventIndex = _events[_chordIndex].length - 1;
+      } else {
+        --_eventIndex;
+      }
+      return _events[_chordIndex][_eventIndex];
+    },
     nextEvent: function() {
       // check whether the current chord/event indexes are still in their array bounds:
       if (_chordIndex >= _events.length) {
@@ -51,14 +67,17 @@ lib.createTrack = function() {
         return;
       }
 
+      // dehighlight previous pitches
       if (_lastHighlighted && _events.length > _lastHighlighted[0] && _events[_lastHighlighted[0]].length > _lastHighlighted[1]) {
         _instrumentGUI.dehighlightEvent(_events[_lastHighlighted[0]][_lastHighlighted[1]], _lastHighlighted[0]);
       }
 
+      // check for initial state: no pitches are active, so return
       if (_eventIndex == -1) {
         return;
       }
 
+      // highlight current event and remember event indexes, so it can be dehighlighted later
       _instrumentGUI.highlightEvent(_events[_chordIndex][_eventIndex], _chordIndex);
       _lastHighlighted = [_chordIndex, _eventIndex];
     }

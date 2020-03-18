@@ -19,6 +19,14 @@ lib.createSequencer = function() {
     _noteOffs = [];
   }
 
+  function playNextEvent(track) {
+    return playEvent(track, true);
+  }
+
+  function playPreviousEvent(track) {
+    return playEvent(track, false);
+  }
+
   var seq = {
     createTrack: function() {
       var track = trackLib.createTrack();
@@ -31,51 +39,43 @@ lib.createSequencer = function() {
     setBpm: function(bpm) {
       _msPerQuarterNote = 60000 / bpm;
     },
+    stepForward: function() {
+      if (_isPlaying || _tracks.length === 0) {
+        return;
+      }
+      var track = _tracks[0];
+      var event = playNextEvent(track);
+      track.updateGUI();
+    },
+    stepBackward: function() {
+      if (_isPlaying || _tracks.length === 0) {
+        return;
+      }
+      var track = _tracks[0];
+      var event = playPreviousEvent(track);
+      track.updateGUI();
+    },
     start: function() {
+      if (_isPlaying) {
+        return;
+      }
       _isPlaying = true;
-      var channel = 1;
-      var velocity = 100;
 
       var me = this;
-      function playNextEvent() {
-        turnOffNotes();
-        if (!_isPlaying || _tracks.length === 0) {
+      function playNextEvents() {
+        if (!_isPlaying) {
           return;
         }
         var track = _tracks[0];
-        var event = track.nextEvent();
-        if (!event) {
-          if (!_loop) {
-            me.stop();
-            return;
-          }
+        var event = playNextEvent(track);
 
-          track.reset();
-          event = track.nextEvent();
-          // * if loop is active, then start from the beginning when the last
-          // event was already played
-          // * if reset also returns nothing, then it seems that there is nothing
-          // to be played, so the sequencer should be stopped
-          if (!event) {
-            me.stop();
-            return;
-          }
-        }
-
-        if (!event.isRest()) {
-          var synth = track.getAudioInstrument()
-          event.getPitches().forEach(function(note) {
-            _noteOffs.push(note.getPosition());
-            synth.noteOn(note.getPosition(), velocity);
-          });
-        }
         // play next note after this note ended
-        setTimeout(playNextEvent, event.getLengthInQN() * _msPerQuarterNote);
+        setTimeout(playNextEvents, event.getLengthInQN() * _msPerQuarterNote);
 
         track.updateGUI();
       }
 
-      playNextEvent();
+      playNextEvents();
     },
     pause: function() {
       _isPlaying = false;
@@ -88,5 +88,40 @@ lib.createSequencer = function() {
       _tracks[0].updateGUI();
     }
   };
+  function playEvent(track, next) {
+    turnOffNotes();
+    if (!track) {
+      return;
+    }
+    var velocity = 100;
+    var event = (next) ? track.nextEvent() : track.previousEvent();
+    if (!event) {
+      if (!_loop) {
+        seq.stop();
+        return;
+      }
+
+      track.reset();
+      event = track.nextEvent();
+      // * if loop is active, then start from the beginning when the last
+      // event was already played
+      // * if reset also returns nothing, then it seems that there is nothing
+      // to be played, so the sequencer should be stopped
+      if (!event) {
+        seq.stop();
+        return;
+      }
+    }
+
+    if (!event.isRest()) {
+      var synth = track.getAudioInstrument()
+      event.getPitches().forEach(function(note) {
+        _noteOffs.push(note.getPosition());
+        synth.noteOn(note.getPosition(), velocity);
+      });
+    }
+
+    return event;
+  }
   return seq;
 }

@@ -38,6 +38,12 @@ formLib.addForm(
     controls.stop.addEventListener("click", function() {
       sequencer.stop();
     });
+    controls.step_forward.addEventListener("click", function() {
+      sequencer.stepForward();
+    });
+    controls.step_backward.addEventListener("click", function() {
+      sequencer.stepBackward();
+    });
     controls.loop.addEventListener("click", function() {
       sequencer.setLoop(controls.loop.checked);
     });
