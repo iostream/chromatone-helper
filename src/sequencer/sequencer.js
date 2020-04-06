@@ -39,12 +39,15 @@ lib.createSequencer = function() {
     setBpm: function(bpm) {
       _msPerQuarterNote = 60000 / bpm;
     },
+    setChordIndex: function(chordIndex) {
+      _tracks[0].setChordIndex(chordIndex);
+    },
     stepForward: function() {
       if (_isPlaying || _tracks.length === 0) {
         return;
       }
       var track = _tracks[0];
-      var event = playNextEvent(track);
+      playNextEvent(track);
       track.updateGUI();
     },
     stepBackward: function() {
@@ -52,7 +55,7 @@ lib.createSequencer = function() {
         return;
       }
       var track = _tracks[0];
-      var event = playPreviousEvent(track);
+      playPreviousEvent(track);
       track.updateGUI();
     },
     start: function() {
@@ -68,6 +71,9 @@ lib.createSequencer = function() {
         }
         var track = _tracks[0];
         var event = playNextEvent(track);
+        if (!event) {
+          return;
+        }
 
         // play next note after this note ended
         setTimeout(playNextEvents, event.getLengthInQN() * _msPerQuarterNote);
@@ -79,6 +85,7 @@ lib.createSequencer = function() {
     },
     pause: function() {
       _isPlaying = false;
+      turnOffNotes();
     },
     stop: function() {
       _isPlaying = false;

@@ -3,6 +3,9 @@ module.exports = lib;
 
 var audioInstrumentLib = require('../audio/instrument.js');
 
+/**
+ * XXX This design won't work fur multi track purposes.
+ */
 lib.createTrack = function() {
   var _audioInstrument = audioInstrumentLib.createInstrument();
   var _instrumentGUI;
@@ -20,6 +23,9 @@ lib.createTrack = function() {
     reset: function() {
       _chordIndex = 0;
       _eventIndex = -1;
+    },
+    setChordIndex: function(chordIndex) {
+      _chordIndex = chordIndex;
     },
     previousEvent: function() {
       // does the chord index need to be decreased?

@@ -13,11 +13,11 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
  * Creates a common proxy to all kind of instruments. The proxy also implements
  * some features, so the actual instrument implementations can be simple.
  */
-lib.createInstrument = function(options, parentElement) {
+lib.createInstrument = function(options, parentElement, sequencer) {
   if (options.compact) {
     return createCompactInstrument(options, parentElement);
   }
-  return createInstrument1(options, parentElement);
+  return createInstrument1(options, parentElement, sequencer);
 }
 
 /**
@@ -29,6 +29,7 @@ function createCompactInstrument(options, parentElement) {
   var _chords;
   var _instrument;
   var _chordIndex = -1;
+
   return {
     addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
       _chords = progression.getChords();
@@ -77,11 +78,23 @@ function createCompactInstrument(options, parentElement) {
 /**
  * Creates one new instrument GUI per chord.
  */
-function createInstrument1(options, parentElement) {
+function createInstrument1(options, parentElement, sequencer) {
   var _options = options;
   var _factory = factoryLib.createInstrumentFactory(options);
   var _parentElement = parentElement;
   var _instruments = []; // <- one instrument per chord
+
+  _parentElement.addEventListener('click', function(event) {
+    var target = event.target;
+    var chordIndex = -1;
+    while (target.className !== _parentElement.className) {
+      if (target.getAttribute('data-i')) {
+         sequencer.setChordIndex(target.getAttribute('data-i'));
+         return;
+      }
+      target = target.parentNode;
+    };
+  });
 
   var instrument = {
     // XXX This is the first mode: add one new GUI per chordDef
@@ -97,6 +110,7 @@ function createInstrument1(options, parentElement) {
         // add diff to last added instrument
         _instruments[_instruments.length - 1 ].addDiff(chord);
       }
+      instrument.getElement().setAttribute('data-i', _instruments.length);
       _instruments.push(instrument);
       _parentElement.appendChild(instrument.getElement());
     },
