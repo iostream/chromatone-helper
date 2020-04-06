@@ -8,22 +8,24 @@ const host = require("./host.js");
  * many lines each containing of:
  * <iPosOut> <endTime> <pitch>
  */
-function serializeProgressionForDAW(events, chords, scales, generatorUrl) {
+function serializeProgressionForDAW(chordEvents, chords, scales, generatorUrl) {
   var result = generatorUrl + "\n";
   var chordIPosOut = 0;
-  events.forEach(function(event) {
-    var eventLengthInQN = event.getLengthInQN();
-    if (!event.isRest()) {
-      var pitchEndTime = chordIPosOut + eventLengthInQN;
-      event.getPitches().forEach(function(note) {
-        // var pitch = note.getPosition();
-        // XXX This is a test...
-        var pitch = note.getPosition();
-        result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
-      });
-    }
+  // for each chord definition...
+  chordEvents.forEach(function(events) {
+    // for each event...
+    events.forEach(function(event) {
+      var eventLengthInQN = event.getLengthInQN();
+      if (!event.isRest()) {
+        var pitchEndTime = chordIPosOut + eventLengthInQN;
+        event.getPitches().forEach(function(note) {
+          var pitch = note.getPosition();
+          result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
+        });
+      }
 
-    chordIPosOut += eventLengthInQN;
+      chordIPosOut += eventLengthInQN;
+    });
   });
 
   return result;
