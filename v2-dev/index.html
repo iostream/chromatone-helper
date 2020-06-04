@@ -428,12 +428,12 @@ margin-top: 4pt;
             <div class="messages"></div>
           </span>
           <span class="form-element">
-            <label for="rhythms">rhythms</label><select name="rhythms_preset" class="rhythms-preset preset"></select>
+            <label for="rhythms">rhythm patterns</label><select name="rhythms_preset" class="rhythms-preset preset"></select>
             <textarea name="rhythms" placeholder="rhythms" class="rhythms"></textarea>
             <div class="messages"></div>
           </span>
           <span class="form-element">
-            <label for="arpeggio patterns">arpeggio patterns</label><select name="arpeggio_patterns_preset" class="arpeggio-patterns-preset preset"></select>
+            <label for="arp">arpeggio patterns</label><select name="arpeggio_patterns_preset" class="arpeggio-patterns-preset preset"></select>
             <textarea name="arp" placeholder="arpeggio patterns" class="arpeggio-patterns"></textarea>
             <div class="messages"></div>
           </span>
@@ -478,9 +478,9 @@ margin-top: 4pt;
               </span>
             </span>
             <span class="form-element">
-            <input type="range" min="1" max="350" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
+            <input type="range" min="1" max="350" name="bpm" title="sets the speed of the playback in beat per minutes">
             <input type="text" disabled="disabled" name="bpm_output" title="the current speed in beat per minutes">
-            <select class="play-instrument-select" value="" title="select the (fm) instrument to be used when using the play button">
+            <select class="play-instrument-select" title="select the (fm) instrument to be used when using the play button">
             </select>
           </span>
           </div>
@@ -5876,7 +5876,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     presetLib.enablePresets(form, false);
     var newSerializedForm = formSerialize(form);
     presetLib.enablePresets(form, true);
-
+console.log(newSerializedForm);
     // Parse everything...
     var scales = [];
     scaleContainers.forEach(function(c) {
@@ -6088,7 +6088,7 @@ lib.createInstrumentFactory = function(options) {
     case 'chromatic':
       return {
         create: function(lowestPosition, highestPosition) {
-          return keyboard.createKeyboard(lowestPosition, highestPosition, 4);
+          return keyboard.createKeyboard(lowestPosition, highestPosition, 5);
         }
       };
       break;
@@ -6339,11 +6339,11 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
  * Creates a common proxy to all kind of instruments. The proxy also implements
  * some features, so the actual instrument implementations can be simple.
  */
-lib.createInstrument = function(options, parentElement) {
+lib.createInstrument = function(options, parentElement, sequencer) {
   if (options.compact) {
     return createCompactInstrument(options, parentElement);
   }
-  return createInstrument1(options, parentElement);
+  return createInstrument1(options, parentElement, sequencer);
 }
 
 /**
@@ -6355,6 +6355,7 @@ function createCompactInstrument(options, parentElement) {
   var _chords;
   var _instrument;
   var _chordIndex = -1;
+
   return {
     addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
       _chords = progression.getChords();
@@ -6403,11 +6404,23 @@ function createCompactInstrument(options, parentElement) {
 /**
  * Creates one new instrument GUI per chord.
  */
-function createInstrument1(options, parentElement) {
+function createInstrument1(options, parentElement, sequencer) {
   var _options = options;
   var _factory = factoryLib.createInstrumentFactory(options);
   var _parentElement = parentElement;
   var _instruments = []; // <- one instrument per chord
+
+  _parentElement.addEventListener('click', function(event) {
+    var target = event.target;
+    var chordIndex = -1;
+    while (target.className !== _parentElement.className) {
+      if (target.getAttribute('data-i')) {
+         sequencer.setChordIndex(target.getAttribute('data-i'));
+         return;
+      }
+      target = target.parentNode;
+    };
+  });
 
   var instrument = {
     // XXX This is the first mode: add one new GUI per chordDef
@@ -6423,6 +6436,7 @@ function createInstrument1(options, parentElement) {
         // add diff to last added instrument
         _instruments[_instruments.length - 1 ].addDiff(chord);
       }
+      instrument.getElement().setAttribute('data-i', _instruments.length);
       _instruments.push(instrument);
       _parentElement.appendChild(instrument.getElement());
     },
@@ -7102,9 +7116,8 @@ formLib.addForm(
       }
     }
 
-    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
+    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection, sequencer);
     instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
-
     track.setInstrumentGUI(instrument);
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
@@ -7145,7 +7158,7 @@ function buildScalesDescription(scales) {
  *
  * @return MidiWriter object
  */
-lib.createMidi = function(events, chords, scales, generatorUrl) {
+lib.createMidi = function(chordEvents, chords, scales, generatorUrl) {
   var MidiWriter = require("midi-writer-js");
 
   // Start with a new track
@@ -7155,25 +7168,27 @@ lib.createMidi = function(events, chords, scales, generatorUrl) {
   track.addTrackName(buildScalesDescription(scales) + " Generated via: " + generatorUrl);
 
   var restingTime = 0;
-  events.forEach(function(event) {
-    // Tn : where n is an explicit number of ticks (T128 = 1 beat)
-    var eventDuration = "T" + event.getLengthInQN() * 128;
-    if (event.isRest()) {
-      restingTime += event.getLengthInQN();
-    } else {
-      var pitches = event.getPitches().map(function(note) {
-        return note.getPosition();
-      });
-      var noteData = {pitch: pitches, duration: eventDuration};
-      if (restingTime > 0) {
-        // Tn : where n is an explicit number of ticks (T128 = 1 beat)
-        noteData.wait = "T" + restingTime * 128;
-        restingTime = 0;
+  chordEvents.forEach(function(events) {
+    events.forEach(function(event) {
+      // Tn : where n is an explicit number of ticks (T128 = 1 beat)
+      var eventDuration = "T" + event.getLengthInQN() * 128;
+      if (event.isRest()) {
+        restingTime += event.getLengthInQN();
+      } else {
+        var pitches = event.getPitches().map(function(note) {
+          return note.getPosition();
+        });
+        var noteData = {pitch: pitches, duration: eventDuration};
+        if (restingTime > 0) {
+          // Tn : where n is an explicit number of ticks (T128 = 1 beat)
+          noteData.wait = "T" + restingTime * 128;
+          restingTime = 0;
+        }
+        track.addEvent(new MidiWriter.NoteEvent(noteData));
       }
-      track.addEvent(new MidiWriter.NoteEvent(noteData));
-    }
-    // TODO can we bring back chord names in MIDI export?
-    // track.addMarker(chord.getName());
+      // TODO can we bring back chord names in MIDI export?
+      // track.addMarker(chord.getName());
+    });
   });
 
   var writer = new MidiWriter.Writer([track]);
@@ -8078,12 +8093,15 @@ lib.createSequencer = function() {
     setBpm: function(bpm) {
       _msPerQuarterNote = 60000 / bpm;
     },
+    setChordIndex: function(chordIndex) {
+      _tracks[0].setChordIndex(chordIndex);
+    },
     stepForward: function() {
       if (_isPlaying || _tracks.length === 0) {
         return;
       }
       var track = _tracks[0];
-      var event = playNextEvent(track);
+      playNextEvent(track);
       track.updateGUI();
     },
     stepBackward: function() {
@@ -8091,7 +8109,7 @@ lib.createSequencer = function() {
         return;
       }
       var track = _tracks[0];
-      var event = playPreviousEvent(track);
+      playPreviousEvent(track);
       track.updateGUI();
     },
     start: function() {
@@ -8107,6 +8125,9 @@ lib.createSequencer = function() {
         }
         var track = _tracks[0];
         var event = playNextEvent(track);
+        if (!event) {
+          return;
+        }
 
         // play next note after this note ended
         setTimeout(playNextEvents, event.getLengthInQN() * _msPerQuarterNote);
@@ -8118,6 +8139,7 @@ lib.createSequencer = function() {
     },
     pause: function() {
       _isPlaying = false;
+      turnOffNotes();
     },
     stop: function() {
       _isPlaying = false;
@@ -8171,6 +8193,9 @@ module.exports = lib;
 
 var audioInstrumentLib = require('../audio/instrument.js');
 
+/**
+ * XXX This design won't work fur multi track purposes.
+ */
 lib.createTrack = function() {
   var _audioInstrument = audioInstrumentLib.createInstrument();
   var _instrumentGUI;
@@ -8188,6 +8213,9 @@ lib.createTrack = function() {
     reset: function() {
       _chordIndex = 0;
       _eventIndex = -1;
+    },
+    setChordIndex: function(chordIndex) {
+      _chordIndex = chordIndex;
     },
     previousEvent: function() {
       // does the chord index need to be decreased?
@@ -8265,22 +8293,24 @@ const host = require("./host.js");
  * many lines each containing of:
  * <iPosOut> <endTime> <pitch>
  */
-function serializeProgressionForDAW(events, chords, scales, generatorUrl) {
+function serializeProgressionForDAW(chordEvents, chords, scales, generatorUrl) {
   var result = generatorUrl + "\n";
   var chordIPosOut = 0;
-  events.forEach(function(event) {
-    var eventLengthInQN = event.getLengthInQN();
-    if (!event.isRest()) {
-      var pitchEndTime = chordIPosOut + eventLengthInQN;
-      event.getPitches().forEach(function(note) {
-        // var pitch = note.getPosition();
-        // XXX This is a test...
-        var pitch = note.getPosition();
-        result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
-      });
-    }
+  // for each chord definition...
+  chordEvents.forEach(function(events) {
+    // for each event...
+    events.forEach(function(event) {
+      var eventLengthInQN = event.getLengthInQN();
+      if (!event.isRest()) {
+        var pitchEndTime = chordIPosOut + eventLengthInQN;
+        event.getPitches().forEach(function(note) {
+          var pitch = note.getPosition();
+          result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
+        });
+      }
 
-    chordIPosOut += eventLengthInQN;
+      chordIPosOut += eventLengthInQN;
+    });
   });
 
   return result;
@@ -8336,8 +8366,9 @@ var recursiveParser = require("../recursive_parser.js");
 var WHITESPACE_REGEX = /\s+/;
 
 /**
- * Returns an array (one array per chord) of an array of events being rests or
- * pitch events, e.g. for an input progression containing two chords: [[event1, event2], [event3, event4]].
+ * Returns an array (one array per chord) of arrays of events being rests or
+ * pitch events, e.g. (pseudo code) a progression containing two chords:
+ * [[pitchEvent1, pitchEvent2, rest1], [pitchEvent3, pitchEvent4]].
  */
 lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPattern) {
   var eventsPerChord = []; // <- the result
@@ -8367,8 +8398,8 @@ lib.arpeggiate = function(progression, defaultRhythmPattern, defaultArpeggioPatt
  * "1_2_3" means: play lowest etc. notes at the same time
  * "1_2 3" means: play first and second at them same time and then the third
  * ">" means: play the next note of the note played before within the voicing, (if used as the first token, then the first note of the voicing after inversion is used)
- * ">i" means the same like ">", but the actual inverted voicing gets used
- * ">*" gets replaced with as many > as there are notes in the voicing
+ * ">*" gets replaced with as many > as there are notes in the chord
+ * "<*" gets replaced with as many < as there are notes in the chord
  * ">*_" like ">*" but all pitches are played at the same time
  */
 function parseArpeggioPattern(patternAsString, referenceResolver) {
@@ -8493,7 +8524,22 @@ function createState(notes) {
     voicingIndex: -1, // index within the chord notes
     pitchIndex: -1, // index within voicingIndexesByPitchIndex
     noteIndex: -1, // index within the index array of voicingIndexesByPitchIndex[aPitchIndex]
+    decrementVoicingIndex: function(iterations) {
+      iterations = iterations || 1;
+      if (this.voicingIndex < 0) {
+        // initialize with the index of the highest pitch (because it
+        // will be decremented at least one time)
+        this.voicingIndex = 0;
+      }
+      // XXX brute force approach (because it is complicated): emulate decrementing using incrementing
+      var increments = _notes.length - iterations % _notes.length;
+      for (var i=0; i < increments; ++i) {
+        this.incrementVoicingIndex();
+      }
+      return this.voicingIndex;
+    },
     incrementVoicingIndex: function () {
+      // incrementing index is also an implicit initialization with 0
       this.voicingIndex = (this.voicingIndex + 1) % _notes.length;
       var foundNoteIndex;
       // find the oressponding values for this.pitchIndex and this.noteIndex
@@ -8592,18 +8638,20 @@ function createNoteIndexesByPitchIndexArray(notes) {
 }
 
 function createPlaceholderInternalPitchIterator(arpPatternAsString) {
-  if (arpPatternAsString !== ">*" && arpPatternAsString != ">*_") {
+  if (arpPatternAsString !== ">*" && arpPatternAsString !== "<*" && arpPatternAsString != ">*_") {
     console.error("Cannot interpret unknown placeholder arpeggio event definition: : " + arpPatternAsString);
     return;
   }
 
   var _actualIterator;
+  var _step = arpPatternAsString[0];
   var _playAtTheSameTime = arpPatternAsString.indexOf("_") !== -1;
 
   function createActualInternalPitchIterator(noteCount) {
     var steps = [];
+    var pitchStep = relativePitchSteps[_step];
     for (var i = 0; i < noteCount; ++i) {
-      steps.push(getNextVoicingPitchStep());
+      steps.push(pitchStep);
     }
     return createStepsInternalPitchIterator(steps, _playAtTheSameTime);
   }
@@ -8692,16 +8740,40 @@ function createPitch(pitchPosition) {
   }
 }
 
-var nextVoicingPitchStep = {
-  getPitch: function(status) {
-    var notes = status.getNotes();
-    var voicingIndex = status.incrementVoicingIndex();
-    return createPitch(notes[voicingIndex].getPosition());
+var relativePitchSteps = {
+  '>': {
+    getPitch: function(status) {
+      var notes = status.getNotes();
+      var voicingIndex = status.incrementVoicingIndex();
+      return createPitch(notes[voicingIndex].getPosition());
+    }
+  },
+  '<': {
+    getPitch: function(status) {
+      var notes = status.getNotes();
+      var voicingIndex = status.decrementVoicingIndex();
+      return createPitch(notes[voicingIndex].getPosition());
+    }
   }
-};
+}
 
-function getNextVoicingPitchStep() {
-  return nextVoicingPitchStep;
+function createRelativeVoicingPitchStep(token) {
+  var _token = token;
+  return {
+    getPitch: function(status) {
+      var resultPitch, step;
+      for (var i=0; i <  token.length; ++i) {
+        step = token[i];
+        if (typeof(relativePitchSteps[step]) === 'undefined') {
+          // XXX When the bracket syntax parser also is used here, this error will become available for the user
+          console.error("createRelativeVoicingPitchStep() - Ignoring unknown relative voicing pitch step: " + token);
+          continue;
+        }
+        resultPitch = relativePitchSteps[step].getPitch(status);
+      }
+      return resultPitch;
+    }
+  };
 }
 
 /**
@@ -8733,11 +8805,13 @@ function createPitchByRelativePitchIndexStep(pitchIndexOperation) {
 }
 
 function createArpeggioStep(token) {
-  if (token === ">") {
-    return getNextVoicingPitchStep();
-  } else {
-    return createPitchByRelativePitchIndexStep(token);
+  if (typeof(relativePitchSteps[token]) !== 'undefined') {
+    return relativePitchSteps[token];
   }
+  if (token[0] === '>' || token[0] === '<') {
+    return createRelativeVoicingPitchStep(token);
+  }
+  return createPitchByRelativePitchIndexStep(token);
 }
 
 function createPitchEvent(event, pitches) {
@@ -8891,11 +8965,10 @@ var REGEX_COUNT_SCALE = /\*/g;
 *
  * Returns false if there is no valid chord definition to be parsed.
  */
-function createChordDefinition(asString, step, inversion, transposition, inversionOptimization, direction, voicing, scale, rhythmPattern, arpeggioPattern) {
+function createChordDefinition(step, inversion, transposition, inversionOptimization, direction, voicing, scale, rhythmPattern, arpeggioPattern) {
   var _step = step;
   var _inversionOptimization = inversionOptimization;
   var _direction = direction;
-  var _asString = asString;
 
   // make step 0 based
   --_step;
@@ -8921,7 +8994,15 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
 
   return {
     toString: function() {
-      return _asString;
+      // XXX TODO finish me!
+      var s = '' + (_step + 1);
+      if (_inversion !== 0) {
+        s += (' ' + _inversion);
+      }
+      if (_transposition !== 0) {
+        s += (' t=' + _transposition);
+      }
+      return s;
     },
     getStep: function() {
       return _step;
@@ -9097,7 +9178,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
         _asString += (" " + key + operator + value);
       },
       getResult: function() {
-        return createChordDefinition(_asString, _step, _inversion, _transposition, _inversionOptimization, _direction, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
+        return createChordDefinition(_step, _inversion, _transposition, _inversionOptimization, _direction, _voicing.subject, _scale.subject, _rhythmPattern.subject, _arpeggioPattern.subject);
       }
     }
   };
@@ -10063,12 +10144,14 @@ var WHITESPACE_REGEX = /\s+/;
  * returns false if there is no voice (so this should be a reference)
  */
 function parseVoice(voiceString) {
+  if (voiceString.length > 0 && voiceString[0] === '+' || voiceString[0] === '-') {
+    return voiceString;
+  }
   var parsedVoice = parseInt(voiceString);
   if (isNaN(parsedVoice)) {
     return false;
   }
-  // make 0 based
-  return parsedVoice - 1;
+  return parsedVoice;
 }
 
 /**
@@ -10087,6 +10170,8 @@ function parseVoicing(voicingString, referenceResolver) {
   parts[0].trim().split(WHITESPACE_REGEX).forEach(function(voiceOrVoicingReference) {
     var voice = parseVoice(voiceOrVoicingReference);
     if (voice !== false) {
+      // make 0 based
+      voice -= 1;
       voicing.addVoice1(voice);
     } else {
       voicing.addVoicing1(referenceResolver.resolveReference(voiceOrVoicingReference));
@@ -10094,10 +10179,11 @@ function parseVoicing(voicingString, referenceResolver) {
   });
 
   if (parts.length > 1) {
-    parts[0].trim().split(WHITESPACE_REGEX).forEach(function(voiceOrVoicingReference) {
+    parts[1].trim().split(WHITESPACE_REGEX).forEach(function(voiceOrVoicingReference) {
       var voice = parseVoice(voiceOrVoicingReference);
       if (voice !== false) {
-        voicing.addVoice2(voice);
+        // the string must be used to retain "+" characters
+        voicing.addVoice2(voiceOrVoicingReference);
       } else {
         voicing.addVoicing2(referenceResolver.resolveReference(voiceOrVoicingReference));
       }
@@ -10115,13 +10201,16 @@ function parseVoicing(voicingString, referenceResolver) {
 function createVoicing(voices1, voices2) {
   var _voices1 = voices1;
   var _voices2 = voices2 || [];
-  var _normalizedVoices1;
+
   var _dirty = true;
+  var _normalizedVoices1;
+  var _voices1And2;
 
   function init() {
     _normalizedVoices1 = normalizeVoices(_voices1);
     _dirty = false;
   }
+
   return {
     createNotes: function(scale, inversion) {
       if (_dirty) { init(); }
@@ -10129,9 +10218,7 @@ function createVoicing(voices1, voices2) {
       if (inversion != 0) {
         invertNotes(notes, inversion);
       }
-      // TODO voices2 are added after inversion...!?
-      // XXX also see createArpeggioNotes() !
-
+      notes = addVoices2Notes(notes, _voices2);
       return notes;
     },
     createInvertedArpeggioNotes: function(scale, inversion) {
@@ -10151,18 +10238,34 @@ function createVoicing(voices1, voices2) {
       if (_dirty) { init(); }
 
       var notes = this.createNotes(scale, inversion);
-
       // create mapping between voices and notes, this works, because
       // createNotes() uses the normalized voicing, so every voice is contained
       // exactly one time within notes
       var voiceToNoteMap = new Map();
       notes.forEach(function(note) {
-        voiceToNoteMap.set(note.getVoice(), note);
+        var voice = note.getVoice();
+        var existing = voiceToNoteMap.get(voice);
+        if (typeof(existing) === 'undefined') {
+            voiceToNoteMap.set(voice, note);
+            return;
+        }
+        if (Array.isArray(existing)) {
+            existing.push(note);
+            return;
+        }
+        voiceToNoteMap.set(voice, note);
       });
 
       var arpeggioNotes = [];
       _voices1.forEach(function(voice) {
-        arpeggioNotes.push(voiceToNoteMap.get(voice).clone());
+        var noteOrNotes = voiceToNoteMap.get(voice);
+        if (Array.isArray(noteOrNotes)) {
+            noteOrNotes.forEach(function(note) {
+              arpeggioNotes.push(noteOrNotes.clone());
+            });
+            return;
+        }
+        arpeggioNotes.push(noteOrNotes.clone());
       });
 
       return arpeggioNotes;
@@ -10251,6 +10354,66 @@ function invertNotes(notes, inversion) {
       notes.unshift(note);
     }
   }
+}
+
+function addVoices2Notes(sourceNotes, voices2) {
+  if (voices2.length === 0) {
+    return sourceNotes;
+  }
+  var newNotes = sourceNotes.slice();
+  voices2.forEach(function(voice, index) {
+    var transposition = 0;
+    var pos = 0;
+    var char;
+    var voice2;
+    while (voice.length > pos) {
+      char = voice[pos];
+      if (char === '+') {
+        transposition += 12;
+      } else if (char === '-') {
+        transposition -= 12;
+      } else {
+        voice = parseInt(voice.substring(pos));
+        break;
+      }
+      ++pos;
+    }
+    // 1 is the first note in the musical sense, so e.g. -2 would mean drop 2
+    // it is possible to use higher voices than there are actually available;
+    // XXX for now it just wraps around; TODO does it make sense to also change register?
+    var sourceIndex = sourceNotes.length - ((voice - 1) % (sourceNotes.length) + 1);
+    var note = sourceNotes[sourceIndex];
+
+    if (transposition !== 0) {
+      note = note.clone();
+      note.transpose(transposition);
+      /*
+      // also the voice needs to be altered, else there would arise conflict when
+      // creating the arpeggio notes (a note with a different chromatic position
+      // also must have a different voice)
+      // XXX encoding it in a string smells, but other solutions would require
+      // some refactoring
+      note.setVoice('' + note.getVoice() + ' ' + transposition);*/
+      newNotes[sourceIndex] = note;
+    } else {
+      // if no "+" or "-" is used, then voices get added back to the notes
+      // (which could be desired, if e.g. the voice was dropped)
+      newNotes.push(note);
+    }
+  });
+  return normalizeNotes(newNotes);
+}
+
+function normalizeNotes(notes) {
+  notes = notes.slice(0);
+  // sort lowest to highest
+  notes.sort(function(a, b) {
+    return a.getPosition() - b.getPosition();
+  });
+  // remove duplicates
+  return notes.filter(function(note, index) {
+    return (index === 0) || (note.getPosition() !== notes[index - 1].getPosition());
+  });
 }
 
 var voicingParserDelegate = {
