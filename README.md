@@ -51,9 +51,10 @@ Each mode of a scale can be accessed by shifting the scale using the `<` and `>`
 ### Voicings
 
 * triad: `1 3 5`
-* suspended chords: `1 2 5`, `1 4 5`
 * seventh chord: `1 3 5 7`
 * ninth chord: `1 3 5 7 9`
+* suspended chords: `1 2 5`, `1 4 5`
+* lydian and phrygian chords: `1 #4 5`, `1 b2 5`
 
 ### Rhythm patterns
 
