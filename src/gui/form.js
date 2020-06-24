@@ -228,7 +228,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
   function updateSerializedFormOfLocation() {
     // using URL, so this won't work in IE 11 :
     var url = new URL("#" + serializedForm, document.location.href);
-    document.location.href = url;
+    history.replaceState(null, '', url);
   }
 
   presetLib.initPresets(
