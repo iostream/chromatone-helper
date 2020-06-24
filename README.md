@@ -42,7 +42,8 @@ The actual resulting chords depend on the used scale and the used voicing.
 
 ### Scales
 
-Each mode of a scale can be accessed by shifting the scale using the `<` and `>` buttons
+* Each mode of a scale can be accessed by shifting the scale using the `<` and `>` buttons.
+* Scales can be transposed using the `+` and `-` buttons.
 
 * D# major scale starting at middle D#: `1 2 3 4 5 6 7 k=D#4` or `1 2 3 4 5 6 7 D#4`
 * C natural minor starting at middle C (middle C is the default key): `1 2 b3 4 5 b6 b7`
