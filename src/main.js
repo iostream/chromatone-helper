@@ -73,10 +73,11 @@ formLib.addForm(
       }
     }
 
-    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection);
+    var instrument = instrumentLib.createInstrument(options.instrumentOptions, resultSection, sequencer);
     instrument.addChordProgressionUsingChordDefinitionComposite(progression, chordDefParserResult.getComposite());
-
     track.setInstrumentGUI(instrument);
+
+    sequencer.updateGUI();
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );

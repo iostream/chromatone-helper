@@ -93,6 +93,9 @@ lib.createSequencer = function() {
       turnOffNotes();
       _tracks[0].reset();
       _tracks[0].updateGUI();
+    },
+    updateGUI: function() {
+      _tracks[0].updateGUI();
     }
   };
   function playEvent(track, next) {
