@@ -124,7 +124,6 @@ function createSubjectComposite(name, variables) {
           subjects = subjects.concat(child.createFlatSubjectListRecursive(subjectBuilderFactory, optionsList));
           return;
         }
-        var assignments = {};
         var subjectBuilder = subjectBuilderFactory();
         var childOptions = child.getOptions();
         subjectBuilder.withMatch(child.getMatch());
