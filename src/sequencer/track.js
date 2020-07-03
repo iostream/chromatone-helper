@@ -14,15 +14,28 @@ lib.createTrack = function() {
   var _chordIndex = 0;
   var _eventIndex = -1; // <- index "within" the current chord
 
-  var _lastHighlighted = false;
+  var _seekPosMs = 0;
+  var _seekPosEvent = false;
+  var _seekEventStartInMs;
+  var _msPerQuarterNote;
 
+  var _lastFoundEvent = false;
+
+  var _lastHighlighted = false;
   var track = {
+    setMSPerQuarterNote: function(milliSeconds) {
+      _msPerQuarterNote = milliSeconds;
+    },
     setEvents: function(events) {
       _events = events;
     },
-    reset: function() {
+    resetSeeker: function() {
+      _seekEventStartInMs = 0;
       _chordIndex = 0;
       _eventIndex = -1;
+      _seekPosMs = 0;
+      _seekPosEvent = false;
+      _lastFoundEvent = false;
     },
     setChordIndex: function(chordIndex) {
       _chordIndex = chordIndex;
@@ -88,6 +101,62 @@ lib.createTrack = function() {
       _lastHighlighted = [_chordIndex, _eventIndex];
     }
   };
+
+  track.stop = function() {
+    track.resetSeeker();
+    if (_audioInstrument) {
+      _audioInstrument.allNotesOff();
+    }
+  };
+
+  track.isSeekingDone = function() {
+    return !_seekPosEvent;
+  };
+
+  /**
+   * always seeks forward.
+   * returned empty array means: no data
+   * returned false means: track has reached its end
+   */
+  track.seekEvents = function(positionInMSRangeStart, positionInMSRangeEnd) {
+    if (_events.length === 0) {
+      _lastFoundEvent = false;
+      return false;
+    }
+
+    if (_seekPosMs === 0 || positionInMSRangeStart === 0) {
+      track.resetSeeker();
+      _seekPosEvent = track.nextEvent();
+    }
+
+    // seek start point
+    while (_seekPosMs < positionInMSRangeStart) {
+      _seekPosEvent = track.nextEvent();
+      if (!_seekPosEvent) {
+        break;
+      }
+      _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
+    }
+
+    var found = [];
+    while (_seekPosEvent && _seekPosMs <= positionInMSRangeEnd) {
+      found.push(_seekPosEvent);
+      _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
+      _seekPosEvent = track.nextEvent();
+    }
+    if (found.length > 0) {
+      _lastFoundEvent = found[found.length - 1];
+    }
+    return found;
+ };
+
+ track.getLastFoundEvent = function() {
+   return _lastFoundEvent;
+ };
+
+ track.getSeekPosInMS = function() {
+   return _seekPosMs;
+ };
 
   return track;
 };

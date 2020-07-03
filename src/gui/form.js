@@ -21,7 +21,7 @@ var interactiveFormTemplate = $_("templates").getElementsByClassName("interactiv
  *
  * presets .. array of arrays
  */
-lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
+lib.addForm = function(initFunction, onParameters, submitFunction, presets, chordPresets, voicingPresets, scalePresets, rhythmPatternPresets, arpeggioPatternPresets, section) {
   section = section || interactiveSection;
   var formGroupEl = section.appendChild(interactiveFormTemplate.cloneNode(true)),
     form = formGroupEl.getElementsByClassName("form")[0],
@@ -35,14 +35,11 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
 
   pocketKnife.initPocketKnife(utilityForm);
   var controlElements = initControlElements(form);
-  setTimeout(function() { initFunction(controlElements); });
-
-  var stringedOptionsGroup = formGroupEl.getElementsByClassName("stringed-options")[0];
-  var stringedOptionElements = stringedOptionsGroup.getElementsByTagName("input");
+  initFunction(controlElements);
 
   function submitForm() { form.update.click(); }
 
-  [form.chords, form.voicing, form.rhythms, form.arp, form.instrument, form.compact, stringedOptionElements[0], stringedOptionElements[1]].forEach(function(element) {
+  [form.voicing, form.rhythms, form.arp].forEach(function(element) {
     element.addEventListener("change", function() {
       // via the setTimeout the form gets submitted after also the input's event listeners have done their work
       setTimeout(function() { submitForm(); });
@@ -158,17 +155,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
   form.addEventListener("submit", function(event) {
     event.preventDefault();
 
-    // show/hide the string instrument options before validation
-    if (form.instrument.selectedIndex > -1 && form.instrument.options[form.instrument.selectedIndex].classList.contains("stringed")) {
-      stringedOptionsGroup.classList.remove("hidden");
-    } else {
-      stringedOptionsGroup.classList.add("hidden");
-    }
-
-    // disable the preset elements while serializing, so they are ignored for serializing
-    presetLib.enablePresets(form, false);
-    var newSerializedForm = formSerialize(form);
-    presetLib.enablePresets(form, true);
+    var newSerializedForm = serializeForm(form);
 
     // Parse everything...
     var scales = [];
@@ -179,7 +166,6 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
       }
     });
 
-    var chordDefs = form.chords.value;
     var voicings = tLib.parseVoicings(form.voicing.value);
 
     var rhythmPatterns;
@@ -199,15 +185,12 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     }
 
     // validate inputs aka only submit valid data
-    if (scales.length == 0 || scales[0].getNotes().length == 0 || chordDefs.trim().length == 0) {
+    if (scales.length == 0 || scales[0].getNotes().length == 0) {
 
       return;
     }
 
-    var chordDefParserResult = parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
-
     var options = {
-      instrumentOptions: collectInstrumentOptions(form, stringedOptionElements),
       generateMidi: generateMidi,
       uploadToDAW: form.upload_to_daw.checked,
       serializedForm: newSerializedForm
@@ -219,7 +202,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     // repaint all
     resultSection.innerHTML = "";
 
-    submitFunction(scales, chordDefParserResult, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
+    submitFunction(scales, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection);
 
     serializedForm = newSerializedForm;
     updateSerializedFormOfLocation();
@@ -229,6 +212,29 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     // using URL, so this won't work in IE 11 :
     var url = new URL("#" + serializedForm, document.location.href);
     history.replaceState(null, '', url);
+  }
+
+  function initControlElements(form) {
+    form.bpm.addEventListener("input", function() {
+      form.bpm_output.value = form.bpm.value;
+    });
+    form.bpm.addEventListener("change", function() {
+      form.bpm_output.value = form.bpm.value;
+    });
+    return {
+      play: form.play,
+      stop: form.stop,
+      pause: form.pause,
+      step_forward: form.step_forward,
+      step_backward: form.step_backward,
+      loop: form.loop,
+      bpm: form.bpm,
+      form: form,
+      updateURL: function() {
+        serializedForm = serializeForm(form);
+        updateSerializedFormOfLocation();
+      }
+    };
   }
 
   presetLib.initPresets(
@@ -250,7 +256,6 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
       form.voicing
     ]
   );
-  presetLib.initPresets(chordPresets, form.chords_preset, [form.chords]);
   presetLib.initPresets(voicingPresets, form.voicing_preset, [form.voicing]);
   presetLib.initPresets(rhythmPatternPresets, form.rhythms_preset, [form.rhythms]);
   presetLib.initPresets(arpeggioPatternPresets, form.arpeggio_patterns_preset, [form.arp]);
@@ -280,10 +285,15 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
       addScaleGUI();
     }
 
+    onParameters(parameters);
+
     // initialize the form and submit it
     // reset all form elements but the checkbox which activates the DAW update
     var inputs = form.elements;
     for (i = 0; i < inputs.length; i++) {
+      if (inputs[i].type === "checkbox") {
+        inputs[i].checked = false;
+      }
       // setting button values makes no sense
       // the state of upload_to_daw is controlled via the session, so do not overwrite this value
       if (inputs[i].type !== "button" && inputs[i].name !== "upload_to_daw") {
@@ -298,6 +308,10 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
         // skip not existing form elements and buttons
         return;
       }
+      if (form[key].type === 'checkbox') {
+          form[key].checked = true;
+          return;
+      }
       form[key].value = value;
     });
 
@@ -310,57 +324,10 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
   }
 };
 
-function addMessage(parentElement, type, message) {
-  var textMsg = message;
-  if (message.getMessage) {
-    textMsg = message.getMessage();
-  }
-  var el = document.createElement('div');
-  el.className = type;
-  var text = document.createTextNode(textMsg);
-  el.appendChild(text);
-  parentElement.appendChild(el);
-}
-
-function parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns) {
-  var chordDefParserResult = tLib.parseChordDefinitions(chordDefs, voicings, scales, rhythmPatterns, arpeggioPatterns);
-  var messagesElement = document.querySelector(".interactive-form.active .form-element.chords .messages");
-  messagesElement.innerHTML = '';
-  chordDefParserResult.getMessageContainer().getErrors().forEach(function(msg) {
-    addMessage(messagesElement, 'error', msg);
-  });
-  chordDefParserResult.getMessageContainer().getWarnings().forEach(function(msg) {
-    addMessage(messagesElement, 'warning', msg);
-  });
-  // addMessage(messagesElement, 'information', chordDefParserResult.getComposite().asString());
-  return chordDefParserResult;
-}
-
-function collectInstrumentOptions(form, stringedOptionElements) {
-  // XXX Am I writing my own form serialize (to hash)?
-  var options = {type: form.instrument.value, compact: form.compact.checked};
-  for (var i = 0; i < stringedOptionElements.length; ++i) {
-    var el = stringedOptionElements[i];
-    options[el.name] = el.checked;
-  }
-  return options;
-}
-
-function initControlElements(form) {
-  form.bpm.addEventListener("input", function() {
-    form.bpm_output.value = form.bpm.value;
-  });
-  form.bpm.addEventListener("change", function() {
-    form.bpm_output.value = form.bpm.value;
-  });
-  return {
-    play: form.play,
-    stop: form.stop,
-    pause: form.pause,
-    step_forward: form.step_forward,
-    step_backward: form.step_backward,
-    loop: form.loop,
-    bpm: form.bpm,
-    instrument: form.getElementsByClassName('play-instrument-select')[0]
-  };
+function serializeForm(form) {
+  // disable the preset elements while serializing, so they are ignored for serializing
+  presetLib.enablePresets(form, false);
+  var newSerializedForm = formSerialize(form);
+  presetLib.enablePresets(form, true);
+  return newSerializedForm;
 }

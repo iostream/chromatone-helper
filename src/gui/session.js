@@ -53,6 +53,7 @@ session.saveTextAreaSizes = function(textArea) {
 }
 
 session.restoreTextAreaSizes = function(form) {
+  return;
   forEachItemsByKeyPrefix(TEXT_AREAS_KEY_PREFIX, function(key, value) {
     var keyParts = key.split(".");
     if (keyParts < 2) {

@@ -74,6 +74,10 @@ lib.createChordProgression = function(chordDefinitions) {
         return _chords;
       }
 
+      if (_chordDefs.length < 1) {
+        return [];
+      }
+
       var progression = [];
       var previousChord = _chordDefs[0].createChord();
       f.updateFingering(previousChord);

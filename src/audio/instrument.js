@@ -22,20 +22,48 @@ lib.createInstrument = function(instrumentName) {
   return INSTRUMENT_FACTORIES[instrumentName]();
 }
 
+/*
+ * This is a workaround, because it was not possible to pass an audio context
+ * to tiny synth :(
+ */
+var audioContext = new AudioContext();
+lib.getAudioContext = function() {
+//  return getTinySynth().getAudioContext();
+  return audioContext;
+}
+
+var tinySynth;
+function getTinySynth() {
+  if (!tinySynth) {
+    tinySynth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+  }
+  return tinySynth;
+}
+
+var lastTinySynthChannel = -1;
 /**
  * XXX When there will be many tracks (and hence many audio instruments), then use one
- *     tiny synth for many tracks using the channels!
+ *     tiny synth for many tracks using the channels! ... does not work!! D:
  */
 function createTinySynthInstrument() {
-  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20, internalcontext: 0});
+  _synth.setAudioContext(audioContext);
   var _channel = 0;
+  var _noteOns = [];
 
   var instrument = {
-    noteOn: function(position, velocity) {
-      _synth.noteOn(_channel, position, velocity);
+    noteOn: function(position, velocity, time) {
+      _synth.noteOn(_channel, position, velocity, time);
+      _noteOns.push(position);
     },
-    noteOff: function(position) {
-      _synth.noteOff(_channel, position);
+    noteOff: function(position, time) {
+      _synth.noteOff(_channel, position, time);
+    },
+    allNotesOff: function(time) {
+      _noteOns.forEach(function(position) {
+        _synth.noteOff(_channel, position, time);
+      });
+      _noteOns = [];
     },
     getPresetNames: function() {
       return _synth.program.map(function(programEntry) {
