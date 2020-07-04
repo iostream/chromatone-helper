@@ -21,15 +21,14 @@ formLib.addForm(
     sequencerGui.addNewTrack();
   },
   function onParameters(parameters) {
+    // do things which need to be done, when the parameters in the URL fragment change, before
+    // the form element's values are all overwitten with the values of the URL's fragment
     sequencerGui.updateByParameters(parameters);
   },
   function onSubmit(scales, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-
-
+    
     sequencerGui.updateTracks(scales, voicings, rhythmPatterns, arpeggioPatterns);
     sequencer.updateGUI();
-
-
 
     if (options.uploadToDAW) {
       serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));

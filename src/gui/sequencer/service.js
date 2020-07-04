@@ -30,12 +30,6 @@ lib.createService = function(sequencer, parentElement) {
     return _tracks[trackIndex];
   }
 
-  /**
-   */
-  function getEventSection(event) {
-
-  }
-
   var service = {
     addNewTrack: function(options) {
       var trackEl = _tracksElement.appendChild(trackTemplate.cloneNode(true));
@@ -104,6 +98,10 @@ lib.createService = function(sequencer, parentElement) {
 
       if (event.target.type === 'checkbox') {
         event.target.value = (event.target.checked) ? '1' : '0';
+        if (event.target.classList.contains("mute")) {
+          getTrack(event).mute(event.target.checked);
+          return;
+        }
       }
       getTrack(event).updateVisualization();
       controls.updateURL();
@@ -123,10 +121,11 @@ lib.createService = function(sequencer, parentElement) {
       service.addNewTrack();
     }
 
+    // TODO also delete tracks if needed
+
     _tracks.forEach(function(track) {
       track.initAudioControls();
     });
-
   }
 
   return service;
