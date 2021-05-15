@@ -106,27 +106,37 @@ lib.findKeyName = function(keyPosition, preferB) {
  * @return a string or the string "error"
  */
 function findIntervalName(interval, intervalNameMap) {
-  if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval] === "string") {
-    return intervalNameMap[interval];
+  // Why does this happen?
+  // if (interval < 0) {
+  //   console.warn("findIntervalName() - negative interval: " + interval);
+  //   do {
+  //     interval += 12;
+  //   } while(interval < 0);
+  // }
+
+  var add;
+  var relativeInterval = interval % 12;
+  if (typeof intervalNameMap[relativeInterval] !== "undefined") {
+    var intervalName = intervalNameMap[relativeInterval];
+    add = 7 * (Math.floor(interval / 12)); // the major scale has 7 notes
+    return intervalName.accidentals + (intervalName.number + add);
   }
 
-  if (interval < 0) {
-    console.warn("findIntervalName() - negative interval: " + interval);
-    do {
-      interval += 12;
-    } while(interval < 0);
-  }
-
-  // fallback
+  // fallback 1: interval matches an interval of the major scale
   for (var i = 0; i < majorNotes.length; ++i) {
-    var relativeInterval = interval % 12;
-    if (majorNotes[i] == relativeInterval || majorNotes[i] - 1 == relativeInterval) {
-      var add = 7 * (Math.floor(interval / 12)); // the major scale has 7 notes
-      if (majorNotes[i] - 1 == interval) {
-        return "b" + (i + 1 + add);
-      }
-      return "" + (i + 1 + add);
+    if (majorNotes[i] == relativeInterval) {
+      add = 7 * (Math.floor(interval / 12));
+      return i + 1 + add;
     }
+  }
+
+  // fallback 2: interval matches the flat version of an interval in intervalNameMap
+  var nextInterval = interval + 1;
+  var nextRelativeInterval = nextInterval % 12;
+  if (typeof intervalNameMap[nextRelativeInterval] !== "undefined") {
+    var intervalName = intervalNameMap[nextRelativeInterval];
+    add = 7 * (Math.floor(nextInterval / 12));
+    return "b" + intervalName.accidentals + (intervalName.number + add);
   }
 
   console.error("findIntervalName() could not find name for interval=" + interval + " in scale ", intervalNameMap, " and automatic conversion also failed!");
@@ -173,10 +183,9 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   var sharps = (note.match(/#/g) || []).length;
   var flats = (note.match(/b/g) || []).length;
   do {
-    var input = parseInt(note.substr(index));
-    if (!isNaN(input)) {
+    var interval = parseInt(note.substr(index));
+    if (!isNaN(interval)) {
       // base interval found
-      interval = input;
       break;
     }
     if (index >= note.length) {
@@ -187,7 +196,11 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   } while (true);
 
   if (typeof parsedInterval !== "undefined" && parsedInterval.ref !== "undefined") {
-    parsedInterval.ref = sharp.repeat(sharps) + flat.repeat(flats) + interval;
+    // interval name = accidentals + a number
+    parsedInterval.ref = {
+      accidentals: sharp.repeat(sharps) + flat.repeat(flats),
+      number: interval
+    };
   }
 
   if (typeof majorNotes[interval - 1] === "undefined") {
@@ -358,7 +371,8 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
     var parsedName = {ref: ""};
     var note = parseNote(noteDef, chromaticRoot, parsedName);
 
-    // TODO handle conflicts
+    // if an interval is seen more than one time
+    // then the last name will win
     intervalNameMap[note.getChromaticInterval()] = parsedName.ref;
 
     // notes which were parsed in a group will share the same names by default:
