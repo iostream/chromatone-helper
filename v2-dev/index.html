@@ -4115,7 +4115,7 @@ function WebAudioTinySynthCore(target) {
       debug:      {type:Number, value:0},
       src:        {type:String, value:null, observer:"loadMIDIfromSrc"},
       loop:       {type:Number, value:0},
-      internalcontext: {type:Number, value:1},
+      internalcontext: {type:Number, value:0},
       tsmode:     {type:Number, value:0},
       voices:     {type:Number, value:64},
       useReverb:  {type:Number, value:1},
@@ -4130,7 +4130,7 @@ function WebAudioTinySynthCore(target) {
     /*@@gui*/
     layout:(()=>{
       this.canvas.style.width=this.width;
-      this.canvas.style.height=this.height; 
+      this.canvas.style.height=this.height;
     }),
     /*@@guiEND*/
     program:[
@@ -5704,7 +5704,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":35,"./theory/notes.js":38}],13:[function(require,module,exports){
+},{"./theory/base.js":34,"./theory/notes.js":37}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6072,14 +6072,14 @@ function initControlElements(form) {
   };
 }
 
-},{"../theory/arpeggio.js":34,"../theory/base.js":35,"../theory/rhythm.js":40,"./pocket_knife.js":20,"./presets.js":21,"./session.js":22,"form-serialize":3}],14:[function(require,module,exports){
+},{"../theory/arpeggio.js":33,"../theory/base.js":34,"../theory/rhythm.js":39,"./pocket_knife.js":19,"./presets.js":20,"./session.js":21,"form-serialize":3}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
 var stringInstrument = require("./string_instrument.js");
-var pianoRollLib = require("./piano_roll.js");
+// var pianoRollLib = require("./piano_roll.js");
 
 lib.createInstrumentFactory = function(options) {
   var type = options.type || 'chromatic';
@@ -6099,13 +6099,13 @@ lib.createInstrumentFactory = function(options) {
         }
       };
       break;
-    case 'piano_roll':
-      return {
-        create: function(lowestPosition, highestPosition) {
-          return pianoRollLib.createPianoRoll(lowestPosition, highestPosition);
-        }
-      };
-      break;
+    // case 'piano_roll':
+    //   return {
+    //     create: function(lowestPosition, highestPosition) {
+    //       return pianoRollLib.createPianoRoll(lowestPosition, highestPosition);
+    //     }
+    //   };
+    //   break;
     default:
       return {
         create: function(lowestPosition, highestPosition) {
@@ -6121,7 +6121,7 @@ lib.createInstrumentFactory = function(options) {
   }
 }
 
-},{"./keyboard.js":15,"./piano_roll.js":16,"./string_instrument.js":18,"./zebra.js":19}],15:[function(require,module,exports){
+},{"./keyboard.js":15,"./string_instrument.js":17,"./zebra.js":18}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6283,47 +6283,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../../theory/base.js":35}],16:[function(require,module,exports){
-var lib = {};
-module.exports = lib;
-
-var tLib = require("../../theory/base.js");
-
-var pianoRollTemplate = document.getElementById("templates").getElementsByClassName("piano-roll")[0];
-
-function createPianoRoll(lowestPosition, highestPosition) {
-  var parentElement = chromaticKeyboardTemplate.cloneNode(true);
-  return construct(parentElement, lowestPosition, highestPosition);
-}
-
-function construct(keyboard, lowestPosition, highestPosition) {
-
-  return {
-    getElement: function() {
-      return keyboard;
-    },
-    // url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><linearGradient id='gradient'><stop offset='10%' stop-color='%23F00'/><stop offset='90%' stop-color='%23fcc'/> </linearGradient><rect fill='url(%23gradient)' x='0' y='0' width='100%' height='100%'/></svg>");
-    addEvents: function(events, description) {
-      var notes = tLib.parseNotes(notes);
-      // TODO
-      // add description
-      if (typeof description !== "undefined") {
-        var descriptionEl = keyboard.getElementsByClassName("description");
-        if (descriptionEl.length > 0) {
-          descriptionEl[0].innerHTML = description;
-        }
-      }
-    },
-    addDiff: function(notes) {
-      // noop
-    },
-    clone: function() {
-      return construct(keyboard.cloneNode(true));
-    }
-  };
-}
-
-},{"../../theory/base.js":35}],17:[function(require,module,exports){
+},{"../../theory/base.js":34}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6497,7 +6457,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./factory.js":14}],18:[function(require,module,exports){
+},{"./factory.js":14}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6716,7 +6676,7 @@ function createFret(index) {
   return el;
 }
 
-},{"../../theory/notes.js":38}],19:[function(require,module,exports){
+},{"../../theory/notes.js":37}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6863,7 +6823,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":35}],20:[function(require,module,exports){
+},{"../../theory/base.js":34}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6901,7 +6861,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6975,7 +6935,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],22:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -7040,7 +7000,7 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],23:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var instrumentLib = require("./gui/instrument/proxy.js"),
  formLib = require("./gui/form.js"),
  t = require("./theory/base.js"),
@@ -7145,7 +7105,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"../resources/presets.js":10,"./gui/form.js":13,"./gui/instrument/proxy.js":17,"./midi.js":24,"./parser/composite.js":26,"./parser/composite_parser.js":27,"./sequencer/sequencer.js":30,"./server/client.js":32,"./theory/arpeggio.js":34,"./theory/base.js":35,"./theory/progression.js":39}],24:[function(require,module,exports){
+},{"../resources/presets.js":10,"./gui/form.js":13,"./gui/instrument/proxy.js":16,"./midi.js":23,"./parser/composite.js":25,"./parser/composite_parser.js":26,"./sequencer/sequencer.js":29,"./server/client.js":31,"./theory/arpeggio.js":33,"./theory/base.js":34,"./theory/progression.js":38}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7197,7 +7157,7 @@ lib.createMidi = function(chordEvents, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":5}],25:[function(require,module,exports){
+},{"midi-writer-js":5}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7526,7 +7486,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],26:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7653,7 +7613,6 @@ function createSubjectComposite(name, variables) {
           subjects = subjects.concat(child.createFlatSubjectListRecursive(subjectBuilderFactory, optionsList));
           return;
         }
-        var assignments = {};
         var subjectBuilder = subjectBuilderFactory();
         var childOptions = child.getOptions();
         subjectBuilder.withMatch(child.getMatch());
@@ -7775,7 +7734,7 @@ function createOptions() {
   };
 }
 
-},{}],27:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7937,7 +7896,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":25,"./message.js":28}],28:[function(require,module,exports){
+},{"./async_lexer.js":24,"./message.js":27}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7969,7 +7928,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],29:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8053,7 +8012,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],30:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8192,7 +8151,7 @@ lib.createSequencer = function() {
   return seq;
 }
 
-},{"./track.js":31}],31:[function(require,module,exports){
+},{"./track.js":30}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8287,7 +8246,7 @@ lib.createTrack = function() {
   return track;
 };
 
-},{"../audio/instrument.js":11}],32:[function(require,module,exports){
+},{"../audio/instrument.js":11}],31:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8356,13 +8315,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":33}],33:[function(require,module,exports){
+},{"./host.js":32}],32:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8784,7 +8743,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":29}],35:[function(require,module,exports){
+},{"../recursive_parser.js":28}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8799,7 +8758,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":37,"./notes.js":38,"./scale.js":41,"./voicing.js":42}],36:[function(require,module,exports){
+},{"./chord_definition.js":36,"./notes.js":37,"./scale.js":40,"./voicing.js":41}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8910,7 +8869,7 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],37:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9195,7 +9154,7 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":26,"../parser/composite_parser.js":27,"./chord.js":36,"./voicing.js":42}],38:[function(require,module,exports){
+},{"../parser/composite.js":25,"../parser/composite_parser.js":26,"./chord.js":35,"./voicing.js":41}],37:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -9304,27 +9263,37 @@ lib.findKeyName = function(keyPosition, preferB) {
  * @return a string or the string "error"
  */
 function findIntervalName(interval, intervalNameMap) {
-  if (typeof intervalNameMap !== "undefined" && typeof intervalNameMap[interval] === "string") {
-    return intervalNameMap[interval];
+  // Why does this happen?
+  // if (interval < 0) {
+  //   console.warn("findIntervalName() - negative interval: " + interval);
+  //   do {
+  //     interval += 12;
+  //   } while(interval < 0);
+  // }
+
+  var add;
+  var relativeInterval = interval % 12;
+  if (typeof intervalNameMap[relativeInterval] !== "undefined") {
+    var intervalName = intervalNameMap[relativeInterval];
+    add = 7 * (Math.floor(interval / 12)); // the major scale has 7 notes
+    return intervalName.accidentals + (intervalName.number + add);
   }
 
-  if (interval < 0) {
-    console.warn("findIntervalName() - negative interval: " + interval);
-    do {
-      interval += 12;
-    } while(interval < 0);
-  }
-
-  // fallback
+  // fallback 1: interval matches an interval of the major scale
   for (var i = 0; i < majorNotes.length; ++i) {
-    var relativeInterval = interval % 12;
-    if (majorNotes[i] == relativeInterval || majorNotes[i] - 1 == relativeInterval) {
-      var add = 7 * (Math.floor(interval / 12)); // the major scale has 7 notes
-      if (majorNotes[i] - 1 == interval) {
-        return "b" + (i + 1 + add);
-      }
-      return "" + (i + 1 + add);
+    if (majorNotes[i] == relativeInterval) {
+      add = 7 * (Math.floor(interval / 12));
+      return i + 1 + add;
     }
+  }
+
+  // fallback 2: interval matches the flat version of an interval in intervalNameMap
+  var nextInterval = interval + 1;
+  var nextRelativeInterval = nextInterval % 12;
+  if (typeof intervalNameMap[nextRelativeInterval] !== "undefined") {
+    var intervalName = intervalNameMap[nextRelativeInterval];
+    add = 7 * (Math.floor(nextInterval / 12));
+    return "b" + intervalName.accidentals + (intervalName.number + add);
   }
 
   console.error("findIntervalName() could not find name for interval=" + interval + " in scale ", intervalNameMap, " and automatic conversion also failed!");
@@ -9371,10 +9340,9 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   var sharps = (note.match(/#/g) || []).length;
   var flats = (note.match(/b/g) || []).length;
   do {
-    var input = parseInt(note.substr(index));
-    if (!isNaN(input)) {
+    var interval = parseInt(note.substr(index));
+    if (!isNaN(interval)) {
       // base interval found
-      interval = input;
       break;
     }
     if (index >= note.length) {
@@ -9385,7 +9353,11 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   } while (true);
 
   if (typeof parsedInterval !== "undefined" && parsedInterval.ref !== "undefined") {
-    parsedInterval.ref = sharp.repeat(sharps) + flat.repeat(flats) + interval;
+    // interval name = accidentals + a number
+    parsedInterval.ref = {
+      accidentals: sharp.repeat(sharps) + flat.repeat(flats),
+      number: interval
+    };
   }
 
   if (typeof majorNotes[interval - 1] === "undefined") {
@@ -9556,7 +9528,8 @@ lib.parseNotesObject = function(notesLine, intervalNameMap) {
     var parsedName = {ref: ""};
     var note = parseNote(noteDef, chromaticRoot, parsedName);
 
-    // TODO handle conflicts
+    // if an interval is seen more than one time
+    // then the last name will win
     intervalNameMap[note.getChromaticInterval()] = parsedName.ref;
 
     // notes which were parsed in a group will share the same names by default:
@@ -9570,7 +9543,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],39:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -9739,7 +9712,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":12,"./base.js":35}],40:[function(require,module,exports){
+},{"../fingering.js":12,"./base.js":34}],39:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9970,7 +9943,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":29}],41:[function(require,module,exports){
+},{"../recursive_parser.js":28}],40:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10086,7 +10059,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":38}],42:[function(require,module,exports){
+},{"./notes.js":37}],41:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10315,7 +10288,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":29}]},{},[23]);
+},{"../recursive_parser.js":28}]},{},[22]);
 </script>
   </body>
 </html>
