@@ -4,24 +4,26 @@ module.exports = lib;
 var audioInstrumentLib = require('../audio/instrument.js');
 
 /**
- * XXX This design won't work fur multi track purposes.
+ *
  */
 lib.createTrack = function() {
   var _audioInstrument = audioInstrumentLib.createInstrument();
   var _instrumentGUI;
   var _events = [];
 
-  var _chordIndex = 0;
-  var _eventIndex = -1; // <- index "within" the current chord
+  var _muted = false;
+
+  var _msPerQuarterNote;
 
   var _seekPosMs = 0;
   var _seekPosEvent = false;
-  var _seekEventStartInMs;
-  var _msPerQuarterNote;
-
   var _lastFoundEvent = false;
+  var _audioEventIndex = createEventIndex('audio');
 
   var _lastHighlighted = false;
+
+  var _guiEventIndex = createEventIndex('gui');
+
   var track = {
     setMSPerQuarterNote: function(milliSeconds) {
       _msPerQuarterNote = milliSeconds;
@@ -30,16 +32,14 @@ lib.createTrack = function() {
       _events = events;
     },
     resetSeeker: function() {
-      _seekEventStartInMs = 0;
-      _chordIndex = 0;
-      _eventIndex = -1;
+      _audioEventIndex.reset();
       _seekPosMs = 0;
-      _seekPosEvent = false;
-      _lastFoundEvent = false;
+      _seekPosEvent = _audioEventIndex.nextEvent();
     },
     setChordIndex: function(chordIndex) {
       _chordIndex = chordIndex;
     },
+    // XXX DELETE ME:
     previousEvent: function() {
       // does the chord index need to be decreased?
       if (_eventIndex === 0) {
@@ -54,84 +54,86 @@ lib.createTrack = function() {
       } else {
         --_eventIndex;
       }
-      return _events[_chordIndex][_eventIndex];
-    },
-    nextEvent: function() {
-      // check whether the current chord/event indexes are still in their array bounds:
-      if (_chordIndex >= _events.length) {
-        return false;
-      }
-      // does the chord need to be advanced?
-      if ((_eventIndex + 1) >= _events[_chordIndex].length) {
-        // yes
-        ++_chordIndex;
-        _eventIndex = 0;
-        if (_chordIndex >= _events.length) {
-          // there are no more chords
-          return false;
-        }
-      } else {
-        ++_eventIndex;
-      }
-      return _events[_chordIndex][_eventIndex];
+      var event = _events[_chordIndex][_eventIndex];
+      return event;
     },
     getAudioInstrument: function() {
+      if (_muted) {
+        return false;
+      }
       return _audioInstrument;
     },
     setInstrumentGUI: function(instrumentGUI) {
       _instrumentGUI = instrumentGUI;
     },
-    updateGUI: function() {
-      if (!_instrumentGUI || _chordIndex >= _events.length) {
+    /**
+     * If updateUsingQueue = true -> update GUI to the state of the first queued entry of the _eventUpdateQueue
+     * If updateUsingQueue = false|undefined -> just repaint the current event (the content changed, but not the position of the event within the )
+     */
+    updateGUI: function(updateUsingQueue) {
+      // dehighlight previously highlighted pitches
+      if (_lastHighlighted && _lastHighlighted[0]) {
+        _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1]);
+        _lastHighlighted = false;
+      }
+
+      var event;
+      if (updateUsingQueue) {
+        event = _guiEventIndex.nextEvent();
+        if (!event) {
+          _guiEventIndex.reset();
+          event = _guiEventIndex.nextEvent();
+          if (!event) {
+            console.error('updateGUI(true) with no event on GUI index position');
+          }
+        }
+      } else {
+        return;
+        event = _guiEventIndex.getEvent();
+      }
+      var eventData;
+
+      if (!event) {
         return;
       }
 
-      // dehighlight previous pitches
-      if (_lastHighlighted && _events.length > _lastHighlighted[0] && _events[_lastHighlighted[0]].length > _lastHighlighted[1]) {
-        _instrumentGUI.dehighlightEvent(_events[_lastHighlighted[0]][_lastHighlighted[1]], _lastHighlighted[0]);
-      }
-
-      // check for initial state: no pitches are active, so return
-      if (_eventIndex == -1) {
-        return;
-      }
+      var chordIndex = _guiEventIndex.getChordIndex();
 
       // highlight current event and remember event indexes, so it can be dehighlighted later
-      _instrumentGUI.highlightEvent(_events[_chordIndex][_eventIndex], _chordIndex);
-      _lastHighlighted = [_chordIndex, _eventIndex];
+      _instrumentGUI.highlightEvent(event, chordIndex);
+      _lastHighlighted = [event, chordIndex];
+    },
+    mute: function(on) {
+      if (!_muted && on) {
+        if (_audioInstrument) {
+          _audioInstrument.allNotesOff();
+        }
+      }
+      _muted = on;
     }
   };
 
   track.stop = function() {
     track.resetSeeker();
+    _guiEventIndex.reset();
     if (_audioInstrument) {
       _audioInstrument.allNotesOff();
     }
   };
 
-  track.isSeekingDone = function() {
-    return !_seekPosEvent;
-  };
-
   /**
    * always seeks forward.
    * returned empty array means: no data
-   * returned false means: track has reached its end
+   * getLastFoundEvent() will return false, if there are no more events to be found seeking forward
    */
   track.seekEvents = function(positionInMSRangeStart, positionInMSRangeEnd) {
     if (_events.length === 0) {
-      _lastFoundEvent = false;
       return false;
-    }
-
-    if (_seekPosMs === 0 || positionInMSRangeStart === 0) {
-      track.resetSeeker();
-      _seekPosEvent = track.nextEvent();
     }
 
     // seek start point
     while (_seekPosMs < positionInMSRangeStart) {
-      _seekPosEvent = track.nextEvent();
+      _seekPosEvent = _audioEventIndex.nextEvent();
       if (!_seekPosEvent) {
         break;
       }
@@ -142,21 +144,66 @@ lib.createTrack = function() {
     while (_seekPosEvent && _seekPosMs <= positionInMSRangeEnd) {
       found.push(_seekPosEvent);
       _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
-      _seekPosEvent = track.nextEvent();
+      _seekPosEvent = _audioEventIndex.nextEvent();
     }
     if (found.length > 0) {
       _lastFoundEvent = found[found.length - 1];
     }
     return found;
- };
+  };
 
- track.getLastFoundEvent = function() {
-   return _lastFoundEvent;
- };
+  track.isSeekingDone = function() {
+    return _audioEventIndex.getEvent() === false;
+  };
 
- track.getSeekPosInMS = function() {
-   return _seekPosMs;
- };
+  track.getLastFoundEvent = function() {
+    return _lastFoundEvent;
+  };
+
+  track.getSeekPosInMS = function() {
+    return _seekPosMs;
+  };
+
+  function createEventIndex(name) {
+      var __chordIndex = 0;
+      var __eventIndex = -1; // <- index "within" the current chord
+      var __currentEvent = false;
+
+    return {
+      reset: function() {
+        __chordIndex = 0;
+        __eventIndex = -1;
+        __currentEvent = false;
+      },
+      getEvent: function() {
+        return __currentEvent;
+      },
+      getChordIndex: function() {
+        return __chordIndex;
+      },
+      nextEvent: function() {
+        __currentEvent = false;
+        // check whether the current chord/event indexes are still in their array bounds:
+        if (__chordIndex >= _events.length) {
+          return false;
+        }
+        // does the chord need to be advanced?
+        if ((__eventIndex + 1) >= _events[__chordIndex].length) {
+          // yes
+          ++__chordIndex;
+          __eventIndex = 0;
+          if (__chordIndex >= _events.length) {
+            // there are no more chords
+            return false;
+          }
+        } else {
+          ++__eventIndex;
+        }
+        __currentEvent = _events[__chordIndex][__eventIndex];
+        return __currentEvent;
+      }
+    };
+  };
 
   return track;
 };

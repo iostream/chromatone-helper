@@ -121,14 +121,12 @@ lib.createTrack = function(options) {
     }
   };
 
+  track.mute = function(on) {
+    _content.mute(on);
+  };
+
   track.initControlElements = function(controls) {
     track.updateAudioPreset();
-    // TODO: presetLib.initPresets(chordPresets, controls.chords_preset, [controls.chords]);
-    // if (_index == 0) {
-    //   _chordDefElement = controls.form['chords'];
-    // } else {
-    //   _chordDefElement = controls.form['chords[' + index + ']'];
-    // }
   };
 
   track.updateContent = function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {

@@ -86,24 +86,24 @@ lib.createService = function(sequencer, parentElement) {
     _tracksElement.addEventListener("change", function(event) {
       if (event.target.name.indexOf('audio_preset') === 0) {
         getTrack(event).updateAudioPreset();
-        controls.updateURL();
-        return;
       }
 
       if (event.target.name.indexOf('chords') === 0) {
         service.updateTracks();
-        controls.updateURL();
-        return;
       }
 
+      if (event.target.name.indexOf('instrument') === 0) {
+        getTrack(event).updateVisualization();
+      }
+        
       if (event.target.type === 'checkbox') {
         event.target.value = (event.target.checked) ? '1' : '0';
         if (event.target.classList.contains("mute")) {
           getTrack(event).mute(event.target.checked);
-          return;
         }
+        getTrack(event).updateVisualization();
       }
-      getTrack(event).updateVisualization();
+
       controls.updateURL();
     });
 

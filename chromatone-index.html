@@ -35,7 +35,7 @@
       </span>
 
       <div class="track">
-        <div class="options secondary-form-elements">
+        <div class="options secondary-form-elements2">
           <span class="chords form-element">
             <label for="chords">progression</label>
             <select name="chords_preset" class="chords-preset preset"></select>
@@ -43,37 +43,41 @@
             <div class="messages"></div>
           </span>
           <span class="form-element">
-            <select name="audio_preset" class="audio-preset" value="" title="select the (fm) instrument to be used when using the play button"></select>
-          </span>
-          <span class="form-element">
-            <label for="mute">mute</label>
-            <input type="checkbox" name="mute" class="mute">
-          </span>
-          <span class="form-element">
-            <label for="instrument">instrument</label>
-            <select name="instrument" class="instrument" title="the instrument type to be used to display the progression chords">
-              <option value="chromatic">Chromatone</option>
-              <option value="zebra">Zebra keyboard</option>
-              <option class="stringed" value="guitar">Guitar</option>
-              <option class="stringed" value="bass_guitar">Bass guitar</option>
-              <option class="stringed" value="concert_ukulele">Concert ukulele</option>
-            </select>
-          </span>
-          <span class="form-element">
-            <label for="compact">compact</label>
-            <input type="checkbox" name="compact" class="compact">
-          </span>
-          <span class="stringed-options hidden">
             <span class="form-element">
-              <label for="all_registers">all registers</label>
-              <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
-              <label for="all_intervals">all intervals</label>
-              <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
-              <label for="chord_mode">chord mode</label>
-              <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown."></input>
+              <label for="instrument">audio</label>
+              <select name="audio_preset" class="audio-preset" value="" title="select the (fm) instrument to be used when using the play button"></select>
+            </span>
+            <span class="form-element">
+              <label for="mute">mute</label>
+              <input type="checkbox" name="mute" class="mute">
             </span>
           </span>
-
+          <span class="form-element">
+            <span class="form-element">
+              <label for="instrument">visualization</label>
+              <select name="instrument" class="instrument" title="the instrument type to be used to display the progression chords">
+                <option value="chromatic">Chromatone</option>
+                <option value="zebra">Zebra keyboard</option>
+                <option class="stringed" value="guitar">Guitar</option>
+                <option class="stringed" value="bass_guitar">Bass guitar</option>
+                <option class="stringed" value="concert_ukulele">Concert ukulele</option>
+              </select>
+            </span>
+            <span class="form-element">
+              <label for="compact">compact</label>
+              <input type="checkbox" name="compact" class="compact">
+            </span>
+            <span class="stringed-options hidden">
+              <span class="form-element">
+                <label for="all_registers">all registers</label>
+                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
+                <label for="all_intervals">all intervals</label>
+                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
+                <label for="chord_mode">chord mode</label>
+                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown."></input>
+              </span>
+            </span>
+          </span>
         </div>
         <div class="visualization">
         </div>

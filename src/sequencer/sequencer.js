@@ -7,10 +7,15 @@ const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = require('../audio/instrument.js').getAudioContext();
 
 lib.createSequencer = function() {
-
   var _pollDelayInMS = 25;
-  var _lookAheadInMS = 50;
-  var _intervalID;
+  var _lookAheadInMS = 100; // https://www.html5rocks.com/en/tutorials/audio/scheduling/
+
+  // XXX Why not just use the requestAnimationFrame() polling?
+  // TODO try it out, I would suspect that this solution (two timers) will also play audio while the browser tab is in
+  // background but the one timer solution would in some situations not play in background so good (mobile versus desktop web browsers). Maybe
+  // the user should be able to choose between the one and two timers strategy?
+  //
+  var _intervalID; // <- return value of setInterval() for the audio scheduling tracks events poller
   var _guiTick; // <- currently registered callback with requestAnimationFrame()
 
   var _tracks = [];
@@ -51,6 +56,7 @@ lib.createSequencer = function() {
         track.setMSPerQuarterNote(_secondsPerQuarterNote * 1000);
         track.resetSeeker();
       });
+      seq.panic();
     },
     /**
      * TODO: chord index
@@ -90,11 +96,20 @@ lib.createSequencer = function() {
       _tracks.forEach(function(track) {
         track.updateGUI();
       });
+    },
+
+    panic: function() {
+      _tracks.forEach(function(track) {
+        var audioInstrument = track.getAudioInstrument();
+        if (audioInstrument) {
+          audioInstrument.allNotesOff();
+        }
+      });
     }
   };
 
-  var _lastEndInSeconds = false;
-  var _trackGUIUpdateTimes; // <- in order to update GUI synchronized with the audio thread
+  var _lastEndInSeconds = 0;
+  var _trackGUIUpdateTimes; // <- queue, in order to update GUI synchronized with the audio thread
   seq.start = function() {
     if (_isPlaying) {
       return;
@@ -103,7 +118,7 @@ lib.createSequencer = function() {
 
     var velocity = 100;
 
-    var _startTime = false;
+    var __startTime = false;
 
     // init _trackGUIUpdateTimes
     _trackGUIUpdateTimes = [];
@@ -113,18 +128,15 @@ lib.createSequencer = function() {
 
     // GUI update polling...
     function guiTick() {
+      var currentTime = audioCtx.currentTime;
       _trackGUIUpdateTimes.forEach(function(trackUpdateTimes, trackIndex) {
         var i = 0;
-        var currentTime = audioCtx.currentTime;
-        var updateTrack = false;
         while (trackUpdateTimes[0] <= currentTime) {
-          updateTrack = true;
+          _tracks[trackIndex].updateGUI(true);
           trackUpdateTimes.shift();
         }
-        if (updateTrack) {
-          _tracks[trackIndex].updateGUI();
-        }
       });
+      // changing _guiTick disables this polling
       if (_guiTick === guiTick) {
         requestAnimationFrame(_guiTick);
       }
@@ -138,16 +150,20 @@ lib.createSequencer = function() {
       var isSeekingDone = true;
 
       var currentTime = audioCtx.currentTime;
-      if (_startTime === false) {
-        _startTime = currentTime;
+      if (__startTime === false) {
+        __startTime = currentTime;
       }
 
-      var rangeStartInMS = (currentTime - _startTime) * 1000.0;
+      var rangeStartInMS = (currentTime - __startTime) * 1000.0;
       var rangeEndInMS = rangeStartInMS + _pollDelayInMS + _lookAheadInMS;
+      if (rangeEndInMS < 0) {
+        // skip ranges which cannot be in a track, this can happen while repeating
+        return;
+      }
 
       _tracks.forEach(function(track, trackIndex) {
         var previousEvent = track.getLastFoundEvent();
-        var scheduleTimeInSeconds = _startTime + (track.getSeekPosInMS() / 1000);
+        var scheduleTimeInSeconds = __startTime + (track.getSeekPosInMS() / 1000);
         var events = track.seekEvents(rangeStartInMS, rangeEndInMS);
         // the end time of an event is the start time of the next event
         // first start time is 0
@@ -158,30 +174,27 @@ lib.createSequencer = function() {
         var synth = track.getAudioInstrument();
         if (events.length > 0) {
           events.forEach(function(event) {
-            if (previousEvent) {
-              if (!previousEvent.isRest()) {
-                synth.allNotesOff(scheduleTimeInSeconds);
+            if (synth) {
+              if (previousEvent) {
+                if (!previousEvent.isRest()) {
+                  synth.allNotesOff(scheduleTimeInSeconds);
+                }
+              }
+              if (!event.isRest()) {
+                event.getPitches().forEach(function(note) {
+                  synth.noteOn(note.getPosition(), velocity, scheduleTimeInSeconds);
+                });
               }
             }
-            if (!event.isRest()) {
-              event.getPitches().forEach(function(note) {
-                synth.noteOn(note.getPosition(), velocity, scheduleTimeInSeconds);
-              });
-            }
-            // XXX Why +0.1 is needed? (Without is, the GUI updates are too late)
-            _trackGUIUpdateTimes[trackIndex].push(scheduleTimeInSeconds + 0.1);
-            // XXX Updating GUI should involve Window.requestAnimationFrame()?
-            // setTimeout(
-            //   function() { track.updateGUI(); },
-            //   (scheduleTimeInSeconds - currentTime) * 1000
-            // );
+            _trackGUIUpdateTimes[trackIndex].push(scheduleTimeInSeconds);
             scheduleTimeInSeconds += event.getLengthInQN() * _secondsPerQuarterNote;
+            previousEvent = event;
           });
           if (isSeekingOfTrackDone) {
             var lastFoundEvent = events[events.length - 1];
             var endInSeconds = scheduleTimeInSeconds;
             // XXX already schedule note off for the last event here (because it is simpler to do this way, but it could lead to problems?)
-            if (!lastFoundEvent.isRest()) {
+            if (synth && !lastFoundEvent.isRest()) {
               synth.allNotesOff(endInSeconds);
             }
             if (endInSeconds > _lastEndInSeconds) {
@@ -203,7 +216,7 @@ lib.createSequencer = function() {
         _tracks.forEach(function(track) {
           track.resetSeeker();
         });
-        _startTime = _lastEndInSeconds;
+        __startTime = _lastEndInSeconds;
       }
     }
     _intervalID = window.setInterval(tick, _pollDelayInMS);
@@ -215,7 +228,7 @@ lib.createSequencer = function() {
       clearInterval(_intervalID);
       _intervalID = false;
     }
-    // GUI timer (stops itself)
+    // GUI timer (stops itself when unset)
     _guiTick = false;
   }
 
@@ -228,7 +241,7 @@ lib.createSequencer = function() {
     _isPlaying = false;
     _playIndex = 0;
     stopTimers();
-    _lastEndInSeconds = false;
+    _lastEndInSeconds = 0;
     _tracks.forEach(function(track) {
       track.stop();
       track.updateGUI();
