@@ -595,7 +595,8 @@ function toByteArray (b64) {
     ? validLen - 4
     : validLen
 
-  for (var i = 0; i < len; i += 4) {
+  var i
+  for (i = 0; i < len; i += 4) {
     tmp =
       (revLookup[b64.charCodeAt(i)] << 18) |
       (revLookup[b64.charCodeAt(i + 1)] << 12) |
@@ -654,9 +655,7 @@ function fromByteArray (uint8) {
 
   // go through the array every three bytes, we'll deal with trailing stuff later
   for (var i = 0, len2 = len - extraBytes; i < len2; i += maxChunkLength) {
-    parts.push(encodeChunk(
-      uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)
-    ))
+    parts.push(encodeChunk(uint8, i, (i + maxChunkLength) > len2 ? len2 : (i + maxChunkLength)))
   }
 
   // pad the end with zeros, but make sure to not forget the extra bytes
@@ -681,6 +680,9 @@ function fromByteArray (uint8) {
 }
 
 },{}],2:[function(require,module,exports){
+
+},{}],3:[function(require,module,exports){
+(function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
  *
@@ -2459,7 +2461,8 @@ function numberIsNaN (obj) {
   return obj !== obj // eslint-disable-line no-self-compare
 }
 
-},{"base64-js":1,"ieee754":4}],3:[function(require,module,exports){
+}).call(this)}).call(this,require("buffer").Buffer)
+},{"base64-js":1,"buffer":3,"ieee754":5}],4:[function(require,module,exports){
 // get successful control from form and assemble into object
 // http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2
 
@@ -2721,7 +2724,8 @@ function str_serialize(result, key, value) {
 
 module.exports = serialize;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = (nBytes * 8) - mLen - 1
@@ -2807,364 +2811,858 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],5:[function(require,module,exports){
-(function (process,Buffer){
+},{}],6:[function(require,module,exports){
+(function (process,Buffer){(function (){
 'use strict';
 
-Object.defineProperty(exports, "__esModule", {
-	value: true
-});
-exports.Writer = exports.VexFlow = exports.Utils = exports.Track = exports.ProgramChangeEvent = exports.NoteOnEvent = exports.NoteOffEvent = exports.NoteEvent = exports.MetaEvent = exports.ControllerChangeEvent = exports.Constants = exports.Chunk = undefined;
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-var _tonalMidi = require('tonal-midi');
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+var tonalMidi = require('tonal-midi');
 
 /**
- * Object representation of the chunk section of a MIDI file.
- * @param {object} fields - {type: number, data: array, size: array}
- * @return {Chunk}
- */
-var Chunk = function Chunk(fields) {
-	_classCallCheck(this, Chunk);
-
-	this.type = fields.type;
-	this.data = fields.data;
-	this.size = [0, 0, 0, fields.data.length];
-};
-
-exports.Chunk = Chunk;
-/**
- * MIDI file format constants, including note -> MIDI number translation.
+ * MIDI file format constants.
  * @return {Constants}
  */
-
 var Constants = {
-	VERSION: '1.5.2',
-	HEADER_CHUNK_TYPE: [0x4d, 0x54, 0x68, 0x64], // Mthd
-	HEADER_CHUNK_LENGTH: [0x00, 0x00, 0x00, 0x06], // Header size for SMF
-	HEADER_CHUNK_FORMAT0: [0x00, 0x00], // Midi Type 0 id
-	HEADER_CHUNK_FORMAT1: [0x00, 0x01], // Midi Type 1 id
-	HEADER_CHUNK_DIVISION: [0x00, 0x80], // Defaults to 128 ticks per beat
-	TRACK_CHUNK_TYPE: [0x4d, 0x54, 0x72, 0x6b], // MTrk,
-	META_EVENT_ID: 0xFF,
-	META_TEXT_ID: 0x01,
-	META_COPYRIGHT_ID: 0x02,
-	META_TRACK_NAME_ID: 0x03,
-	META_INSTRUMENT_NAME_ID: 0x04,
-	META_LYRIC_ID: 0x05,
-	META_MARKER_ID: 0x06,
-	META_CUE_POINT: 0x07,
-	META_TEMPO_ID: 0x51,
-	META_SMTPE_OFFSET: 0x54,
-	META_TIME_SIGNATURE_ID: 0x58,
-	META_KEY_SIGNATURE_ID: 0x59,
-	META_END_OF_TRACK_ID: [0x2F, 0x00],
-	CONTROLLER_CHANGE_STATUS: 0xB0, // includes channel number (0)
-	PROGRAM_CHANGE_STATUS: 0xC0 // includes channel number (0)
+  VERSION: require('../package.json').version,
+  HEADER_CHUNK_TYPE: [0x4d, 0x54, 0x68, 0x64],
+  // Mthd
+  HEADER_CHUNK_LENGTH: [0x00, 0x00, 0x00, 0x06],
+  // Header size for SMF
+  HEADER_CHUNK_FORMAT0: [0x00, 0x00],
+  // Midi Type 0 id
+  HEADER_CHUNK_FORMAT1: [0x00, 0x01],
+  // Midi Type 1 id
+  HEADER_CHUNK_DIVISION: [0x00, 0x80],
+  // Defaults to 128 ticks per beat
+  TRACK_CHUNK_TYPE: [0x4d, 0x54, 0x72, 0x6b],
+  // MTrk,
+  META_EVENT_ID: 0xFF,
+  META_TEXT_ID: 0x01,
+  META_COPYRIGHT_ID: 0x02,
+  META_TRACK_NAME_ID: 0x03,
+  META_INSTRUMENT_NAME_ID: 0x04,
+  META_LYRIC_ID: 0x05,
+  META_MARKER_ID: 0x06,
+  META_CUE_POINT: 0x07,
+  META_TEMPO_ID: 0x51,
+  META_SMTPE_OFFSET: 0x54,
+  META_TIME_SIGNATURE_ID: 0x58,
+  META_KEY_SIGNATURE_ID: 0x59,
+  META_END_OF_TRACK_ID: [0x2F, 0x00],
+  CONTROLLER_CHANGE_STATUS: 0xB0,
+  // includes channel number (0)
+  PROGRAM_CHANGE_STATUS: 0xC0,
+  // includes channel number (0)
+  PITCH_BEND_STATUS: 0xE0 // includes channel number (0)
+
 };
 
-exports.Constants = Constants;
+function _typeof(obj) {
+  "@babel/helpers - typeof";
+
+  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+    _typeof = function (obj) {
+      return typeof obj;
+    };
+  } else {
+    _typeof = function (obj) {
+      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+    };
+  }
+
+  return _typeof(obj);
+}
+
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
+function _inherits(subClass, superClass) {
+  if (typeof superClass !== "function" && superClass !== null) {
+    throw new TypeError("Super expression must either be null or a function");
+  }
+
+  subClass.prototype = Object.create(superClass && superClass.prototype, {
+    constructor: {
+      value: subClass,
+      writable: true,
+      configurable: true
+    }
+  });
+  if (superClass) _setPrototypeOf(subClass, superClass);
+}
+
+function _getPrototypeOf(o) {
+  _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) {
+    return o.__proto__ || Object.getPrototypeOf(o);
+  };
+  return _getPrototypeOf(o);
+}
+
+function _setPrototypeOf(o, p) {
+  _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+    o.__proto__ = p;
+    return o;
+  };
+
+  return _setPrototypeOf(o, p);
+}
+
+function _isNativeReflectConstruct() {
+  if (typeof Reflect === "undefined" || !Reflect.construct) return false;
+  if (Reflect.construct.sham) return false;
+  if (typeof Proxy === "function") return true;
+
+  try {
+    Date.prototype.toString.call(Reflect.construct(Date, [], function () {}));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function _construct(Parent, args, Class) {
+  if (_isNativeReflectConstruct()) {
+    _construct = Reflect.construct;
+  } else {
+    _construct = function _construct(Parent, args, Class) {
+      var a = [null];
+      a.push.apply(a, args);
+      var Constructor = Function.bind.apply(Parent, a);
+      var instance = new Constructor();
+      if (Class) _setPrototypeOf(instance, Class.prototype);
+      return instance;
+    };
+  }
+
+  return _construct.apply(null, arguments);
+}
+
+function _isNativeFunction(fn) {
+  return Function.toString.call(fn).indexOf("[native code]") !== -1;
+}
+
+function _wrapNativeSuper(Class) {
+  var _cache = typeof Map === "function" ? new Map() : undefined;
+
+  _wrapNativeSuper = function _wrapNativeSuper(Class) {
+    if (Class === null || !_isNativeFunction(Class)) return Class;
+
+    if (typeof Class !== "function") {
+      throw new TypeError("Super expression must either be null or a function");
+    }
+
+    if (typeof _cache !== "undefined") {
+      if (_cache.has(Class)) return _cache.get(Class);
+
+      _cache.set(Class, Wrapper);
+    }
+
+    function Wrapper() {
+      return _construct(Class, arguments, _getPrototypeOf(this).constructor);
+    }
+
+    Wrapper.prototype = Object.create(Class.prototype, {
+      constructor: {
+        value: Wrapper,
+        enumerable: false,
+        writable: true,
+        configurable: true
+      }
+    });
+    return _setPrototypeOf(Wrapper, Class);
+  };
+
+  return _wrapNativeSuper(Class);
+}
+
+function _wrapRegExp(re, groups) {
+  _wrapRegExp = function (re, groups) {
+    return new BabelRegExp(re, undefined, groups);
+  };
+
+  var _RegExp = _wrapNativeSuper(RegExp);
+
+  var _super = RegExp.prototype;
+
+  var _groups = new WeakMap();
+
+  function BabelRegExp(re, flags, groups) {
+    var _this = _RegExp.call(this, re, flags);
+
+    _groups.set(_this, groups || _groups.get(re));
+
+    return _this;
+  }
+
+  _inherits(BabelRegExp, _RegExp);
+
+  BabelRegExp.prototype.exec = function (str) {
+    var result = _super.exec.call(this, str);
+
+    if (result) result.groups = buildGroups(result, this);
+    return result;
+  };
+
+  BabelRegExp.prototype[Symbol.replace] = function (str, substitution) {
+    if (typeof substitution === "string") {
+      var groups = _groups.get(this);
+
+      return _super[Symbol.replace].call(this, str, substitution.replace(/\$<([^>]+)>/g, function (_, name) {
+        return "$" + groups[name];
+      }));
+    } else if (typeof substitution === "function") {
+      var _this = this;
+
+      return _super[Symbol.replace].call(this, str, function () {
+        var args = [];
+        args.push.apply(args, arguments);
+
+        if (typeof args[args.length - 1] !== "object") {
+          args.push(buildGroups(args, _this));
+        }
+
+        return substitution.apply(this, args);
+      });
+    } else {
+      return _super[Symbol.replace].call(this, str, substitution);
+    }
+  };
+
+  function buildGroups(result, re) {
+    var g = _groups.get(re);
+
+    return Object.keys(g).reduce(function (groups, name) {
+      groups[name] = result[g[name]];
+      return groups;
+    }, Object.create(null));
+  }
+
+  return _wrapRegExp.apply(this, arguments);
+}
+
 /**
- * Holds all data for a "controller change" MIDI event
- * @param {object} fields {controllerNumber: integer, controllerValue: integer}
- * @return {ControllerChangeEvent}
+ * Static utility functions used throughout the library.
  */
 
-var ControllerChangeEvent = function ControllerChangeEvent(fields) {
-	_classCallCheck(this, ControllerChangeEvent);
+var Utils = /*#__PURE__*/function () {
+  function Utils() {
+    _classCallCheck(this, Utils);
+  }
 
-	this.type = 'controller';
-	// delta time defaults to 0.
-	this.data = Utils.numberToVariableLength(0x00).concat(Constants.CONTROLLER_CHANGE_STATUS, fields.controllerNumber, fields.controllerValue);
-};
+  _createClass(Utils, null, [{
+    key: "version",
 
-exports.ControllerChangeEvent = ControllerChangeEvent;
-/**
- * Object representation of a meta event.
- * @param {object} fields - type, data
- * @return {MetaEvent}
- */
+    /**
+     * Gets MidiWriterJS version number.
+     * @return {string}
+     */
+    value: function version() {
+      return Constants.VERSION;
+    }
+    /**
+     * Convert a string to an array of bytes
+     * @param {string} string
+     * @return {array}
+     */
 
-var MetaEvent = function MetaEvent(fields) {
-	_classCallCheck(this, MetaEvent);
+  }, {
+    key: "stringToBytes",
+    value: function stringToBytes(string) {
+      return string.split('').map(function (_char) {
+        return _char.charCodeAt();
+      });
+    }
+    /**
+     * Checks if argument is a valid number.
+     * @param {*} n - Value to check
+     * @return {boolean}
+     */
 
-	this.type = 'meta';
-	this.data = Utils.numberToVariableLength(0x00); // Start with zero time delta
-	this.data = this.data.concat(Constants.META_EVENT_ID, fields.data);
-};
+  }, {
+    key: "isNumeric",
+    value: function isNumeric(n) {
+      return !isNaN(parseFloat(n)) && isFinite(n);
+    }
+    /**
+     * Returns the correct MIDI number for the specified pitch.
+     * Uses Tonal Midi - https://github.com/danigb/tonal/tree/master/packages/midi
+     * @param {(string|number)} pitch - 'C#4' or midi note code
+     * @return {number}
+     */
 
-exports.MetaEvent = MetaEvent;
-/**
- * Wrapper for noteOnEvent/noteOffEvent objects that builds both events.
- * @param {object} fields - {pitch: '[C4]', duration: '4', wait: '4', velocity: 1-100}
- * @return {NoteEvent}
- */
+  }, {
+    key: "getPitch",
+    value: function getPitch(pitch) {
+      return tonalMidi.toMidi(pitch);
+    }
+    /**
+     * Translates number of ticks to MIDI timestamp format, returning an array of
+     * hex strings with the time values. Midi has a very particular time to express time,
+     * take a good look at the spec before ever touching this function.
+     * Thanks to https://github.com/sergi/jsmidi
+     *
+     * @param {number} ticks - Number of ticks to be translated
+     * @return {array} - Bytes that form the MIDI time value
+     */
 
-var NoteEvent = function () {
-	function NoteEvent(fields) {
-		_classCallCheck(this, NoteEvent);
+  }, {
+    key: "numberToVariableLength",
+    value: function numberToVariableLength(ticks) {
+      ticks = Math.round(ticks);
+      var buffer = ticks & 0x7F;
 
-		this.type = 'note';
-		this.pitch = Utils.toArray(fields.pitch);
-		this.wait = fields.wait || 0;
-		this.duration = fields.duration;
-		this.sequential = fields.sequential || false;
-		this.velocity = fields.velocity || 50;
-		this.channel = fields.channel || 1;
-		this.repeat = fields.repeat || 1;
-		this.velocity = this.convertVelocity(this.velocity);
-		this.grace = fields.grace;
-		this.buildData();
-	}
+      while (ticks = ticks >> 7) {
+        buffer <<= 8;
+        buffer |= ticks & 0x7F | 0x80;
+      }
 
-	/**
-  * Builds int array for this event.
-  * @return {NoteEvent}
-  */
+      var bList = [];
 
+      while (true) {
+        bList.push(buffer & 0xff);
+        if (buffer & 0x80) buffer >>= 8;else {
+          break;
+        }
+      }
 
-	_createClass(NoteEvent, [{
-		key: 'buildData',
-		value: function buildData() {
-			this.data = [];
+      return bList;
+    }
+    /**
+     * Counts number of bytes in string
+     * @param {string} s
+     * @return {array}
+     */
 
-			var tickDuration = this.getTickDuration(this.duration, 'note');
-			var restDuration = this.getTickDuration(this.wait, 'rest');
+  }, {
+    key: "stringByteCount",
+    value: function stringByteCount(s) {
+      return encodeURI(s).split(/%..|./).length - 1;
+    }
+    /**
+     * Get an int from an array of bytes.
+     * @param {array} bytes
+     * @return {number}
+     */
 
-			// Apply grace note(s) and subtract ticks (currently 1 tick per grace note) from tickDuration so net value is the same
-			if (this.grace) {
-				var graceDuration = 1;
-				this.grace = Utils.toArray(this.grace);
-				this.grace.forEach(function (pitch) {
-					var noteEvent = new NoteEvent({ pitch: this.grace, duration: 'T' + graceDuration });
-					this.data = this.data.concat(noteEvent.data);
+  }, {
+    key: "numberFromBytes",
+    value: function numberFromBytes(bytes) {
+      var hex = '';
+      var stringResult;
+      bytes.forEach(function (_byte) {
+        stringResult = _byte.toString(16); // ensure string is 2 chars
 
-					tickDuration -= graceDuration;
-				}, this);
-			}
+        if (stringResult.length == 1) stringResult = "0" + stringResult;
+        hex += stringResult;
+      });
+      return parseInt(hex, 16);
+    }
+    /**
+     * Takes a number and splits it up into an array of bytes.  Can be padded by passing a number to bytesNeeded
+     * @param {number} number
+     * @param {number} bytesNeeded
+     * @return {array} - Array of bytes
+     */
 
-			// fields.pitch could be an array of pitches.
-			// If so create note events for each and apply the same duration.
-			var noteOn, noteOff;
-			if (Array.isArray(this.pitch)) {
-				// By default this is a chord if it's an array of notes that requires one NoteOnEvent.
-				// If this.sequential === true then it's a sequential string of notes that requires separate NoteOnEvents.
-				if (!this.sequential) {
-					// Handle repeat
-					for (var j = 0; j < this.repeat; j++) {
-						// Note on
-						this.pitch.forEach(function (p, i) {
-							if (i == 0) {
-								noteOn = new NoteOnEvent({ data: Utils.numberToVariableLength(restDuration).concat(this.getNoteOnStatus(), Utils.getPitch(p), this.velocity) });
-							} else {
-								// Running status (can ommit the note on status)
-								noteOn = new NoteOnEvent({ data: [0, Utils.getPitch(p), this.velocity] });
-							}
+  }, {
+    key: "numberToBytes",
+    value: function numberToBytes(number, bytesNeeded) {
+      bytesNeeded = bytesNeeded || 1;
+      var hexString = number.toString(16);
 
-							this.data = this.data.concat(noteOn.data);
-						}, this);
-
-						// Note off
-						this.pitch.forEach(function (p, i) {
-							if (i == 0) {
-								noteOff = new NoteOffEvent({ data: Utils.numberToVariableLength(tickDuration).concat(this.getNoteOffStatus(), Utils.getPitch(p), this.velocity) });
-							} else {
-								// Running status (can ommit the note off status)
-								noteOff = new NoteOffEvent({ data: [0, Utils.getPitch(p), this.velocity] });
-							}
-
-							this.data = this.data.concat(noteOff.data);
-						}, this);
-					}
-				} else {
-					// Handle repeat
-					for (var j = 0; j < this.repeat; j++) {
-						this.pitch.forEach(function (p, i) {
-							// restDuration only applies to first note
-							if (i > 0) {
-								restDuration = 0;
-							}
-
-							// If duration is 8th triplets we need to make sure that the total ticks == quarter note.
-							// So, the last one will need to be the remainder
-							if (this.duration === '8t' && i == this.pitch.length - 1) {
-								var quarterTicks = Utils.numberFromBytes(Constants.HEADER_CHUNK_DIVISION);
-								tickDuration = quarterTicks - tickDuration * 2;
-							}
-
-							noteOn = new NoteOnEvent({ data: Utils.numberToVariableLength(restDuration).concat([this.getNoteOnStatus(), Utils.getPitch(p), this.velocity]) });
-							noteOff = new NoteOffEvent({ data: Utils.numberToVariableLength(tickDuration).concat([this.getNoteOffStatus(), Utils.getPitch(p), this.velocity]) });
-
-							this.data = this.data.concat(noteOn.data, noteOff.data);
-						}, this);
-					}
-				}
-
-				return this;
-			}
-
-			throw 'pitch must be an array.';
-		}
-	}, {
-		key: 'convertVelocity',
+      if (hexString.length & 1) {
+        // Make sure hex string is even number of chars
+        hexString = '0' + hexString;
+      } // Split hex string into an array of two char elements
 
 
-		/**
-   * Converts velocity to value 0-127
-   * @param {number} velocity - Velocity value 1-100
-   * @return {number}
-   */
-		value: function convertVelocity(velocity) {
-			// Max passed value limited to 100
-			velocity = velocity > 100 ? 100 : velocity;
-			return Math.round(velocity / 100 * 127);
-		}
-	}, {
-		key: 'getTickDuration',
+      var hexArray = hexString.match(/.{2}/g); // Now parse them out as integers
+
+      hexArray = hexArray.map(function (item) {
+        return parseInt(item, 16);
+      }); // Prepend empty bytes if we don't have enough
+
+      if (hexArray.length < bytesNeeded) {
+        while (bytesNeeded - hexArray.length > 0) {
+          hexArray.unshift(0);
+        }
+      }
+
+      return hexArray;
+    }
+    /**
+     * Converts value to array if needed.
+     * @param {string} value
+     * @return {array}
+     */
+
+  }, {
+    key: "toArray",
+    value: function toArray(value) {
+      if (Array.isArray(value)) return value;
+      return [value];
+    }
+    /**
+     * Converts velocity to value 0-127
+     * @param {number} velocity - Velocity value 1-100
+     * @return {number}
+     */
+
+  }, {
+    key: "convertVelocity",
+    value: function convertVelocity(velocity) {
+      // Max passed value limited to 100
+      velocity = velocity > 100 ? 100 : velocity;
+      return Math.round(velocity / 100 * 127);
+    }
+    /**
+     * Gets the total number of ticks of a specified duration.
+     * Note: type=='note' defaults to quarter note, type==='rest' defaults to 0
+     * @param {(string|array)} duration
+     * @return {number}
+     */
+
+  }, {
+    key: "getTickDuration",
+    value: function getTickDuration(duration) {
+      if (Array.isArray(duration)) {
+        // Recursively execute this method for each item in the array and return the sum of tick durations.
+        return duration.map(function (value) {
+          return Utils.getTickDuration(value);
+        }).reduce(function (a, b) {
+          return a + b;
+        }, 0);
+      }
+
+      duration = duration.toString();
+
+      if (duration.toLowerCase().charAt(0) === 't') {
+        // If duration starts with 't' then the number that follows is an explicit tick count
+        return parseInt(duration.substring(1));
+      } // Need to apply duration here.  Quarter note == Constants.HEADER_CHUNK_DIVISION
 
 
-		/**
-   * Gets the total number of ticks based on passed duration.
-   * Note: type=='note' defaults to quarter note, type==='rest' defaults to 0
-   * @param {(string|array)} duration
-   * @param {string} type ['note', 'rest']
-   * @return {number}
-   */
-		value: function getTickDuration(duration, type) {
-			if (Array.isArray(duration)) {
-				// Recursively execute this method for each item in the array and return the sum of tick durations.
-				return duration.map(function (value) {
-					return this.getTickDuration(value, type);
-				}, this).reduce(function (a, b) {
-					return a + b;
-				}, 0);
-			}
+      var quarterTicks = Utils.numberFromBytes(Constants.HEADER_CHUNK_DIVISION);
+      var tickDuration = quarterTicks * Utils.getDurationMultiplier(duration);
+      return Utils.getRoundedIfClose(tickDuration);
+    }
+    /**
+     * Due to rounding errors in JavaScript engines,
+     * it's safe to round when we're very close to the actual tick number
+     *
+     * @static
+     * @param {number} tick
+     * @return {number}
+     */
 
-			duration = duration.toString();
+  }, {
+    key: "getRoundedIfClose",
+    value: function getRoundedIfClose(tick) {
+      var roundedTick = Math.round(tick);
+      return Math.abs(roundedTick - tick) < 0.000001 ? roundedTick : tick;
+    }
+    /**
+     * Due to low precision of MIDI,
+     * we need to keep track of rounding errors in deltas.
+     * This function will calculate the rounding error for a given duration.
+     *
+     * @static
+     * @param {number} tick
+     * @return {number}
+     */
 
-			if (duration.toLowerCase().charAt(0) === 't') {
-				// If duration starts with 't' then the number that follows is an explicit tick count
-				return parseInt(duration.substring(1));
-			}
+  }, {
+    key: "getPrecisionLoss",
+    value: function getPrecisionLoss(tick) {
+      var roundedTick = Math.round(tick);
+      return roundedTick - tick;
+    }
+    /**
+     * Gets what to multiple ticks/quarter note by to get the specified duration.
+     * Note: type=='note' defaults to quarter note, type==='rest' defaults to 0
+     * @param {string} duration
+     * @return {number}
+     */
 
-			// Need to apply duration here.  Quarter note == Constants.HEADER_CHUNK_DIVISION
-			// Rounding only applies to triplets, which the remainder is handled below
-			var quarterTicks = Utils.numberFromBytes(Constants.HEADER_CHUNK_DIVISION);
-			return Math.round(quarterTicks * this.getDurationMultiplier(duration, type));
-		}
+  }, {
+    key: "getDurationMultiplier",
+    value: function getDurationMultiplier(duration) {
+      // Need to apply duration here.
+      // Quarter note == Constants.HEADER_CHUNK_DIVISION ticks.
+      if (duration === '0') return 0;
+      var match = duration.match( /*#__PURE__*/_wrapRegExp(/^(d+)?([0-9]+)(?:t([0-9]*))?/, {
+        dotted: 1,
+        base: 2,
+        tuplet: 3
+      }));
 
-		/**
-   * Gets what to multiple ticks/quarter note by to get the specified duration.
-   * Note: type=='note' defaults to quarter note, type==='rest' defaults to 0
-   * @param {string} duration
-   * @param {string} type ['note','rest']
-   * @return {number}
-   */
+      if (match) {
+        var base = Number(match.groups.base); // 1 or any power of two:
 
-	}, {
-		key: 'getDurationMultiplier',
-		value: function getDurationMultiplier(duration, type) {
-			// Need to apply duration here.  Quarter note == Constants.HEADER_CHUNK_DIVISION
-			switch (duration) {
-				case '0':
-					return 0;
-				case '1':
-					return 4;
-				case '2':
-					return 2;
-				case 'd2':
-					return 3;
-				case '4':
-					return 1;
-				case '4t':
-					return 0.666;
-				case 'd4':
-					return 1.5;
-				case '8':
-					return 0.5;
-				case '8t':
-					// For 8th triplets, let's divide a quarter by 3, round to the nearest int, and substract the remainder to the last one.
-					return 0.33;
-				case 'd8':
-					return 0.75;
-				case '16':
-					return 0.25;
-				case '16t':
-					return 0.166;
-				case '32':
-					return 0.125;
-				case '64':
-					return 0.0625;
-				default:
-				// Notes default to a quarter, rests default to 0
-				//return type === 'note' ? 1 : 0;
-			}
+        var isValidBase = base === 1 || (base & base - 1) === 0;
 
-			throw duration + ' is not a valid duration.';
-		}
-	}, {
-		key: 'getNoteOnStatus',
+        if (isValidBase) {
+          // how much faster or slower is this note compared to a quarter?
+          var ratio = base / 4;
+          var durationInQuarters = 1 / ratio;
+          var _match$groups = match.groups,
+              dotted = _match$groups.dotted,
+              tuplet = _match$groups.tuplet;
 
+          if (dotted) {
+            var thisManyDots = dotted.length;
+            var divisor = Math.pow(2, thisManyDots);
+            durationInQuarters = durationInQuarters + durationInQuarters * ((divisor - 1) / divisor);
+          }
 
-		/**
-   * Gets the note on status code based on the selected channel. 0x9{0-F}
-   * Note on at channel 0 is 0x90 (144)
-   * 0 = Ch 1
-   * @return {number}
-   */
-		value: function getNoteOnStatus() {
-			return 144 + this.channel - 1;
-		}
+          if (typeof tuplet === 'string') {
+            var fitInto = durationInQuarters * 2; // default to triplet:
 
-		/**
-   * Gets the note off status code based on the selected channel. 0x8{0-F}
-   * Note off at channel 0 is 0x80 (128)
-   * 0 = Ch 1
-   * @return {number}
-   */
+            var thisManyNotes = Number(tuplet || '3');
+            durationInQuarters = fitInto / thisManyNotes;
+          }
 
-	}, {
-		key: 'getNoteOffStatus',
-		value: function getNoteOffStatus() {
-			return 128 + this.channel - 1;
-		}
-	}]);
+          return durationInQuarters;
+        }
+      }
 
-	return NoteEvent;
+      throw new Error(duration + ' is not a valid duration.');
+    }
+  }]);
+
+  return Utils;
 }();
 
-exports.NoteEvent = NoteEvent;
-/**
- * Holds all data for a "note off" MIDI event
- * @param {object} fields {data: []}
- * @return {NoteOffEvent}
- */
-
-var NoteOffEvent = function NoteOffEvent(fields) {
-	_classCallCheck(this, NoteOffEvent);
-
-	this.data = fields.data;
-};
-
-exports.NoteOffEvent = NoteOffEvent;
 /**
  * Holds all data for a "note on" MIDI event
  * @param {object} fields {data: []}
  * @return {NoteOnEvent}
  */
 
-var NoteOnEvent = function NoteOnEvent(fields) {
-	_classCallCheck(this, NoteOnEvent);
+var NoteOnEvent = /*#__PURE__*/function () {
+  function NoteOnEvent(fields) {
+    _classCallCheck(this, NoteOnEvent);
 
-	this.data = fields.data;
+    // Set default fields
+    fields = Object.assign({
+      channel: 1,
+      startTick: null,
+      velocity: 50,
+      wait: 0
+    }, fields);
+    this.type = 'note-on';
+    this.channel = fields.channel;
+    this.pitch = fields.pitch;
+    this.wait = fields.wait;
+    this.velocity = fields.velocity;
+    this.startTick = fields.startTick;
+    this.midiNumber = Utils.getPitch(this.pitch);
+    this.tick = null;
+    this.delta = null;
+    this.data = fields.data;
+  }
+  /**
+   * Builds int array for this event.
+   * @param {Track} track - parent track
+   * @return {NoteOnEvent}
+   */
+
+
+  _createClass(NoteOnEvent, [{
+    key: "buildData",
+    value: function buildData(track, precisionDelta) {
+      this.data = []; // Explicitly defined startTick event
+
+      if (this.startTick) {
+        this.tick = Utils.getRoundedIfClose(this.startTick); // If this is the first event in the track then use event's starting tick as delta.
+
+        if (track.tickPointer == 0) {
+          this.delta = this.tick;
+        }
+      } else {
+        this.delta = Utils.getTickDuration(this.wait);
+        this.tick = Utils.getRoundedIfClose(track.tickPointer + this.delta);
+      }
+
+      this.deltaWithPrecisionCorrection = Utils.getRoundedIfClose(this.delta - precisionDelta);
+      this.data = Utils.numberToVariableLength(this.deltaWithPrecisionCorrection).concat(this.getStatusByte(), this.midiNumber, Utils.convertVelocity(this.velocity));
+      return this;
+    }
+    /**
+     * Gets the note on status code based on the selected channel. 0x9{0-F}
+     * Note on at channel 0 is 0x90 (144)
+     * 0 = Ch 1
+     * @return {number}
+     */
+
+  }, {
+    key: "getStatusByte",
+    value: function getStatusByte() {
+      return 144 + this.channel - 1;
+    }
+  }]);
+
+  return NoteOnEvent;
+}();
+
+/**
+ * Holds all data for a "note off" MIDI event
+ * @param {object} fields {data: []}
+ * @return {NoteOffEvent}
+ */
+
+var NoteOffEvent = /*#__PURE__*/function () {
+  function NoteOffEvent(fields) {
+    _classCallCheck(this, NoteOffEvent);
+
+    // Set default fields
+    fields = Object.assign({
+      channel: 1,
+      velocity: 50,
+      tick: null
+    }, fields);
+    this.type = 'note-off';
+    this.channel = fields.channel;
+    this.pitch = fields.pitch;
+    this.duration = fields.duration;
+    this.velocity = fields.velocity;
+    this.midiNumber = Utils.getPitch(this.pitch);
+    this.tick = fields.tick;
+    this.delta = Utils.getTickDuration(this.duration);
+    this.data = fields.data;
+  }
+  /**
+   * Builds int array for this event.
+   * @param {Track} track - parent track
+   * @return {NoteOffEvent}
+   */
+
+
+  _createClass(NoteOffEvent, [{
+    key: "buildData",
+    value: function buildData(track, precisionDelta) {
+      if (this.tick === null) {
+        this.tick = Utils.getRoundedIfClose(this.delta + track.tickPointer);
+      }
+
+      this.deltaWithPrecisionCorrection = Utils.getRoundedIfClose(this.delta - precisionDelta);
+      this.data = Utils.numberToVariableLength(this.deltaWithPrecisionCorrection).concat(this.getStatusByte(), this.midiNumber, Utils.convertVelocity(this.velocity));
+      return this;
+    }
+    /**
+     * Gets the note off status code based on the selected channel. 0x8{0-F}
+     * Note off at channel 0 is 0x80 (128)
+     * 0 = Ch 1
+     * @return {number}
+     */
+
+  }, {
+    key: "getStatusByte",
+    value: function getStatusByte() {
+      return 128 + this.channel - 1;
+    }
+  }]);
+
+  return NoteOffEvent;
+}();
+
+/**
+ * Wrapper for noteOnEvent/noteOffEvent objects that builds both events.
+ * @param {object} fields - {pitch: '[C4]', duration: '4', wait: '4', velocity: 1-100}
+ * @return {NoteEvent}
+ */
+
+var NoteEvent = /*#__PURE__*/function () {
+  function NoteEvent(fields) {
+    _classCallCheck(this, NoteEvent);
+
+    // Set default fields
+    fields = Object.assign({
+      channel: 1,
+      repeat: 1,
+      sequential: false,
+      startTick: null,
+      velocity: 50,
+      wait: 0
+    }, fields);
+    this.data = [];
+    this.type = 'note';
+    this.pitch = Utils.toArray(fields.pitch);
+    this.channel = fields.channel;
+    this.duration = fields.duration;
+    this.grace = fields.grace;
+    this.repeat = fields.repeat;
+    this.sequential = fields.sequential;
+    this.startTick = fields.startTick;
+    this.velocity = fields.velocity;
+    this.wait = fields.wait;
+    this.tickDuration = Utils.getTickDuration(this.duration);
+    this.restDuration = Utils.getTickDuration(this.wait);
+    this.events = []; // Hold actual NoteOn/NoteOff events
+  }
+  /**
+   * Builds int array for this event.
+   * @return {NoteEvent}
+   */
+
+
+  _createClass(NoteEvent, [{
+    key: "buildData",
+    value: function buildData() {
+      var _this = this;
+
+      // Reset data array
+      this.data = [];
+      var tickDuration = this.tickDuration;
+      var restDuration = this.restDuration; // Apply grace note(s) and subtract ticks (currently 1 tick per grace note) from tickDuration so net value is the same
+
+      if (this.grace) {
+        var graceDuration = 1;
+        this.grace = Utils.toArray(this.grace);
+        this.grace.forEach(function (pitch) {
+          var noteEvent = new NoteEvent({
+            pitch: _this.grace,
+            duration: 'T' + graceDuration
+          });
+          _this.data = _this.data.concat(noteEvent.data);
+          tickDuration -= graceDuration;
+        });
+      } // fields.pitch could be an array of pitches.
+      // If this.sequential === true then it's a sequential string of notes that requires separate NoteOnEvents.
+
+      if (!this.sequential) {
+        // Handle repeat
+        for (var j = 0; j < this.repeat; j++) {
+          // Note on
+          this.pitch.forEach(function (p, i) {
+            if (i == 0) {
+              var noteOnNew = new NoteOnEvent({
+                channel: _this.channel,
+                wait: _this.wait,
+                velocity: _this.velocity,
+                pitch: p,
+                startTick: _this.startTick
+              });
+            } else {
+              // Running status (can ommit the note on status)
+              //noteOn = new NoteOnEvent({data: [0, Utils.getPitch(p), Utils.convertVelocity(this.velocity)]});
+              var noteOnNew = new NoteOnEvent({
+                channel: _this.channel,
+                wait: 0,
+                velocity: _this.velocity,
+                pitch: p,
+                startTick: _this.startTick
+              });
+            }
+
+            _this.events.push(noteOnNew);
+          }); // Note off
+
+          this.pitch.forEach(function (p, i) {
+            if (i == 0) {
+              //noteOff = new NoteOffEvent({data: Utils.numberToVariableLength(tickDuration).concat(this.getNoteOffStatus(), Utils.getPitch(p), Utils.convertVelocity(this.velocity))});
+              var noteOffNew = new NoteOffEvent({
+                channel: _this.channel,
+                duration: _this.duration,
+                velocity: _this.velocity,
+                pitch: p,
+                tick: _this.startTick !== null ? Utils.getTickDuration(_this.duration) - _this.startTick : null
+              });
+            } else {
+              // Running status (can ommit the note off status)
+              //noteOff = new NoteOffEvent({data: [0, Utils.getPitch(p), Utils.convertVelocity(this.velocity)]});
+              var noteOffNew = new NoteOffEvent({
+                channel: _this.channel,
+                duration: 0,
+                velocity: _this.velocity,
+                pitch: p,
+                tick: _this.startTick !== null ? Utils.getTickDuration(_this.duration) - _this.startTick : null
+              });
+            }
+
+            _this.events.push(noteOffNew);
+          });
+        }
+      } else {
+        // Handle repeat
+        for (var j = 0; j < this.repeat; j++) {
+          this.pitch.forEach(function (p, i) {
+            // restDuration only applies to first note
+            if (i > 0) {
+              restDuration = 0;
+            }
+
+            var noteOnNew = new NoteOnEvent({
+              channel: _this.channel,
+              wait: i > 0 ? 0 : _this.wait,
+              // wait only applies to first note in repetition
+              velocity: _this.velocity,
+              pitch: p,
+              startTick: _this.startTick
+            });
+            var noteOffNew = new NoteOffEvent({
+              channel: _this.channel,
+              duration: _this.duration,
+              velocity: _this.velocity,
+              pitch: p
+            });
+
+            _this.events.push(noteOnNew, noteOffNew);
+          });
+        }
+      }
+
+      return this;
+    }
+  }]);
+
+  return NoteEvent;
+}();
+
+/**
+ * Holds all data for a "Pitch Bend" MIDI event
+ * [ -1.0, 0, 1.0 ] ->  [ 0, 8192, 16383]
+ * @param {object} fields { bend : float, channel : int }
+ * @return {PitchBendEvent}
+ */
+
+var scale14bits = function scale14bits(zeroOne) {
+  if (zeroOne <= 0) {
+    return Math.floor(16384 * (zeroOne + 1) / 2);
+  }
+
+  return Math.floor(16383 * (zeroOne + 1) / 2);
 };
 
-exports.NoteOnEvent = NoteOnEvent;
+var PitchBendEvent = function PitchBendEvent(fields) {
+  _classCallCheck(this, PitchBendEvent);
+
+  this.type = 'pitch-bend';
+  var bend14 = scale14bits(fields.bend);
+  var channel = fields.channel || 0;
+  var lsbValue = bend14 & 0x7f;
+  var msbValue = bend14 >> 7 & 0x7f;
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.PITCH_BEND_STATUS | channel, lsbValue, msbValue);
+};
+
 /**
  * Holds all data for a "program change" MIDI event
  * @param {object} fields {instrument: integer}
@@ -3172,681 +3670,915 @@ exports.NoteOnEvent = NoteOnEvent;
  */
 
 var ProgramChangeEvent = function ProgramChangeEvent(fields) {
-	_classCallCheck(this, ProgramChangeEvent);
+  _classCallCheck(this, ProgramChangeEvent);
 
-	this.type = 'program';
-	// delta time defaults to 0.
-	this.data = Utils.numberToVariableLength(0x00).concat(Constants.PROGRAM_CHANGE_STATUS, fields.instrument);
+  this.type = 'program'; // delta time defaults to 0.
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.PROGRAM_CHANGE_STATUS, fields.instrument);
 };
 
-exports.ProgramChangeEvent = ProgramChangeEvent;
+/**
+ * Holds all data for a "controller change" MIDI event
+ * @param {object} fields {controllerNumber: integer, controllerValue: integer}
+ * @return {ControllerChangeEvent}
+ */
+
+var ControllerChangeEvent = function ControllerChangeEvent(fields) {
+  _classCallCheck(this, ControllerChangeEvent);
+
+  this.type = 'controller'; // delta time defaults to 0.
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.CONTROLLER_CHANGE_STATUS, fields.controllerNumber, fields.controllerValue);
+};
+
+/**
+ * Object representation of a tempo meta event.
+ * @param {string} text - Copyright text
+ * @return {CopyrightEvent}
+ */
+
+var CopyrightEvent = function CopyrightEvent(text) {
+  _classCallCheck(this, CopyrightEvent);
+
+  this.type = 'copyright';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_COPYRIGHT_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+};
+
+/**
+ * Object representation of a cue point meta event.
+ * @param {string} text - Cue point text
+ * @return {CuePointEvent}
+ */
+
+var CuePointEvent = function CuePointEvent(text) {
+  _classCallCheck(this, CuePointEvent);
+
+  this.type = 'marker';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_CUE_POINT, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+};
+
+/**
+ * Object representation of a end track meta event.
+ * @return {EndTrackEvent}
+ */
+
+var EndTrackEvent = function EndTrackEvent() {
+  _classCallCheck(this, EndTrackEvent);
+
+  this.type = 'end-track'; // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_END_OF_TRACK_ID);
+};
+
+/**
+ * Object representation of an instrument name meta event.
+ * @param {number} bpm - Beats per minute
+ * @return {InstrumentNameEvent}
+ */
+
+var InstrumentNameEvent = function InstrumentNameEvent(text) {
+  _classCallCheck(this, InstrumentNameEvent);
+
+  this.type = 'instrument-name';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_INSTRUMENT_NAME_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Instrument name
+  );
+};
+
+/**
+ * Object representation of a key signature meta event.
+ * @return {KeySignatureEvent}
+ */
+
+var KeySignatureEvent = function KeySignatureEvent(sf, mi) {
+  _classCallCheck(this, KeySignatureEvent);
+
+  this.type = 'key-signature';
+  var mode = mi || 0;
+  sf = sf || 0; //	Function called with string notation
+
+  if (typeof mi === 'undefined') {
+    var fifths = [['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'], ['ab', 'eb', 'bb', 'f', 'c', 'g', 'd', 'a', 'e', 'b', 'f#', 'c#', 'g#', 'd#', 'a#']];
+    var _sflen = sf.length;
+    var note = sf || 'C';
+    if (sf[0] === sf[0].toLowerCase()) mode = 1;
+
+    if (_sflen > 1) {
+      switch (sf.charAt(_sflen - 1)) {
+        case 'm':
+          mode = 1;
+          note = sf.charAt(0).toLowerCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+
+        case '-':
+          mode = 1;
+          note = sf.charAt(0).toLowerCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+
+        case 'M':
+          mode = 0;
+          note = sf.charAt(0).toUpperCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+
+        case '+':
+          mode = 0;
+          note = sf.charAt(0).toUpperCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+      }
+    }
+
+    var fifthindex = fifths[mode].indexOf(note);
+    sf = fifthindex === -1 ? 0 : fifthindex - 7;
+  } // Start with zero time delta
+
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_KEY_SIGNATURE_ID, [0x02], // Size
+  Utils.numberToBytes(sf, 1), // Number of sharp or flats ( < 0 flat; > 0 sharp)
+  Utils.numberToBytes(mode, 1) // Mode: 0 major, 1 minor
+  );
+};
+
+/**
+ * Object representation of a lyric meta event.
+ * @param {string} text - Lyric text
+ * @return {LyricEvent}
+ */
+
+var LyricEvent = function LyricEvent(text) {
+  _classCallCheck(this, LyricEvent);
+
+  this.type = 'marker';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_LYRIC_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+};
+
+/**
+ * Object representation of a marker meta event.
+ * @param {string} text - Marker text
+ * @return {MarkerEvent}
+ */
+
+var MarkerEvent = function MarkerEvent(text) {
+  _classCallCheck(this, MarkerEvent);
+
+  this.type = 'marker';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_MARKER_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+};
+
+/**
+ * Object representation of a tempo meta event.
+ * @param {number} bpm - Beats per minute
+ * @return {TempoEvent}
+ */
+
+var TempoEvent = function TempoEvent(bpm) {
+  _classCallCheck(this, TempoEvent);
+
+  this.type = 'tempo';
+  var tempo = Math.round(60000000 / bpm); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TEMPO_ID, [0x03], // Size
+  Utils.numberToBytes(tempo, 3) // Tempo, 3 bytes
+  );
+};
+
+/**
+ * Object representation of a tempo meta event.
+ * @param {number} bpm - Beats per minute
+ * @return {TextEvent}
+ */
+
+var TextEvent = function TextEvent(text) {
+  _classCallCheck(this, TextEvent);
+
+  this.type = 'text';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TEXT_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+};
+
+/**
+ * Object representation of a time signature meta event.
+ * @return {TimeSignatureEvent}
+ */
+
+var TimeSignatureEvent = function TimeSignatureEvent(numerator, denominator, midiclockspertick, notespermidiclock) {
+  _classCallCheck(this, TimeSignatureEvent);
+
+  this.type = 'time-signature'; // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TIME_SIGNATURE_ID, [0x04], // Size
+  Utils.numberToBytes(numerator, 1), // Numerator, 1 bytes
+  Utils.numberToBytes(Math.log2(denominator), 1), // Denominator is expressed as pow of 2, 1 bytes
+  Utils.numberToBytes(midiclockspertick || 24, 1), // MIDI Clocks per tick, 1 bytes
+  Utils.numberToBytes(notespermidiclock || 8, 1) // Number of 1/32 notes per MIDI clocks, 1 bytes
+  );
+};
+
+/**
+ * Object representation of a tempo meta event.
+ * @param {number} bpm - Beats per minute
+ * @return {TrackNameEvent}
+ */
+
+var TrackNameEvent = function TrackNameEvent(text) {
+  _classCallCheck(this, TrackNameEvent);
+
+  this.type = 'track-name';
+  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TRACK_NAME_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+};
+
 /**
  * Holds all data for a track.
  * @param {object} fields {type: number, data: array, size: array, events: array}
  * @return {Track}
  */
 
-var Track = function () {
-	function Track() {
-		_classCallCheck(this, Track);
+var Track = /*#__PURE__*/function () {
+  function Track() {
+    _classCallCheck(this, Track);
 
-		this.type = Constants.TRACK_CHUNK_TYPE;
-		this.data = [];
-		this.size = [];
-		this.events = [];
-	}
+    this.type = Constants.TRACK_CHUNK_TYPE;
+    this.data = [];
+    this.size = [];
+    this.events = [];
+    this.explicitTickEvents = []; // If there are any events with an explicit tick defined then we will create a "sub" track for those
+    // and merge them in and the end.
 
-	/**
-  * Adds any event type to the track.
-  * @param {(NoteEvent|MetaEvent|ProgramChangeEvent)} event - Event object.
-  * @param {function} mapFunction - Callback which can be used to apply specific properties to all events. 
-  * @return {Track}
-  */
-
-
-	_createClass(Track, [{
-		key: 'addEvent',
-		value: function addEvent(event, mapFunction) {
-			if (Array.isArray(event)) {
-				event.forEach(function (e, i) {
-					// Handle map function if provided
-					if (typeof mapFunction === 'function' && e.type === 'note') {
-						var properties = mapFunction(i, e);
-
-						if ((typeof properties === 'undefined' ? 'undefined' : _typeof(properties)) === 'object') {
-							for (var j in properties) {
-								switch (j) {
-									case 'duration':
-										e.duration = properties[j];
-										break;
-									case 'sequential':
-										e.sequential = properties[j];
-										break;
-									case 'velocity':
-										e.velocity = e.convertVelocity(properties[j]);
-										break;
-								}
-							}
-
-							// Gotta build that data
-							e.buildData();
-						}
-					}
-
-					this.data = this.data.concat(e.data);
-					this.size = Utils.numberToBytes(this.data.length, 4); // 4 bytes long
-					this.events.push(e);
-				}, this);
-			} else {
-				this.data = this.data.concat(event.data);
-				this.size = Utils.numberToBytes(this.data.length, 4); // 4 bytes long
-				this.events.push(event);
-			}
-
-			return this;
-		}
-
-		/**
-   * Sets tempo of the MIDI file.
-   * @param {number} bpm - Tempo in beats per minute.
+    this.tickPointer = 0; // Each time an event is added this will increase
+  }
+  /**
+   * Adds any event type to the track.
+   * Events without a specific startTick property are assumed to be added in order of how they should output.
+   * Events with a specific startTick property are set aside for now will be merged in during build process.
+   * @param {(NoteEvent|ProgramChangeEvent)} events - Event object or array of Event objects.
+   * @param {function} mapFunction - Callback which can be used to apply specific properties to all events.
    * @return {Track}
    */
 
-	}, {
-		key: 'setTempo',
-		value: function setTempo(bpm) {
-			var event = new MetaEvent({ data: [Constants.META_TEMPO_ID] });
-			event.data.push(0x03); // Size
-			var tempo = Math.round(60000000 / bpm);
-			event.data = event.data.concat(Utils.numberToBytes(tempo, 3)); // Tempo, 3 bytes
-			return this.addEvent(event);
-		}
 
-		/**
-   * Sets time signature.
-   * @param {number} numerator - Top number of the time signature.
-   * @param {number} denominator - Bottom number of the time signature.
-   * @param {number} midiclockspertick - Defaults to 24.
-   * @param {number} notespermidiclock - Defaults to 8.
-   * @return {Track}
-   */
+  _createClass(Track, [{
+    key: "addEvent",
+    value: function addEvent(events, mapFunction) {
+      var _this = this;
 
-	}, {
-		key: 'setTimeSignature',
-		value: function setTimeSignature(numerator, denominator, midiclockspertick, notespermidiclock) {
-			midiclockspertick = midiclockspertick || 24;
-			notespermidiclock = notespermidiclock || 8;
+      Utils.toArray(events).forEach(function (event, i) {
+        if (event instanceof NoteEvent) {
+          // Handle map function if provided
+          if (typeof mapFunction === 'function') {
+            var properties = mapFunction(i, event);
 
-			var event = new MetaEvent({ data: [Constants.META_TIME_SIGNATURE_ID] });
-			event.data.push(0x04); // Size
-			event.data = event.data.concat(Utils.numberToBytes(numerator, 1)); // Numerator, 1 bytes
+            if (_typeof(properties) === 'object') {
+              for (var j in properties) {
+                switch (j) {
+                  case 'channel':
+                    event.channel = properties[j];
+                    break;
 
-			var _denominator = Math.log2(denominator); // Denominator is expressed as pow of 2
-			event.data = event.data.concat(Utils.numberToBytes(_denominator, 1)); // Denominator, 1 bytes
-			event.data = event.data.concat(Utils.numberToBytes(midiclockspertick, 1)); // MIDI Clocks per tick, 1 bytes
-			event.data = event.data.concat(Utils.numberToBytes(notespermidiclock, 1)); // Number of 1/32 notes per MIDI clocks, 1 bytes
-			return this.addEvent(event);
-		}
+                  case 'duration':
+                    event.duration = properties[j];
+                    break;
 
-		/**
-   * Sets key signature.
-   * @param {*} sf - 
-   * @param {*} mi -
-   * @return {Track}
-   */
+                  case 'sequential':
+                    event.sequential = properties[j];
+                    break;
 
-	}, {
-		key: 'setKeySignature',
-		value: function setKeySignature(sf, mi) {
-			var event = new MetaEvent({ data: [Constants.META_KEY_SIGNATURE_ID] });
-			event.data.push(0x02); // Size
+                  case 'velocity':
+                    event.velocity = Utils.convertVelocity(properties[j]);
+                    break;
+                }
+              }
+            }
+          } // If this note event has an explicit startTick then we need to set aside for now
 
-			var mode = mi || 0;
-			sf = sf || 0;
 
-			//	Function called with string notation
-			if (typeof mi === 'undefined') {
-				var fifths = [['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'], ['ab', 'eb', 'bb', 'f', 'c', 'g', 'd', 'a', 'e', 'b', 'f#', 'c#', 'g#', 'd#', 'a#']];
-				var _sflen = sf.length;
-				var note = sf || 'C';
+          if (event.startTick !== null) {
+            _this.explicitTickEvents.push(event);
+          } else {
+            // Push each on/off event to track's event stack
+            event.buildData().events.forEach(function (e) {
+              return _this.events.push(e);
+            });
+          }
+        } else {
+          _this.events.push(event);
+        }
+      });
+      return this;
+    }
+    /**
+     * Builds int array of all events.
+     * @return {Track}
+     */
 
-				if (sf[0] === sf[0].toLowerCase()) mode = 1;
+  }, {
+    key: "buildData",
+    value: function buildData() {
+      var _this2 = this;
 
-				if (_sflen > 1) {
-					switch (sf.charAt(_sflen - 1)) {
-						case 'm':
-							mode = 1;
-							note = sf.charAt(0).toLowerCase();
-							note = note.concat(sf.substring(1, _sflen - 1));
-							break;
-						case '-':
-							mode = 1;
-							note = sf.charAt(0).toLowerCase();
-							note = note.concat(sf.substring(1, _sflen - 1));
-							break;
-						case 'M':
-							mode = 0;
-							note = sf.charAt(0).toUpperCase();
-							note = note.concat(sf.substring(1, _sflen - 1));
-							break;
-						case '+':
-							mode = 0;
-							note = sf.charAt(0).toUpperCase();
-							note = note.concat(sf.substring(1, _sflen - 1));
-							break;
-					}
-				}
+      // Remove existing end track event and add one.
+      // This makes sure it's at the very end of the event list.
+      this.removeEventsByType('end-track').addEvent(new EndTrackEvent()); // Reset
 
-				var fifthindex = fifths[mode].indexOf(note);
-				sf = fifthindex === -1 ? 0 : fifthindex - 7;
-			}
+      this.data = [];
+      this.size = [];
+      this.tickPointer = 0;
+      var precisionLoss = 0;
+      this.events.forEach(function (event, eventIndex) {
+        // Build event & add to total tick duration
+        if (event instanceof NoteOnEvent || event instanceof NoteOffEvent) {
+          var built = event.buildData(_this2, precisionLoss);
+          precisionLoss = Utils.getPrecisionLoss(event.deltaWithPrecisionCorrection || 0);
+          _this2.data = _this2.data.concat(built.data);
+          _this2.tickPointer = Utils.getRoundedIfClose(event.tick);
+        } else {
+          _this2.data = _this2.data.concat(event.data);
+        }
+      });
+      this.mergeExplicitTickEvents();
+      this.size = Utils.numberToBytes(this.data.length, 4); // 4 bytes long
 
-			event.data = event.data.concat(Utils.numberToBytes(sf, 1)); // Number of sharp or flats ( < 0 flat; > 0 sharp)
-			event.data = event.data.concat(Utils.numberToBytes(mode, 1)); // Mode: 0 major, 1 minor
-			return this.addEvent(event);
-		}
+      return this;
+    }
+  }, {
+    key: "mergeExplicitTickEvents",
+    value: function mergeExplicitTickEvents() {
+      var _this3 = this;
 
-		/**
-   * Adds text to MIDI file.
-   * @param {string} text - Text to add.
-   * @return {Track}
-   */
+      if (!this.explicitTickEvents.length) return; // First sort asc list of events by startTick
 
-	}, {
-		key: 'addText',
-		value: function addText(text) {
-			var event = new MetaEvent({ data: [Constants.META_TEXT_ID] });
-			var stringBytes = Utils.stringToBytes(text);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Text
-			return this.addEvent(event);
-		}
+      this.explicitTickEvents.sort(function (a, b) {
+        return a.startTick - b.startTick;
+      }); // Now this.explicitTickEvents is in correct order, and so is this.events naturally.
+      // For each explicit tick event, splice it into the main list of events and
+      // adjust the delta on the following events so they still play normally.
 
-		/**
-   * Adds copyright to MIDI file.
-   * @param {string} text - Text of copyright line.
-   * @return {Track}
-   */
+      this.explicitTickEvents.forEach(function (noteEvent) {
+        // Convert NoteEvent to it's respective NoteOn/NoteOff events
+        // Note that as we splice in events the delta for the NoteOff ones will
+        // Need to change based on what comes before them after the splice.
+        noteEvent.buildData().events.forEach(function (e) {
+          return e.buildData(_this3);
+        }); // Merge each event indivually into this track's event list.
 
-	}, {
-		key: 'addCopyright',
-		value: function addCopyright(text) {
-			var event = new MetaEvent({ data: [Constants.META_COPYRIGHT_ID] });
-			var stringBytes = Utils.stringToBytes(text);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Text
-			return this.addEvent(event);
-		}
+        noteEvent.events.forEach(function (event) {
+          return _this3.mergeSingleEvent(event);
+        });
+      }); // Hacky way to rebuild track with newly spliced events.  Need better solution.
 
-		/**
-   * Adds Sequence/Track Name.
-   * @param {string} text - Text of track name.
-   * @return {Track}
-   */
+      this.explicitTickEvents = [];
+      this.buildData();
+    }
+    /**
+     * Merges another track's events with this track.
+     * @param {Track} track
+     * @return {Track}
+     */
 
-	}, {
-		key: 'addTrackName',
-		value: function addTrackName(text) {
-			var event = new MetaEvent({ data: [Constants.META_TRACK_NAME_ID] });
-			var stringBytes = Utils.stringToBytes(text);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Text
-			return this.addEvent(event);
-		}
+  }, {
+    key: "mergeTrack",
+    value: function mergeTrack(track) {
+      var _this4 = this;
 
-		/**
-   * Sets instrument name of track.
-   * @param {string} text - Name of instrument.
-   * @return {Track}
-   */
+      // First build this track to populate each event's tick property
+      this.buildData(); // Then build track to be merged so that tick property is populated on all events & merge each event.
 
-	}, {
-		key: 'addInstrumentName',
-		value: function addInstrumentName(text) {
-			var event = new MetaEvent({ data: [Constants.META_INSTRUMENT_NAME_ID] });
-			var stringBytes = Utils.stringToBytes(text);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Text
-			return this.addEvent(event);
-		}
+      track.buildData().events.forEach(function (event) {
+        return _this4.mergeSingleEvent(event);
+      });
+    }
+    /**
+     * Merges a single event into this track's list of events based on event.tick property.
+     * @param {NoteOnEvent|NoteOffEvent} - event
+     * @return {Track}
+     */
 
-		/**
-   * Adds marker to MIDI file.
-   * @param {string} text - Marker text.
-   * @return {Track}
-   */
+  }, {
+    key: "mergeSingleEvent",
+    value: function mergeSingleEvent(event) {
+      // Find index of existing event we need to follow with
+      var lastEventIndex = 0;
 
-	}, {
-		key: 'addMarker',
-		value: function addMarker(text) {
-			var event = new MetaEvent({ data: [Constants.META_MARKER_ID] });
-			var stringBytes = Utils.stringToBytes(text);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Text
-			return this.addEvent(event);
-		}
+      for (var i = 0; i < this.events.length; i++) {
+        if (this.events[i].tick > event.tick) break;
+        lastEventIndex = i;
+      }
 
-		/**
-   * Adds cue point to MIDI file.
-   * @param {string} text - Text of cue point.
-   * @return {Track}
-   */
+      var splicedEventIndex = lastEventIndex + 1; // Need to adjust the delta of this event to ensure it falls on the correct tick.
 
-	}, {
-		key: 'addCuePoint',
-		value: function addCuePoint(text) {
-			var event = new MetaEvent({ data: [Constants.META_CUE_POINT] });
-			var stringBytes = Utils.stringToBytes(text);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Text
-			return this.addEvent(event);
-		}
+      event.delta = event.tick - this.events[lastEventIndex].tick; // Splice this event at lastEventIndex + 1
 
-		/**
-   * Adds lyric to MIDI file.
-   * @param {string} lyric - Lyric text to add.
-   * @return {Track}
-   */
+      this.events.splice(splicedEventIndex, 0, event); // Now adjust delta of all following events
 
-	}, {
-		key: 'addLyric',
-		value: function addLyric(lyric) {
-			var event = new MetaEvent({ data: [Constants.META_LYRIC_ID] });
-			var stringBytes = Utils.stringToBytes(lyric);
-			event.data = event.data.concat(Utils.numberToVariableLength(stringBytes.length)); // Size
-			event.data = event.data.concat(stringBytes); // Lyric
-			return this.addEvent(event);
-		}
+      for (var i = splicedEventIndex + 1; i < this.events.length; i++) {
+        // Since each existing event should have a tick value at this point we just need to
+        // adjust delta to that the event still falls on the correct tick.
+        this.events[i].delta = this.events[i].tick - this.events[i - 1].tick;
+      }
+    }
+    /**
+     * Removes all events matching specified type.
+     * @param {string} eventType - Event type
+     * @return {Track}
+     */
 
-		/**
-   * Channel mode messages
-   * @return {Track}
-   */
+  }, {
+    key: "removeEventsByType",
+    value: function removeEventsByType(eventType) {
+      var _this5 = this;
 
-	}, {
-		key: 'polyModeOn',
-		value: function polyModeOn() {
-			var event = new NoteOnEvent({ data: [0x00, 0xB0, 0x7E, 0x00] });
-			return this.addEvent(event);
-		}
-	}]);
+      this.events.forEach(function (event, index) {
+        if (event.type === eventType) {
+          _this5.events.splice(index, 1);
+        }
+      });
+      return this;
+    }
+    /**
+     * Sets tempo of the MIDI file.
+     * @param {number} bpm - Tempo in beats per minute.
+     * @return {Track}
+     */
 
-	return Track;
+  }, {
+    key: "setTempo",
+    value: function setTempo(bpm) {
+      return this.addEvent(new TempoEvent(bpm));
+    }
+    /**
+     * Sets time signature.
+     * @param {number} numerator - Top number of the time signature.
+     * @param {number} denominator - Bottom number of the time signature.
+     * @param {number} midiclockspertick - Defaults to 24.
+     * @param {number} notespermidiclock - Defaults to 8.
+     * @return {Track}
+     */
+
+  }, {
+    key: "setTimeSignature",
+    value: function setTimeSignature(numerator, denominator, midiclockspertick, notespermidiclock) {
+      return this.addEvent(new TimeSignatureEvent(numerator, denominator, midiclockspertick, notespermidiclock));
+    }
+    /**
+     * Sets key signature.
+     * @param {*} sf -
+     * @param {*} mi -
+     * @return {Track}
+     */
+
+  }, {
+    key: "setKeySignature",
+    value: function setKeySignature(sf, mi) {
+      return this.addEvent(new KeySignatureEvent(sf, mi));
+    }
+    /**
+     * Adds text to MIDI file.
+     * @param {string} text - Text to add.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addText",
+    value: function addText(text) {
+      return this.addEvent(new TextEvent(text));
+    }
+    /**
+     * Adds copyright to MIDI file.
+     * @param {string} text - Text of copyright line.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addCopyright",
+    value: function addCopyright(text) {
+      return this.addEvent(new CopyrightEvent(text));
+    }
+    /**
+     * Adds Sequence/Track Name.
+     * @param {string} text - Text of track name.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addTrackName",
+    value: function addTrackName(text) {
+      return this.addEvent(new TrackNameEvent(text));
+    }
+    /**
+     * Sets instrument name of track.
+     * @param {string} text - Name of instrument.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addInstrumentName",
+    value: function addInstrumentName(text) {
+      return this.addEvent(new InstrumentNameEvent(text));
+    }
+    /**
+     * Adds marker to MIDI file.
+     * @param {string} text - Marker text.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addMarker",
+    value: function addMarker(text) {
+      return this.addEvent(new MarkerEvent(text));
+    }
+    /**
+     * Adds cue point to MIDI file.
+     * @param {string} text - Text of cue point.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addCuePoint",
+    value: function addCuePoint(text) {
+      return this.addEvent(new CuePointEvent(text));
+    }
+    /**
+     * Adds lyric to MIDI file.
+     * @param {string} text - Lyric text to add.
+     * @return {Track}
+     */
+
+  }, {
+    key: "addLyric",
+    value: function addLyric(text) {
+      return this.addEvent(new LyricEvent(text));
+    }
+    /**
+     * Channel mode messages
+     * @return {Track}
+     */
+
+  }, {
+    key: "polyModeOn",
+    value: function polyModeOn() {
+      var event = new NoteOnEvent({
+        data: [0x00, 0xB0, 0x7E, 0x00]
+      });
+      return this.addEvent(event);
+    }
+    /**
+     * Sets a pitch bend.
+     * @param {float} bend - Bend value ranging [-1,1], zero meaning no bend.
+     * @return {Track}
+     */
+
+  }, {
+    key: "setPitchBend",
+    value: function setPitchBend(bend) {
+      return this.addEvent(new PitchBendEvent({
+        bend: bend
+      }));
+    }
+    /**
+     * Adds a controller change event
+     * @param {number} number - Control number.
+     * @param {number} value - Control value.
+     * @return {Track}
+     */
+
+  }, {
+    key: "controllerChange",
+    value: function controllerChange(number, value) {
+      return this.addEvent(new ControllerChangeEvent({
+        controllerNumber: number,
+        controllerValue: value
+      }));
+    }
+  }]);
+
+  return Track;
 }();
 
-exports.Track = Track;
+var VexFlow = /*#__PURE__*/function () {
+  function VexFlow() {
+    _classCallCheck(this, VexFlow);
+  }
+
+  _createClass(VexFlow, [{
+    key: "trackFromVoice",
+
+    /**
+     * Support for converting VexFlow voice into MidiWriterJS track
+     * @return MidiWriter.Track object
+     */
+    value: function trackFromVoice(voice) {
+      var _this = this;
+
+      var track = new Track();
+      var wait = [];
+      voice.tickables.forEach(function (tickable) {
+        if (tickable.noteType === 'n') {
+          track.addEvent(new NoteEvent({
+            pitch: tickable.keys.map(_this.convertPitch),
+            duration: _this.convertDuration(tickable),
+            wait: wait
+          })); // reset wait
+
+          wait = [];
+        } else if (tickable.noteType === 'r') {
+          // move on to the next tickable and add this to the stack
+          // of the `wait` property for the next note event
+          wait.push(_this.convertDuration(tickable));
+          return;
+        }
+      }); // There may be outstanding rests at the end of the track,
+      // pad with a ghost note (zero duration and velocity), just to capture the wait.
+
+      if (wait.length > 0) {
+        track.addEvent(new NoteEvent({
+          pitch: '[c4]',
+          duration: '0',
+          wait: wait,
+          velocity: '0'
+        }));
+      }
+
+      return track;
+    }
+    /**
+     * Converts VexFlow pitch syntax to MidiWriterJS syntax
+     * @param pitch string
+     */
+
+  }, {
+    key: "convertPitch",
+    value: function convertPitch(pitch) {
+      return pitch.replace('/', '');
+    }
+    /**
+     * Converts VexFlow duration syntax to MidiWriterJS syntax
+     * @param note struct from VexFlow
+     */
+
+  }, {
+    key: "convertDuration",
+    value: function convertDuration(note) {
+      switch (note.duration) {
+        case 'w':
+          return '1';
+
+        case 'h':
+          return note.isDotted() ? 'd2' : '2';
+
+        case 'q':
+          return note.isDotted() ? 'd4' : '4';
+
+        case '8':
+          return note.isDotted() ? 'd8' : '8';
+      }
+
+      return note.duration;
+    }
+  }]);
+
+  return VexFlow;
+}();
 
 /**
- * Static utility functions used throughout the library.
+ * Object representation of a header chunk section of a MIDI file.
+ * @param {number} numberOfTracks - Number of tracks
+ * @return {HeaderChunk}
  */
-var Utils = function () {
-	function Utils() {
-		_classCallCheck(this, Utils);
-	}
 
-	_createClass(Utils, null, [{
-		key: 'version',
+var HeaderChunk = function HeaderChunk(numberOfTracks) {
+  _classCallCheck(this, HeaderChunk);
 
+  this.type = Constants.HEADER_CHUNK_TYPE;
+  var trackType = numberOfTracks > 1 ? Constants.HEADER_CHUNK_FORMAT1 : Constants.HEADER_CHUNK_FORMAT0;
+  this.data = trackType.concat(Utils.numberToBytes(numberOfTracks, 2), // two bytes long,
+  Constants.HEADER_CHUNK_DIVISION);
+  this.size = [0, 0, 0, this.data.length];
+};
 
-		/**
-   * Gets MidiWriterJS version number.
-   * @return {string}
-   */
-		value: function version() {
-			return Constants.VERSION;
-		}
-
-		/**
-   * Convert a string to an array of bytes
-   * @param {string} string
-   * @return {array}
-   */
-
-	}, {
-		key: 'stringToBytes',
-		value: function stringToBytes(string) {
-			return string.split('').map(function (char) {
-				return char.charCodeAt();
-			});
-		}
-
-		/**
-   * Checks if argument is a valid number.
-   * @param {*} n - Value to check
-   * @return {boolean}
-   */
-
-	}, {
-		key: 'isNumeric',
-		value: function isNumeric(n) {
-			return !isNaN(parseFloat(n)) && isFinite(n);
-		}
-
-		/**
-      * Returns the correct MIDI number for the specified pitch.
-      * Uses Tonal Midi - https://github.com/danigb/tonal/tree/master/packages/midi
-      * @param {(string|number)} pitch - 'C#4' or midi note code
-      * @return {number}
-      */
-
-	}, {
-		key: 'getPitch',
-		value: function getPitch(pitch) {
-			return (0, _tonalMidi.toMidi)(pitch);
-		}
-
-		/**
-   * Translates number of ticks to MIDI timestamp format, returning an array of
-   * hex strings with the time values. Midi has a very particular time to express time,
-   * take a good look at the spec before ever touching this function.
-   * Thanks to https://github.com/sergi/jsmidi
-   *
-   * @param {number} ticks - Number of ticks to be translated
-   * @return {array} - Bytes that form the MIDI time value
-   */
-
-	}, {
-		key: 'numberToVariableLength',
-		value: function numberToVariableLength(ticks) {
-			var buffer = ticks & 0x7F;
-
-			while (ticks = ticks >> 7) {
-				buffer <<= 8;
-				buffer |= ticks & 0x7F | 0x80;
-			}
-
-			var bList = [];
-			while (true) {
-				bList.push(buffer & 0xff);
-
-				if (buffer & 0x80) buffer >>= 8;else {
-					break;
-				}
-			}
-
-			return bList;
-		}
-
-		/**
-   * Counts number of bytes in string
-   * @param {string} s
-   * @return {array}
-   */
-
-	}, {
-		key: 'stringByteCount',
-		value: function stringByteCount(s) {
-			return encodeURI(s).split(/%..|./).length - 1;
-		}
-
-		/**
-   * Get an int from an array of bytes.
-   * @param {array} bytes
-   * @return {number}
-   */
-
-	}, {
-		key: 'numberFromBytes',
-		value: function numberFromBytes(bytes) {
-			var hex = '';
-			var stringResult;
-
-			bytes.forEach(function (byte) {
-				stringResult = byte.toString(16);
-
-				// ensure string is 2 chars
-				if (stringResult.length == 1) stringResult = "0" + stringResult;
-
-				hex += stringResult;
-			});
-
-			return parseInt(hex, 16);
-		}
-
-		/**
-   * Takes a number and splits it up into an array of bytes.  Can be padded by passing a number to bytesNeeded
-   * @param {number} number
-   * @param {number} bytesNeeded
-   * @return {array} - Array of bytes
-   */
-
-	}, {
-		key: 'numberToBytes',
-		value: function numberToBytes(number, bytesNeeded) {
-			bytesNeeded = bytesNeeded || 1;
-
-			var hexString = number.toString(16);
-
-			if (hexString.length & 1) {
-				// Make sure hex string is even number of chars
-				hexString = '0' + hexString;
-			}
-
-			// Split hex string into an array of two char elements
-			var hexArray = hexString.match(/.{2}/g);
-
-			// Now parse them out as integers
-			hexArray = hexArray.map(function (item) {
-				return parseInt(item, 16);
-			});
-
-			// Prepend empty bytes if we don't have enough
-			if (hexArray.length < bytesNeeded) {
-				while (bytesNeeded - hexArray.length > 0) {
-					hexArray.unshift(0);
-				}
-			}
-
-			return hexArray;
-		}
-
-		/**	
-   * Converts value to array if needed.
-   * @param {string} value
-   * @return {array}
-   */
-
-	}, {
-		key: 'toArray',
-		value: function toArray(value) {
-			if (Array.isArray(value)) return value;
-			return [value];
-		}
-	}]);
-
-	return Utils;
-}();
-
-exports.Utils = Utils;
-
-var VexFlow = function () {
-	function VexFlow() {
-		_classCallCheck(this, VexFlow);
-	}
-	// code...
-
-
-	/**
-  * Support for converting VexFlow voice into MidiWriterJS track
-  * @return MidiWritier.Track object
-  */
-
-
-	_createClass(VexFlow, [{
-		key: 'trackFromVoice',
-		value: function trackFromVoice(voice) {
-			var track = new Track();
-			var wait;
-			var pitches = [];
-
-			voice.tickables.forEach(function (tickable) {
-				pitches = [];
-
-				if (tickable.noteType === 'n') {
-					tickable.keys.forEach(function (key) {
-						// build array of pitches
-						pitches.push(this.convertPitch(key));
-					});
-				} else if (tickable.noteType === 'r') {
-					// move on to the next tickable and use this rest as a `wait` property for the next event
-					wait = this.convertDuration(tickable);
-					return;
-				}
-
-				track.addEvent(new NoteEvent({ pitch: pitches, duration: this.convertDuration(tickable), wait: wait }));
-
-				// reset wait
-				wait = 0;
-			});
-
-			return track;
-		}
-
-		/**
-   * Converts VexFlow pitch syntax to MidiWriterJS syntax
-   * @param pitch string
-   */
-
-	}, {
-		key: 'convertPitch',
-		value: function convertPitch(pitch) {
-			return pitch.replace('/', '');
-		}
-
-		/**
-   * Converts VexFlow duration syntax to MidiWriterJS syntax
-   * @param note struct from VexFlow
-   */
-
-	}, {
-		key: 'convertDuration',
-		value: function convertDuration(note) {
-			switch (note.duration) {
-				case 'w':
-					return '1';
-				case 'h':
-					return note.isDotted() ? 'd2' : '2';
-				case 'q':
-					return note.isDotted() ? 'd4' : '4';
-				case '8':
-					return note.isDotted() ? 'd8' : '8';
-			}
-
-			return note.duration;
-		}
-	}]);
-
-	return VexFlow;
-}();
-
-exports.VexFlow = VexFlow;
 /**
  * Object that puts together tracks and provides methods for file output.
- * @param {array} tracks - An array of {Track} objects.
+ * @param {array|Track} tracks - A single {Track} object or an array of {Track} objects.
  * @return {Writer}
  */
 
-var Writer = function () {
-	function Writer(tracks) {
-		_classCallCheck(this, Writer);
+var Writer = /*#__PURE__*/function () {
+  function Writer(tracks) {
+    var _this = this;
 
-		this.data = [];
+    _classCallCheck(this, Writer);
 
-		var trackType = tracks.length > 1 ? Constants.HEADER_CHUNK_FORMAT1 : Constants.HEADER_CHUNK_FORMAT0;
-		var numberOfTracks = Utils.numberToBytes(tracks.length, 2); // two bytes long
+    // Ensure track is an array
+    tracks = Utils.toArray(tracks);
+    this.data = [];
+    this.data.push(new HeaderChunk(tracks.length)); // For each track add final end of track event and build data
 
-		// Header chunk
-		this.data.push(new Chunk({
-			type: Constants.HEADER_CHUNK_TYPE,
-			data: trackType.concat(numberOfTracks, Constants.HEADER_CHUNK_DIVISION) }));
-
-		// Track chunks
-		tracks.forEach(function (track, i) {
-			track.addEvent(new MetaEvent({ data: Constants.META_END_OF_TRACK_ID }));
-			this.data.push(track);
-		}, this);
-	}
-
-	/**
-  * Builds the file into a Uint8Array
-  * @return {Uint8Array}
-  */
-
-
-	_createClass(Writer, [{
-		key: 'buildFile',
-		value: function buildFile() {
-			var build = [];
-
-			// Data consists of chunks which consists of data
-			this.data.forEach(function (d) {
-				return build = build.concat(d.type, d.size, d.data);
-			});
-
-			return new Uint8Array(build);
-		}
-
-		/**
-   * Convert file buffer to a base64 string.  Different methods depending on if browser or node.
-   * @return {string}
+    tracks.forEach(function (track, i) {
+      _this.data.push(track.buildData());
+    });
+  }
+  /**
+   * Builds the file into a Uint8Array
+   * @return {Uint8Array}
    */
 
-	}, {
-		key: 'base64',
-		value: function base64() {
-			if (typeof btoa === 'function') return btoa(String.fromCharCode.apply(null, this.buildFile()));
-			return new Buffer(this.buildFile()).toString('base64');
-		}
 
-		/**
-   * Get the data URI.
-   * @return {string}
-   */
+  _createClass(Writer, [{
+    key: "buildFile",
+    value: function buildFile() {
+      var build = []; // Data consists of chunks which consists of data
 
-	}, {
-		key: 'dataUri',
-		value: function dataUri() {
-			return 'data:audio/midi;base64,' + this.base64();
-		}
+      this.data.forEach(function (d) {
+        return build = build.concat(d.type, d.size, d.data);
+      });
+      return new Uint8Array(build);
+    }
+    /**
+     * Convert file buffer to a base64 string.  Different methods depending on if browser or node.
+     * @return {string}
+     */
 
-		/**
-   * Output to stdout
-   * @return {string}
-   */
+  }, {
+    key: "base64",
+    value: function base64() {
+      if (typeof btoa === 'function') return btoa(String.fromCharCode.apply(null, this.buildFile()));
+      return Buffer.from(this.buildFile()).toString('base64');
+    }
+    /**
+     * Get the data URI.
+     * @return {string}
+     */
 
-	}, {
-		key: 'stdout',
-		value: function stdout() {
-			return process.stdout.write(new Buffer(this.buildFile()));
-		}
+  }, {
+    key: "dataUri",
+    value: function dataUri() {
+      return 'data:audio/midi;base64,' + this.base64();
+    }
+    /**
+     * Output to stdout
+     * @return {string}
+     */
 
-		/**
-   * Save to MIDI file
-   * @param {string} filename
-   */
+  }, {
+    key: "stdout",
+    value: function stdout() {
+      return process.stdout.write(new Buffer(this.buildFile()));
+    }
+    /**
+     * Save to MIDI file
+     * @param {string} filename
+     */
 
-	}, {
-		key: 'saveMIDI',
-		value: function saveMIDI(filename) {
-			var buffer = new Buffer(this.buildFile());
-			fs.writeFile(filename + '.mid', buffer, function (err) {
-				if (err) return console.log(err);
-			});
-		}
-	}]);
+  }, {
+    key: "saveMIDI",
+    value: function saveMIDI(filename) {
+      var fs = require('fs');
 
-	return Writer;
+      var buffer = new Buffer.from(this.buildFile());
+      fs.writeFile(filename + '.mid', buffer, function (err) {
+        if (err) throw err;
+      });
+    }
+  }]);
+
+  return Writer;
 }();
 
-exports.Writer = Writer;
+var main = {
+  Constants: Constants,
+  NoteOnEvent: NoteOnEvent,
+  NoteOffEvent: NoteOffEvent,
+  NoteEvent: NoteEvent,
+  PitchBendEvent: PitchBendEvent,
+  ProgramChangeEvent: ProgramChangeEvent,
+  Track: Track,
+  Utils: Utils,
+  VexFlow: VexFlow,
+  Writer: Writer
+};
 
+module.exports = main;
 
-}).call(this,require('_process'),require("buffer").Buffer)
-},{"_process":7,"buffer":2,"tonal-midi":8}],6:[function(require,module,exports){
+}).call(this)}).call(this,require('_process'),require("buffer").Buffer)
+},{"../package.json":7,"_process":9,"buffer":3,"fs":2,"tonal-midi":10}],7:[function(require,module,exports){
+module.exports={
+  "_from": "midi-writer-js@1.7.5",
+  "_id": "midi-writer-js@1.7.5",
+  "_inBundle": false,
+  "_integrity": "sha512-JTWcKdsrvfzMehRwIggK53F7NHHyNr2eUxPnaFrz8acnq6vPRvbdVAvzOqzbMMcaYW08k/Ujx9DfviumlD0czA==",
+  "_location": "/midi-writer-js",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "midi-writer-js@1.7.5",
+    "name": "midi-writer-js",
+    "escapedName": "midi-writer-js",
+    "rawSpec": "1.7.5",
+    "saveSpec": null,
+    "fetchSpec": "1.7.5"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/midi-writer-js/-/midi-writer-js-1.7.5.tgz",
+  "_shasum": "76a65d18fe665d25c5878aa03eee74c5b7107c93",
+  "_spec": "midi-writer-js@1.7.5",
+  "_where": "/home/iostream/chromatone-helper/chromatone-helper",
+  "author": {
+    "name": "Garrett Grimm"
+  },
+  "bugs": {
+    "url": "https://github.com/grimmdude/MidiWriterJS/issues"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "tonal-midi": "^0.69.7"
+  },
+  "deprecated": false,
+  "description": "A library providing an API for generating MIDI files.",
+  "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@babel/plugin-transform-destructuring": "^7.9.5",
+    "@babel/preset-env": "^7.9.6",
+    "@rollup/plugin-babel": "^5.0.0",
+    "eslint": "^7.0.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-node": "^9.2.0",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-standard": "^4.0.1",
+    "jsdoc": "^3.6.4",
+    "minami": "^1.1.1",
+    "mocha": "^6.2.3",
+    "nyc": "^15.0.1",
+    "rollup": "^2.9.0",
+    "watch": "^1.0.2"
+  },
+  "directories": {
+    "lib": "src",
+    "example": "examples",
+    "test": "test"
+  },
+  "homepage": "https://github.com/grimmdude/MidiWriterJS#readme",
+  "keywords": [
+    "midi",
+    "generator",
+    "music"
+  ],
+  "license": "MIT",
+  "main": "build/index.js",
+  "name": "midi-writer-js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grimmdude/MidiWriterJS.git"
+  },
+  "scripts": {
+    "build": "mkdir -p build && rollup -c && npm run docs",
+    "docs": "jsdoc -r src README.md -d ./docs -t ./node_modules/minami",
+    "lint:js": "eslint 'src/**/**.js'",
+    "postinstall": "node postinstall.js",
+    "prepublishOnly": "npm test",
+    "pretest": "npm run build",
+    "test": "nyc --reporter=text mocha --no-config --no-package",
+    "watch": "watch 'npm run build' src"
+  },
+  "types": "types.d.ts",
+  "version": "1.7.5"
+}
+
+},{}],8:[function(require,module,exports){
 !function(t,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports):"function"==typeof define&&define.amd?define(["exports"],n):n(t.NoteParser=t.NoteParser||{})}(this,function(t){"use strict";function n(t,n){return Array(n+1).join(t)}function r(t){return"number"==typeof t}function e(t){return"string"==typeof t}function u(t){return void 0!==t}function c(t,n){return Math.pow(2,(t-69)/12)*(n||440)}function o(){return b}function i(t,n,r){if("string"!=typeof t)return null;var e=b.exec(t);if(!e||!n&&e[4])return null;var u={letter:e[1].toUpperCase(),acc:e[2].replace(/x/g,"##")};u.pc=u.letter+u.acc,u.step=(u.letter.charCodeAt(0)+3)%7,u.alt="b"===u.acc[0]?-u.acc.length:u.acc.length;var o=A[u.step]+u.alt;return u.chroma=o<0?12+o:o%12,e[3]&&(u.oct=+e[3],u.midi=o+12*(u.oct+1),u.freq=c(u.midi,r)),n&&(u.tonicOf=e[4]),u}function f(t){return r(t)?t<0?n("b",-t):n("#",t):""}function a(t){return r(t)?""+t:""}function l(t,n,r){return null===t||void 0===t?null:t.step?l(t.step,t.alt,t.oct):t<0||t>6?null:C.charAt(t)+f(n)+a(r)}function p(t){if((r(t)||e(t))&&t>=0&&t<128)return+t;var n=i(t);return n&&u(n.midi)?n.midi:null}function s(t,n){var r=p(t);return null===r?null:c(r,n)}function d(t){return(i(t)||{}).letter}function m(t){return(i(t)||{}).acc}function h(t){return(i(t)||{}).pc}function v(t){return(i(t)||{}).step}function g(t){return(i(t)||{}).alt}function x(t){return(i(t)||{}).chroma}function y(t){return(i(t)||{}).oct}var b=/^([a-gA-G])(#{1,}|b{1,}|x{1,}|)(-?\d*)\s*(.*)\s*$/,A=[0,2,4,5,7,9,11],C="CDEFGAB";t.regex=o,t.parse=i,t.build=l,t.midi=p,t.freq=s,t.letter=d,t.acc=m,t.pc=h,t.step=v,t.alt=g,t.chroma=x,t.oct=y});
 
 
-},{}],7:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -4032,7 +4764,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],8:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -4102,7 +4834,7 @@ function note (num, sharps) {
 exports.toMidi = toMidi;
 exports.note = note;
 
-},{"note-parser":6}],9:[function(require,module,exports){
+},{"note-parser":8}],11:[function(require,module,exports){
 ( function(window){
 "use strict";
 
@@ -4115,7 +4847,7 @@ function WebAudioTinySynthCore(target) {
       debug:      {type:Number, value:0},
       src:        {type:String, value:null, observer:"loadMIDIfromSrc"},
       loop:       {type:Number, value:0},
-      internalcontext: {type:Number, value:0},
+      internalcontext: {type:Number, value:1},
       tsmode:     {type:Number, value:0},
       voices:     {type:Number, value:64},
       useReverb:  {type:Number, value:1},
@@ -4130,7 +4862,7 @@ function WebAudioTinySynthCore(target) {
     /*@@gui*/
     layout:(()=>{
       this.canvas.style.width=this.width;
-      this.canvas.style.height=this.height;
+      this.canvas.style.height=this.height; 
     }),
     /*@@guiEND*/
     program:[
@@ -4763,10 +5495,12 @@ function WebAudioTinySynthCore(target) {
     init:()=>{
       this.pg=[]; this.vol=[]; this.ex=[]; this.bend=[]; this.rpnidx=[]; this.brange=[];
       this.sustain=[]; this.notetab=[]; this.rhythm=[];
+      this.masterTuningC=0; this.masterTuningF=0; this.tuningC=[]; this.tuningF=[];
       this.maxTick=0, this.playTick=0, this.playing=0; this.releaseRatio=3.5;
       for(let i=0;i<16;++i){
         this.pg[i]=0; this.vol[i]=3*100*100/(127*127);
         this.bend[i]=0; this.brange[i]=0x100;
+        this.tuningC[i]=0; this.tuningF[i]=0;
         this.rhythm[i]=0;
       }
       this.rhythm[9]=1;
@@ -4904,12 +5638,17 @@ function WebAudioTinySynthCore(target) {
       for(let i=0;i<16;++i){
         this.setProgram(i,0);
         this.setBendRange(i,0x100);
+        this.setModulation(i,0);
         this.setChVol(i,100);
         this.setPan(i,64);
         this.resetAllControllers(i);
         this.allSoundOff(i);
         this.rhythm[i]=0;
+        this.tuningC[i]=0;
+        this.tuningF[i]=0;
       }
+      this.masterTuningC=0;
+      this.masterTuningF=0;
       this.rhythm[9]=1;
     },
     stopMIDI:()=>{
@@ -5083,8 +5822,11 @@ function WebAudioTinySynthCore(target) {
         nt.g[k].gain.cancelScheduledValues(0);
 
         nt.o[k].stop();
-        if(nt.o[k].detune)
-          this.chmod[nt.ch].disconnect(nt.o[k].detune);
+        if(nt.o[k].detune) {
+          try {
+            this.chmod[nt.ch].disconnect(nt.o[k].detune);
+          } catch (e) {}
+        }
         nt.g[k].gain.value = 0;
       }
     },
@@ -5105,7 +5847,7 @@ function WebAudioTinySynthCore(target) {
     _note:(t,ch,n,v,p)=>{
       let out,sc,pn;
       const o=[],g=[],vp=[],fp=[],r=[];
-      const f=440*Math.pow(2,(n-69)/12);
+      const f=440*Math.pow(2,(n-69 + this.masterTuningC + this.tuningC[ch] + (this.masterTuningF + this.tuningF[ch])/8192)/12);
       this._limitVoices(ch,n);
       for(let i=0;i<p.length;++i){
         pn=p[i];
@@ -5126,8 +5868,10 @@ function WebAudioTinySynthCore(target) {
           o[i].playbackRate.value=fp[i]/440;
           if(pn.p!=1)
             this._setParamTarget(o[i].playbackRate,fp[i]/440*pn.p,t,pn.q);
-          this.chmod[ch].connect(o[i].detune);
-          o[i].detune.value=this.bend[ch];
+          if (o[i].detune) {
+            this.chmod[ch].connect(o[i].detune);
+            o[i].detune.value=this.bend[ch];
+          }
           break;
         default:
           o[i]=this.actx.createOscillator();
@@ -5138,8 +5882,10 @@ function WebAudioTinySynthCore(target) {
             o[i].setPeriodicWave(this.wave[pn.w]);
           else
             o[i].type=pn.w;
-          this.chmod[ch].connect(o[i].detune);
-          o[i].detune.value=this.bend[ch];
+          if (o[i].detune) {
+            this.chmod[ch].connect(o[i].detune);
+            o[i].detune.value=this.bend[ch];
+          }
           break;
         }
         g[i]=this.actx.createGain();
@@ -5160,7 +5906,10 @@ function WebAudioTinySynthCore(target) {
         if(this.rhythm[ch]){
 
           o[i].onended = ()=>{
-              this.chmod[ch].disconnect(o[i].detune);
+            try {
+              if (o[i].detune) this.chmod[ch].disconnect(o[i].detune);
+            }
+            catch(e){}
           };
           o[i].stop(t+p[0].d*this.releaseRatio);
         }
@@ -5260,7 +6009,7 @@ function WebAudioTinySynthCore(target) {
         if(nt.ch==ch){
           for(let k=nt.o.length-1;k>=0;--k){
             if(nt.o[k].frequency)
-              nt.o[k].detune.setValueAtTime(this.bend[ch],t);
+              if (nt.o[k].detune) nt.o[k].detune.setValueAtTime(this.bend[ch],t);
           }
         }
       }
@@ -5310,16 +6059,32 @@ function WebAudioTinySynthCore(target) {
         case 10: this.setPan(ch,msg[2],t); break;
         case 11: this.setExpression(ch,msg[2],t); break;
         case 64: this.setSustain(ch,msg[2],t); break;
-        case 98:  case 98: this.rpnidx[ch]=0x3fff; break; /* nrpn lsb/msb */
-        case 100: this.rpnidx[ch]=(this.rpnidx[ch]&0x380)|msg[2]; break; /* rpn lsb */
+        case 98:  case 99: this.rpnidx[ch]=0x3fff; break; /* nrpn lsb/msb */
+        case 100: this.rpnidx[ch]=(this.rpnidx[ch]&0x3f80)|msg[2]; break; /* rpn lsb */
         case 101: this.rpnidx[ch]=(this.rpnidx[ch]&0x7f)|(msg[2]<<7); break; /* rpn msb */
         case 6:  /* data entry msb */
-          if(this.rpnidx[ch]==0)
-            this.brange[ch]=(msg[2]<<7)+(this.brange[ch]&0x7f);
+          switch (this.rpnidx[ch]) {
+            case 0:
+              this.brange[ch]=(msg[2]<<7)+(this.brange[ch]&0x7f);
+              break;
+            case 1:
+              this.tuningF[ch]=(msg[2]<<7)+((this.tuningF[ch]+0x2000)&0x7f)-0x2000;
+              break;
+            case 2:
+              this.tuningC[ch]=msg[2]-0x40;
+              break;
+          }
           break;
         case 38:  /* data entry lsb */
-          if(this.rpnidx[ch]==0)
-            this.brange[ch]=(this.brange[ch]&0x380)|msg[2];
+          switch (this.rpnidx[ch]) {
+            case 0:
+              this.brange[ch]=(this.brange[ch]&0x3f80)|msg[2];
+              break;
+            case 1:
+              this.tuningF[ch]=((this.tuningF[ch]+0x2000)&0x3f80)|msg[2]-0x2000;
+              break;
+            case 2: break;
+          }
           break;
         case 120:  /* all sound off */
         case 123:  /* all notes off */
@@ -5334,15 +6099,29 @@ function WebAudioTinySynthCore(target) {
       case 0x90: this.noteOn(ch,msg[1],msg[2],t); break;
       case 0x80: this.noteOff(ch,msg[1],t); break;
       case 0xf0:
+        if (msg[0] == 0xff) {
+          this.reset();
+          break;
+        }
         if(msg[0]!=254 && this.debug){
           var ds=[];
           for(let ii=0;ii<msg.length;++ii)
             ds.push(msg[ii].toString(16));
         }
-        if(msg[1]==0x41&&msg[2]==0x10&&msg[3]==0x42&&msg[4]==0x12&&msg[5]==0x40){
-          if((msg[6]&0xf0)==0x10&&msg[7]==0x15){
-            const c=[9,0,1,2,3,4,5,6,7,8,10,11,12,13,14,15][msg[6]&0xf];
-            this.rhythm[c]=msg[8];
+        if (msg[0]==0xf0) {
+          if (msg[1]==0x7f && msg[3]==4) {
+            if (msg[4]==3 && msg.length >= 8) { // Master Fine Tuning
+              this.masterTuningF = msg[6]*0x80 + msg[5] - 8192;
+            }
+            if (msg[4]==4 && msg.length >= 8) { // Master Coarse Tuning
+              this.masterTuningC = msg[6]-0x40;
+            }
+          }
+          if(msg[1]==0x41&&msg[3]==0x42&&msg[4]==0x12&&msg[5]==0x40){
+            if((msg[6]&0xf0)==0x10&&msg[7]==0x15){
+              const c=[9,0,1,2,3,4,5,6,7,8,10,11,12,13,14,15][msg[6]&0xf];
+              this.rhythm[c]=msg[8];
+            }
           }
         }
         break;
@@ -5541,7 +6320,7 @@ else{
 
 })(this);
 
-},{}],10:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 var std4Voicing = "1 3 5 7";
 var std6Voicing = "1 3 5 6";
 module.exports.progressions = [
@@ -5601,7 +6380,7 @@ module.exports.rhythmPatterns = [
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
 ];
 
-},{}],11:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5654,7 +6433,7 @@ function createTinySynthInstrument() {
   return instrument;
 }
 
-},{"webaudio-tinysynth":9}],12:[function(require,module,exports){
+},{"webaudio-tinysynth":11}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -5704,7 +6483,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":34,"./theory/notes.js":37}],13:[function(require,module,exports){
+},{"./theory/base.js":36,"./theory/notes.js":39}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6072,7 +6851,7 @@ function initControlElements(form) {
   };
 }
 
-},{"../theory/arpeggio.js":33,"../theory/base.js":34,"../theory/rhythm.js":39,"./pocket_knife.js":19,"./presets.js":20,"./session.js":21,"form-serialize":3}],14:[function(require,module,exports){
+},{"../theory/arpeggio.js":35,"../theory/base.js":36,"../theory/rhythm.js":41,"./pocket_knife.js":21,"./presets.js":22,"./session.js":23,"form-serialize":4}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6121,7 +6900,7 @@ lib.createInstrumentFactory = function(options) {
   }
 }
 
-},{"./keyboard.js":15,"./string_instrument.js":17,"./zebra.js":18}],15:[function(require,module,exports){
+},{"./keyboard.js":17,"./string_instrument.js":19,"./zebra.js":20}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6283,7 +7062,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../../theory/base.js":34}],16:[function(require,module,exports){
+},{"../../theory/base.js":36}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6457,7 +7236,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./factory.js":14}],17:[function(require,module,exports){
+},{"./factory.js":16}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6676,7 +7455,7 @@ function createFret(index) {
   return el;
 }
 
-},{"../../theory/notes.js":37}],18:[function(require,module,exports){
+},{"../../theory/notes.js":39}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6823,7 +7602,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":34}],19:[function(require,module,exports){
+},{"../../theory/base.js":36}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6861,7 +7640,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],20:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6935,7 +7714,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],21:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -7000,7 +7779,7 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],22:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var instrumentLib = require("./gui/instrument/proxy.js"),
  formLib = require("./gui/form.js"),
  t = require("./theory/base.js"),
@@ -7105,7 +7884,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"../resources/presets.js":10,"./gui/form.js":13,"./gui/instrument/proxy.js":16,"./midi.js":23,"./parser/composite.js":25,"./parser/composite_parser.js":26,"./sequencer/sequencer.js":29,"./server/client.js":31,"./theory/arpeggio.js":33,"./theory/base.js":34,"./theory/progression.js":38}],23:[function(require,module,exports){
+},{"../resources/presets.js":12,"./gui/form.js":15,"./gui/instrument/proxy.js":18,"./midi.js":25,"./parser/composite.js":27,"./parser/composite_parser.js":28,"./sequencer/sequencer.js":31,"./server/client.js":33,"./theory/arpeggio.js":35,"./theory/base.js":36,"./theory/progression.js":40}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7157,7 +7936,7 @@ lib.createMidi = function(chordEvents, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":5}],24:[function(require,module,exports){
+},{"midi-writer-js":6}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7486,7 +8265,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],25:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7734,7 +8513,7 @@ function createOptions() {
   };
 }
 
-},{}],26:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7896,7 +8675,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":24,"./message.js":27}],27:[function(require,module,exports){
+},{"./async_lexer.js":26,"./message.js":29}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7928,7 +8707,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],28:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8012,7 +8791,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],29:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8151,7 +8930,7 @@ lib.createSequencer = function() {
   return seq;
 }
 
-},{"./track.js":30}],30:[function(require,module,exports){
+},{"./track.js":32}],32:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8246,7 +9025,7 @@ lib.createTrack = function() {
   return track;
 };
 
-},{"../audio/instrument.js":11}],31:[function(require,module,exports){
+},{"../audio/instrument.js":13}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8315,13 +9094,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":32}],32:[function(require,module,exports){
+},{"./host.js":34}],34:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],33:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8743,7 +9522,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":28}],34:[function(require,module,exports){
+},{"../recursive_parser.js":30}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8758,7 +9537,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":36,"./notes.js":37,"./scale.js":40,"./voicing.js":41}],35:[function(require,module,exports){
+},{"./chord_definition.js":38,"./notes.js":39,"./scale.js":42,"./voicing.js":43}],37:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8869,7 +9648,7 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],36:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9154,7 +9933,7 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":25,"../parser/composite_parser.js":26,"./chord.js":35,"./voicing.js":41}],37:[function(require,module,exports){
+},{"../parser/composite.js":27,"../parser/composite_parser.js":28,"./chord.js":37,"./voicing.js":43}],39:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -9543,7 +10322,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],38:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -9712,7 +10491,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":12,"./base.js":34}],39:[function(require,module,exports){
+},{"../fingering.js":14,"./base.js":36}],41:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9943,7 +10722,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":28}],40:[function(require,module,exports){
+},{"../recursive_parser.js":30}],42:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10059,7 +10838,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":37}],41:[function(require,module,exports){
+},{"./notes.js":39}],43:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10288,7 +11067,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":28}]},{},[22]);
+},{"../recursive_parser.js":30}]},{},[24]);
 </script>
   </body>
 </html>
