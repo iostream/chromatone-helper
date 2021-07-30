@@ -6,7 +6,7 @@ var notesLib = require("../../theory/notes.js");
 var stringInstrumentTemplate = document.getElementById("templates").getElementsByClassName("string-instrument")[0];
 
 var types = {
-  // name: [stringBaseNotes, fretCount]
+  // name: [stringBaseNotes, stringGauges]
   guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
   bass_guitar: [notesLib.parseNotes('b10 b7 4 1 E1'), [.045, .06, .08 , .1], 17],
   concert_ukulele: [notesLib.parseNotes('10 6 4 8 G4'), [.022, .026, .029, .024], 11],
@@ -159,7 +159,7 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
     dehighlightPitch: function(pitch) {
       _markedNoteElements.forEach(function(noteElArray) {
         if (noteElArray[0] === pitch.getPosition()) {
-          noteElArray[1].classList.remove('played');  
+          noteElArray[1].classList.remove('played');
         }
       });
     },
