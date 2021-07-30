@@ -98,7 +98,10 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
           // add label
           var name = note.findIntervalName();
           noteEl.setAttribute("title", name);
-          noteEl.innerHTML = '<p class="note-text">' + name + "</p>";
+          var nameEl = document.createElement('p');
+          nameEl.className = 'note-text';
+          nameEl.textContent = name;
+          noteEl.appendChild(nameEl);
           noteEl.classList.add("selected");
           // mark root
           if (note.isRoot()) {
@@ -110,7 +113,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
         if (typeof description !== "undefined") {
           var descriptionEl = keyboard.getElementsByClassName("description");
           if (descriptionEl.length > 0) {
-            descriptionEl[0].innerHTML = description;
+            descriptionEl[0].textContent = description;
           }
         }
       },

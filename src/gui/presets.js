@@ -25,7 +25,7 @@ lib.initPresets = function(presets, presetSelectElementOrElements, elements) {
       var preset = presets[i];
       var option = presetEl.appendChild(document.createElement("option"));
       option.value = i;
-      option.innerHTML = preset
+      option.textContent = preset
         .map(function(v){
           return Array.isArray(v) ? v.join(", ") : v;
         })

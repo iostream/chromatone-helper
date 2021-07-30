@@ -93,7 +93,7 @@ lib.addForm = function(initFunction, submitFunction, presets, chordPresets, voic
     scaleContainer.input = scaleContainer.root.getElementsByClassName("scale")[0];
     scaleContainer.preset = scaleContainer.root.getElementsByClassName("preset")[0];
     scaleContainer.input.name += ("[" + index + "]");
-    scaleContainer.root.querySelector("label").innerHTML = "scale " + "*".repeat(index);
+    scaleContainer.root.querySelector("label").textContent = "scale " + "*".repeat(index);
     return scaleContainer;
   }
 
