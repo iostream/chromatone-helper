@@ -165,8 +165,7 @@ function createChordReferenceGroup(title, section) {
     titleEl = groupEl.getElementsByClassName("title")[0] || false;
 
   if (titleEl && title) {
-    // XXX TODO use text node instead of innerHTML
-    titleEl.innerHTML = title;
+    titleEl.textContent = title;
   }
   return groupEl;
 }

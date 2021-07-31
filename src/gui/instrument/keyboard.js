@@ -81,7 +81,11 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
             continue;
           }
           // add label
-          noteEl.innerHTML = '<div class="note-text">' + note.findIntervalName() + "</div>";
+          var label = document.createElement('div');
+          label.className = 'note-text';
+          label.textContent = note.findIntervalName();
+          noteEl.appendChild(label);
+
           noteEl.classList.add("selected");
           // mark root
           if (note.isRoot()) {
@@ -93,7 +97,7 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
         if (typeof description !== "undefined") {
           var descriptionEl = keyboard.getElementsByClassName("description");
           if (descriptionEl.length > 0) {
-            descriptionEl[0].innerHTML = description;
+            descriptionEl[0].textContent = description;
           }
         }
       },

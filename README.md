@@ -1,13 +1,9 @@
 User Reference
 ==============
 
-[Try the Chromatone Janko Tool!](https://iostream.github.io/chromatone-helper/ "Chromatone Janko Tool by iostream")
+[Try the Chromatone Janko Tool!](https://iostream.github.io/chromatone-helper/v2-dev/ "Chromatone Helper by iostream")
 
-You can also use it offline in most web browsers, also on mobile devices! [Just save this link as an HTML file](https://github.com/iostream/chromatone-helper/raw/master/dist/chromatone/chromatone-combined-index.html "Download the Chromatone Janko Tool") and then run it locally in your web browser!
-
-Example of one of the latest new features, arpeggios, click the link and then click the save button to export as MIDI: [link](https://iostream.github.io/chromatone-helper/#chords=1t12Va+4Vb+6Vc+1t12Vd%2C%0D%0A6+5+1+2%0D%0A&voicing=a%3A+1+5+10+9+10+5+10+5%0D%0Ab%3A+5+10+15+14+15+10+15+10%0D%0Ac%3A+3+9+13+12+13+9+13+9%0D%0Ad%3A+1+8+10+9+10+8+10+8+1+8+10+9+10+8+10+7%0D%0Aa%0D%0A&zebra_root=-17&scale[0]=r1+2+3+4+5+6+7&rhythms=1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1&arp=>*)
-
-The [Current development version / latest version](https://iostream.github.io/chromatone-helper/v2-dev/ "Chromatone Janko Tool v2 development by iostream") includes many new features, including a new bracket syntax (documentation will follow) for definining chord definitions and new instruments like guitar and ukulele.
+You can also use it offline in most web browsers, also on mobile devices! [Just save this link as an HTML file](https://github.com/iostream/chromatone-helper/raw/gh-pages/v2-dev/index.html "Download the Chromatone Janko Tool") and then run it locally in your web browser. Patches are saved as web browser bookmarks.
 
 Features
 --------
@@ -23,11 +19,14 @@ Features
 Full examples
 -------------
 
-All examples are originals.
+* Original examples
+  + [Example 1](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a%3A+1+2+6+4+5+6)%0D%0A(%24b%3A+8+7+6+5+4+3)%0D%0A%0D%0Aa+d%3Du+i%2B%3D2++A%3Db%0D%0A(a+b)%0D%0Ab+d%3Dd%0D%0Aa+d%3Dd+i%2B%3D1+t-%3D12%0D%0A&scale%5B0%5D=r1+2+b3+4+5+b6+7+k%3DD3&voicing=1+3+8+5+7+8&rhythms=1+1+1+1+1+1+1+1+q%3D4&arp=b%3A+%3E*%0D%0A1_%3E+%3E+%3E+4_%3E+%3E+%3E&instrument=zebra&bpm=117)
+  + [Example 2](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a1%3A+1i1+6i0+2+5*+V%3Db)%0D%0A(%24a2%3A+1*+6*+2**+6**+V%3Dc+R%3Dc)%0D%0A%0D%0Aa1+A%3Da%0D%0Aa1+A%3Db%0D%0Aa2+A%3Db&scale%5B0%5D=r1+2+3+4+5+b6+7+k%3DB2&scale%5B1%5D=r1+2+3+4+5+6+7+k%3DB2&scale%5B2%5D=r1+2+b3+4+5+b6+b7+k%3DEb2&voicing=a%3A+1+5+8+10+12+%0D%0Ab%3A+1+5+8+9+10+12%0D%0Ac%3A+1+3+5+7+8%0D%0Aa&rhythms=1+1+!1+1+!1+1+!1+1+q%3D4%0D%0Ab%3A+1+!1+1+!1+1+!1+1+1%0D%0Ac%3A+1+1+1+1+1+1+1+1&arp=a%3A+1_3+%3E*+2_4%0D%0Ab%3A+1+2_3_4+2+3_4_5+-2+-1_-2_-3%0D%0A&instrument=guitar&bpm=146)
+  + [Example 3](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(A%3A+%0D%0A+(2i3+4+5+V%3Db+3)+V%3Da%0D%0A)%0D%0A(B%3A%0D%0A+(2+4+6+8)+V%3Db%0D%0A)%0D%0A(B+B)&scale%5B0%5D=r1+2+b3+4+5+6+b7+k%3Dd2&voicing=a%3A+3+5+7+8%0D%0Ab%3A+3+6+8+10%0D%0A&rhythms=6+8+12+8+6+8+8+8+q%3D4%0D%0A&arp=1+-1+-3+-2+-3+-1+&instrument=chromatic&bpm=128)
 
-* [Example 1](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a%3A+1+2+6+4+5+6)%0D%0A(%24b%3A+8+7+6+5+4+3)%0D%0A%0D%0Aa+d%3Du+i%2B%3D2++A%3Db%0D%0A(a+b)%0D%0Ab+d%3Dd%0D%0Aa+d%3Dd+i%2B%3D1+t-%3D12%0D%0A&scale%5B0%5D=r1+2+b3+4+5+b6+7+k%3DD3&voicing=1+3+8+5+7+8&rhythms=1+1+1+1+1+1+1+1+q%3D4&arp=b%3A+%3E*%0D%0A1_%3E+%3E+%3E+4_%3E+%3E+%3E&instrument=zebra&bpm=117)
-* [Example 2](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(%24a1%3A+1i1+6i0+2+5*+V%3Db)%0D%0A(%24a2%3A+1*+6*+2**+6**+V%3Dc+R%3Dc)%0D%0A%0D%0Aa1+A%3Da%0D%0Aa1+A%3Db%0D%0Aa2+A%3Db&scale%5B0%5D=r1+2+3+4+5+b6+7+k%3DB2&scale%5B1%5D=r1+2+3+4+5+6+7+k%3DB2&scale%5B2%5D=r1+2+b3+4+5+b6+b7+k%3DEb2&voicing=a%3A+1+5+8+10+12+%0D%0Ab%3A+1+5+8+9+10+12%0D%0Ac%3A+1+3+5+7+8%0D%0Aa&rhythms=1+1+!1+1+!1+1+!1+1+q%3D4%0D%0Ab%3A+1+!1+1+!1+1+!1+1+1%0D%0Ac%3A+1+1+1+1+1+1+1+1&arp=a%3A+1_3+%3E*+2_4%0D%0Ab%3A+1+2_3_4+2+3_4_5+-2+-1_-2_-3%0D%0A&instrument=guitar&bpm=146)
-* [Example 3](https://iostream.github.io/chromatone-helper/v2-dev/#chords=(A%3A+%0D%0A+(2i3+4+5+V%3Db+3)+V%3Da%0D%0A)%0D%0A(B%3A%0D%0A+(2+4+6+8)+V%3Db%0D%0A)%0D%0A(B+B)&scale%5B0%5D=r1+2+b3+4+5+6+b7+k%3Dd2&voicing=a%3A+3+5+7+8%0D%0Ab%3A+3+6+8+10%0D%0A&rhythms=6+8+12+8+6+8+8+8+q%3D4%0D%0A&arp=1+-1+-3+-2+-3+-1+&instrument=chromatic&bpm=128)
+* J. S. Bach
+  + ["Free flowing" arpeggios only using voicings](https://iostream.github.io/chromatone-helper/#chords=1t12Va+4Vb+6Vc+1t12Vd%2C%0D%0A6+5+1+2%0D%0A&voicing=a%3A+1+5+10+9+10+5+10+5%0D%0Ab%3A+5+10+15+14+15+10+15+10%0D%0Ac%3A+3+9+13+12+13+9+13+9%0D%0Ad%3A+1+8+10+9+10+8+10+8+1+8+10+9+10+8+10+7%0D%0Aa%0D%0A&zebra_root=-17&scale[0]=r1+2+3+4+5+6+7&rhythms=1+1+1+1+1+1+1+1+1+1+1+1+1+1+1+1&arp=>*)
+
 
 Examples
 --------
@@ -42,7 +41,8 @@ The actual resulting chords depend on the used scale and the used voicing.
 
 ### Scales
 
-Each mode of a scale can be accessed by shifting the scale using the `<` and `>` buttons
+* Each mode of a scale can be accessed by shifting the scale using the `<` and `>` buttons.
+* Scales can be transposed using the `+` and `-` buttons.
 
 * D# major scale starting at middle D#: `1 2 3 4 5 6 7 k=D#4` or `1 2 3 4 5 6 7 D#4`
 * C natural minor starting at middle C (middle C is the default key): `1 2 b3 4 5 b6 b7`
@@ -51,10 +51,9 @@ Each mode of a scale can be accessed by shifting the scale using the `<` and `>`
 ### Voicings
 
 * triad: `1 3 5`
+* suspended chords: `1 2 5`, `1 4 5`
 * seventh chord: `1 3 5 7`
 * ninth chord: `1 3 5 7 9`
-* suspended chords: `1 2 5`, `1 4 5`
-* lydian and phrygian chords: `1 #4 5`, `1 b2 5`
 
 ### Rhythm patterns
 
@@ -108,14 +107,18 @@ npm run build
 
 Creates `dist/chromatone/chromatone-combined-index.html` which contains everything in one file. This way the tool also works on mobile web browsers.
 
-Feature wishes
---------------
+Missing features
+----------------
 
 - GUI
    * make it possible to switch between note naming modes: `relative` (each note is named by its chord interval, no matter the inversion), `absolute` (shows the actual intervals, starting from the lowest note), and maybe make it so, that the absolute naming can be starting from the highest note
    * better diff to next chord: just superimpose the next chord!
-
 - Automatic Inversions
    * better/always working automatic chord transition inversion optimization
    * [x] allow disabling of automatic chord transition inversion optimization (maybe this works using e.g. 1i0)
    * add new mode: optimize for best voice leading
+- multiple tracks
+- migrate all definitions to the bracket syntax like the chord definitions
+- drop voicings
+- tensions in voicings
+- allow somehow to assign chords definitions to rhythms instead of assigning rhythms to chord definitions

@@ -151,18 +151,21 @@ function createNotesByVoices(voices, scaleNotes) {
 
 /**
  * Voices can be used to make "free flowing" arpeggios, e.g. 8 3 8 5 1 5 8 3.
- * This makes sense for using ">", ">*" in arpegguio patterns, but inverting
- * these kind of voicings doesn't makes sense. This is "normalizing" for. The
- * example output would be: 1 3 5 8. It is ordered and duplicates are removed.
+ * This makes sense when using ">", ">*" in arpeggio patterns, but inverting
+ * these kind of voicings doesn't makes sense. "Normalized" voicings can be
+ * inverted. Example output would be: 1 3 5 8. The output is ordered and
+ * duplicates are removed.
  */
 function normalizeVoices(voices) {
   if (!Array.isArray(voices) || voices.length === 0) {
     return [];
   }
-  // like: sort | uniq (from https://stackoverflow.com/questions/11688692/how-to-create-a-list-of-unique-items-in-javascript)
-  return voices.slice(0).sort().filter(function(value, index, array) {
+  
+  return voices.slice(0)
+    .sort((v1, v2) => (v1 - v2)) // sort
+    .filter(function(value, index, array) { // unique
       return (index === 0) || (value !== array[index - 1]);
-  });
+    });
 }
 
 /**
