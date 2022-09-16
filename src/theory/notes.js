@@ -139,6 +139,27 @@ function findIntervalName(interval, intervalNameMap) {
     return "b" + intervalName.accidentals + (intervalName.number + add);
   }
 
+  // fallback 3: interval matches the sharp version of an interval in intervalNameMap
+  var previousInterval = interval - 1;
+  var previousRelativeInterval = previousInterval % 12;
+  if (typeof intervalNameMap[previousRelativeInterval] !== "undefined") {
+    var intervalName = intervalNameMap[previousRelativeInterval];
+    add = 7 * (Math.floor(previousInterval / 12));
+    return "#" + intervalName.accidentals + (intervalName.number + add);
+  }
+
+  // fallback 4: interval matches an interval of the major scale flat or sharp
+  for (var i = 0; i < majorNotes.length; ++i) {
+    if (majorNotes[i] + 1 == relativeInterval) {
+      add = "b" + 7 * (Math.floor(interval / 12));
+      return i + 1 + add;
+    }
+    if (majorNotes[i] - 1 == relativeInterval) {
+      add = "#" + 7 * (Math.floor(interval / 12));
+      return i + 1 + add;
+    }
+  }
+
   console.error("findIntervalName() could not find name for interval=" + interval + " in scale ", intervalNameMap, " and automatic conversion also failed!");
 
   return "error";
@@ -206,7 +227,15 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   if (typeof majorNotes[interval - 1] === "undefined") {
     console.error("parseNote() - I have no mapping for major note: " + interval);
   }
-  var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
+  var _chromaticInterval;
+
+  if (interval <= 7) {
+    _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
+  } else {
+    var nullBasedInterval = interval - 1;
+    _chromaticInterval = majorNotes[nullBasedInterval % 7] + Math.floor(nullBasedInterval / 7) * 7;
+  }
+
   _position += _chromaticInterval;
 
   var _voice;
