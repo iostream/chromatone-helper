@@ -5,15 +5,16 @@ var tLib = require("../../theory/base.js");
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
+var cIsCrossRow = true;
+
 function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
   var keyboard = chromaticKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
 
   var rowIteration = 0;
   var baseRowColumnCount = Math.ceil((highestPosition - lowestPosition) / 2 + 1);
+  var isCrossRow = checkCrossRow(lowestPosition);
   for (var row = 0; row < rowCount; ++row) {
-    // the first shall never be a cross row (because of the cut out parts there)
-    var isCrossRow = !!(row % 2);
     var rowEl = document.createElement("div");
     var chromatic = lowestPosition;
     // e.g. class="row x i1" -> second iteration of cross rows
@@ -39,6 +40,8 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
     keyArea.insertBefore(rowEl, keyArea.firstChild);
 
     rowIteration += 0.5;
+
+    var isCrossRow = !isCrossRow;
   }
 
   var debug = false;
@@ -64,12 +67,12 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
         }
 
         // add each
-        var firstNoteIsOnCrossRow = notes.length > 0 && (notes[0].getPosition() % 2) === 1;
+        var firstNoteIsOnCrossRow = checkCrossRow(notes[0].getPosition());
         for (var i=0; i<notes.length; ++i) {
           var note = notes[i];
           var absoluteChromatic = note.getPosition();
           var iteration = note.isUp() ? 1 : 0;
-          if (i !== 0 && firstNoteIsOnCrossRow && (absoluteChromatic % 2) === 0) {
+          if (i !== 0 && firstNoteIsOnCrossRow && !checkCrossRow(absoluteChromatic)) {
             ++iteration;
           }
 
@@ -162,3 +165,8 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
   return construct(keyboard);
 }
 lib.createKeyboard = createChromaticKeyboard;
+
+function checkCrossRow(chromatic) {
+  chromatic += Math.ceil(Math.abs(chromatic) / 12) * 12;
+  return chromatic % 2 === (cIsCrossRow ? 0 : 1);
+}
