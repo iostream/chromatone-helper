@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <title>Chromatone Helper 🧙 by iostream 2018-2020</title>
+    <title>Chromatone Helper 🧙 by iostream 2018-2023</title>
     <meta charset="UTF-8">
 <style>
 :root {
@@ -11,6 +11,10 @@
 }
 body {
   background-color: var(--main-background-color);
+}
+input[type="button"] {
+  line-height: 7pt;
+  height: 13pt;
 }
 .form textarea {
   height: 50pt;
@@ -85,11 +89,8 @@ section#templates {
   background-color: yellow;
   color: #354b45;
 }
-.chromatic.keyboard {
-  margin-bottom: 8pt;
-}
 .chromatic.keyboard .description {
-margin-top: 4pt;
+  margin-top: 4pt;
 }
 .chromatic.keyboard .diff {
   font-size: 7px;
@@ -152,7 +153,6 @@ margin-top: 4pt;
   display: inline-block;
   vertical-align: top;
   padding: 1pt;
-  padding-right: 3pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
@@ -163,14 +163,16 @@ margin-top: 4pt;
 .form-element input[type="range"] {
   max-width: 100%;
 }
-.form-element input[name="loop"],
-.form-element input[name="play"],
-.form-element input[name="pause"],
-.form-element input[name="stop"] {
+.transport input[type="button"] {
   display: inline-block;
   padding: 0;
   margin: 0;
-  width: calc(33.33% - 1pt)
+  width: calc(33.33% - 1pt);
+}
+.transport input.lockable:active,
+.transport input.lockable.active {
+	position: relative;
+	top: 2px;
 }
 .form-element input[name="loop"] {
   margin-right: 5pt;
@@ -188,13 +190,14 @@ margin-top: 4pt;
 .form-element input[name="bpm"] {
   width: calc(100% - 20pt - 20px);
 }
-
 .form-element label {
   display: inline-block;
 }
 .form-element textarea {
   display: block;
   width: 100%;
+  padding: 0;
+  box-sizing: border-box;
 }
 .form-element .messages .error {
   color: red;
@@ -212,6 +215,12 @@ margin-top: 4pt;
 }
 .hidden {
   display: none;
+}
+.visualization > div, .visualization > span  {
+  margin-bottom: 2px;
+}
+.track .visualization {
+  margin: 5px 0 10px 0;
 }
 </style>
 <style>
@@ -390,6 +399,10 @@ margin-top: 4pt;
         <div class="description"></div>
       </div>
 
+      <div class="piano-roll">
+        <canvas name="canvas" />
+      </div>
+
       <div class="chord-group">
         <h2 class="title"></h2>
       </div>
@@ -422,6 +435,7 @@ margin-top: 4pt;
               <select name="instrument" class="instrument" title="the instrument type to be used to display the progression chords">
                 <option value="chromatic">Chromatone</option>
                 <option value="zebra">Zebra keyboard</option>
+                <option value="piano_roll">Piano Roll</option>
                 <option class="stringed" value="guitar">Guitar</option>
                 <option class="stringed" value="bass_guitar">Bass guitar</option>
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
@@ -483,9 +497,9 @@ margin-top: 4pt;
 
           <div class="secondary-form-elements">
           <span class="form-element">
-            <span class="form-element">
-              <input type="button" value="▶" name="play" title="play progression"><!--
-              --><input type="button" value="⏸" name="pause" title="pause progression"><!--
+            <span class="form-element transport">
+              <input type="button" value="▶" name="play" title="play progression" class="lockable"><!--
+              --><input type="button" value="⏸" name="pause" title="pause progression" class="lockable"><!--
               --><input type="button" value="⏹" name="stop" title="stop progression"><!--
               --><input type="button" value="<" name="step_backward" title="step backward"><!--
               --><input type="button" value=">" name="step_forward" title="step forward">
@@ -530,6 +544,8 @@ margin-top: 4pt;
             <div class="tracks"></div>
           </div>
         </form>
+        <div class="result">
+        </div>
         <form class="utility-form">
           <span class="form-element">
             <select name="pocket_knife">
@@ -539,8 +555,6 @@ margin-top: 4pt;
             </select>
           </span>
         </form>
-        <div class="result">
-        </div>
       </div>
     </section>
 
@@ -6427,33 +6441,35 @@ lib.createInstrument = function(instrumentName) {
   return INSTRUMENT_FACTORIES[instrumentName]();
 }
 
-/*
- * This is a workaround, because it was not possible to pass an audio context
- * to tiny synth :(
+/**
+ * Shared audio context
  */
-var audioContext = new AudioContext();
-lib.getAudioContext = function() {
-//  return getTinySynth().getAudioContext();
+var audioContext;
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
   return audioContext;
 }
+lib.getAudioContext = getAudioContext;
 
+/**
+ * Shared tiny synth
+ */
 var tinySynth;
 function getTinySynth() {
   if (!tinySynth) {
-    tinySynth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+    tinySynth = new WebAudioTinySynth({quality: 1, useReverb: 1, voices: 20, internalContext: 0, graph: 0});
+    tinySynth.setAudioContext(getAudioContext());
   }
   return tinySynth;
 }
 
 var lastTinySynthChannel = -1;
-/**
- * XXX When there will be many tracks (and hence many audio instruments), then use one
- *     tiny synth for many tracks using the channels! ... does not work!! D:
- */
+
 function createTinySynthInstrument() {
-  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20, internalcontext: 0});
-  _synth.setAudioContext(audioContext);
-  var _channel = 0;
+  var _synth = getTinySynth();
+  var _channel = ++lastTinySynthChannel;
   var _noteOns = [];
 
   var instrument = {
@@ -6476,7 +6492,7 @@ function createTinySynthInstrument() {
       });
     },
     setPreset: function(index) {
-      _synth.setTimbre(0, _channel, _synth.program[index].p);
+      _synth.setProgram(_channel, index);
     }
   };
 
@@ -6533,7 +6549,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":39,"./theory/notes.js":42}],15:[function(require,module,exports){
+},{"./theory/base.js":40,"./theory/notes.js":43}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6868,14 +6884,14 @@ function serializeForm(form) {
   return newSerializedForm;
 }
 
-},{"../theory/arpeggio.js":38,"../theory/base.js":39,"../theory/rhythm.js":44,"./pocket_knife.js":21,"./presets.js":22,"./session.js":26,"form-serialize":4}],16:[function(require,module,exports){
+},{"../theory/arpeggio.js":39,"../theory/base.js":40,"../theory/rhythm.js":45,"./pocket_knife.js":22,"./presets.js":23,"./session.js":27,"form-serialize":4}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
 var stringInstrument = require("./string_instrument.js");
-// var pianoRollLib = require("./piano_roll.js");
+var pianoRollLib = require("./piano_roll.js");
 
 lib.createInstrumentFactory = function(options) {
   var type = options.type || 'chromatic';
@@ -6895,13 +6911,13 @@ lib.createInstrumentFactory = function(options) {
         }
       };
       break;
-    // case 'piano_roll':
-    //   return {
-    //     create: function(lowestPosition, highestPosition) {
-    //       return pianoRollLib.createPianoRoll(lowestPosition, highestPosition);
-    //     }
-    //   };
-    //   break;
+    case 'piano_roll':
+      return {
+        create: function(lowestPosition, highestPosition, lengthInQN) {
+          return pianoRollLib.createPianoRoll(lowestPosition, highestPosition, lengthInQN);
+        }
+      };
+      break;
     default:
       return {
         create: function(lowestPosition, highestPosition) {
@@ -6917,7 +6933,7 @@ lib.createInstrumentFactory = function(options) {
   }
 }
 
-},{"./keyboard.js":17,"./string_instrument.js":19,"./zebra.js":20}],17:[function(require,module,exports){
+},{"./keyboard.js":17,"./piano_roll.js":18,"./string_instrument.js":20,"./zebra.js":21}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6925,15 +6941,16 @@ var tLib = require("../../theory/base.js");
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
+var cIsCrossRow = true;
+
 function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
   var keyboard = chromaticKeyboardTemplate.cloneNode(true);
   var keyArea = keyboard.getElementsByClassName("keys")[0];
 
   var rowIteration = 0;
   var baseRowColumnCount = Math.ceil((highestPosition - lowestPosition) / 2 + 1);
+  var isCrossRow = checkCrossRow(lowestPosition);
   for (var row = 0; row < rowCount; ++row) {
-    // the first shall never be a cross row (because of the cut out parts there)
-    var isCrossRow = !!(row % 2);
     var rowEl = document.createElement("div");
     var chromatic = lowestPosition;
     // e.g. class="row x i1" -> second iteration of cross rows
@@ -6959,6 +6976,8 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
     keyArea.insertBefore(rowEl, keyArea.firstChild);
 
     rowIteration += 0.5;
+
+    var isCrossRow = !isCrossRow;
   }
 
   var debug = false;
@@ -6984,12 +7003,12 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
         }
 
         // add each
-        var firstNoteIsOnCrossRow = notes.length > 0 && (notes[0].getPosition() % 2) === 1;
+        var firstNoteIsOnCrossRow = checkCrossRow(notes[0].getPosition());
         for (var i=0; i<notes.length; ++i) {
           var note = notes[i];
           var absoluteChromatic = note.getPosition();
           var iteration = note.isUp() ? 1 : 0;
-          if (i !== 0 && firstNoteIsOnCrossRow && (absoluteChromatic % 2) === 0) {
+          if (i !== 0 && firstNoteIsOnCrossRow && !checkCrossRow(absoluteChromatic)) {
             ++iteration;
           }
 
@@ -7083,7 +7102,203 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
 }
 lib.createKeyboard = createChromaticKeyboard;
 
-},{"../../theory/base.js":39}],18:[function(require,module,exports){
+function checkCrossRow(chromatic) {
+  chromatic += Math.ceil(Math.abs(chromatic) / 12) * 12;
+  return chromatic % 2 === (cIsCrossRow ? 0 : 1);
+}
+
+},{"../../theory/base.js":40}],18:[function(require,module,exports){
+var lib = {};
+module.exports = lib;
+
+var tLib = require("../../theory/base.js");
+
+var pianoRollTemplate = document.getElementById("templates").getElementsByClassName("piano-roll")[0];
+
+lib.createPianoRoll = function(lowestPosition, highestPosition, lengthInQN) {
+  var parentElement = pianoRollTemplate.cloneNode(true);
+  return construct(parentElement, lowestPosition, highestPosition, lengthInQN);
+}
+
+function construct(element, lowestPosition, highestPosition, lengthInQN) {
+  var _element = element;
+  var _positionInQN = 0;
+  var _highestPosition = highestPosition;
+  var canvas = _element.getElementsByTagName("canvas")[0];
+  var _ctx = canvas.getContext("2d");
+  var _styles = createStyles(_ctx);
+
+  var lengthOfMeasureInQN = 4;
+
+  // sizes
+  var zebraWidth = 35.5;
+  var zebraBlackKeyWidth = 27.5;
+  var eightNoteWidth = 20;
+  var semitoneHeight = 20 * 0.4;
+  var thinLine = 0.5;
+  var thickLine = 1;
+  var headerHeight = 1.5 * semitoneHeight + 0.5;
+
+  var width = zebraWidth + lengthInQN * 2 * eightNoteWidth;
+  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight;
+
+  var scale = 1.5;
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  _ctx.scale(scale, scale);
+
+  var x = 0;
+  var y = 0;
+
+  // background
+  _ctx.fillStyle = "white";
+  _ctx.fillRect(0, headerHeight, width, height);
+
+  // horizontal lines and zebra keyboard
+  drawLine(x, headerHeight, x, height);
+  drawLine(x, headerHeight, zebraWidth, headerHeight);
+  drawLine(x, height, zebraWidth, height)
+  y = headerHeight;
+  _ctx.fillStyle = "lightgrey";
+  for (var pos = highestPosition; pos >= lowestPosition; --pos) {
+    // zebra keyboard
+    var keyStyle = getKeyStyle(pos);
+    if (keyStyle == 0) {
+      drawLine(x, y, zebraWidth, y);
+    } else if (keyStyle == 1) {
+      drawLine(zebraBlackKeyWidth, y + (semitoneHeight / 2), zebraWidth, y + (semitoneHeight / 2));
+      _ctx.fillRect(zebraWidth, y, width, semitoneHeight);
+      _ctx.fillStyle = "black";
+      _ctx.fillRect(x, y, zebraBlackKeyWidth, semitoneHeight);
+      _ctx.fillStyle = "lightgrey";
+    }
+    // horizontal line
+    drawLine(zebraWidth, y, width, y);
+    y += semitoneHeight;
+  }
+  // horizontal line
+  drawLine(x, y, width, y + semitoneHeight);
+
+  _ctx.fillStyle = "black";
+
+  // vertical lines
+  var eighthCount = lengthInQN * 8;
+  for (var eighth = 0; eighth < eighthCount; ++eighth) {
+    x = zebraWidth + eighth * eightNoteWidth;
+    var startY = headerHeight;
+    if (eighth % (lengthOfMeasureInQN * 2) === 0) {
+      // longer vertical line at the beginning of a bar
+      startY = 0;
+    }
+
+    if (eighth % 2 === 0) {
+      _ctx.lineWidth = thickLine;
+    } else {
+      _ctx.lineWidth = thinLine;
+    }
+    drawLine(x, startY, x, height);
+  }
+
+  function drawEvent(arpEvent, quarterNotePosition, highlight) {
+    if (!arpEvent.isRest()) {
+      var x = zebraWidth + quarterNotePosition * 2 * eightNoteWidth;
+      var width = arpEvent.getLengthInQN() * 2 * eightNoteWidth;
+
+      arpEvent.getPitches().forEach(function(pitch) {
+        var y = headerHeight + (_highestPosition - pitch.getPosition()) * semitoneHeight;
+        if (highlight) {
+          _styles.event.highlighted(x, y, width, semitoneHeight);
+        } else {
+          _styles.event.normal(x, y, width, semitoneHeight);
+        }
+        // TODO add naming
+        // _ctx.fillText("b3", x, y);
+      });
+    }
+  }
+
+  function drawLine(startX, startY, endX, endY) {
+    _ctx.beginPath();
+    _ctx.moveTo(startX, startY);
+    _ctx.lineTo(endX, endY);
+    _ctx.stroke();
+  }
+
+  return {
+    getElement: function() {
+      return _element;
+    },
+    addEvent: function(arpEvent, description) {
+      drawEvent(arpEvent, _positionInQN);
+      _positionInQN += arpEvent.getLengthInQN();
+    },
+    highlightEvent: function(arpEvent, quarterNotes) {
+      drawEvent(arpEvent, quarterNotes, true);
+    },
+    dehighlightEvent: function(arpEvent, quarterNotes) {
+      drawEvent(arpEvent, quarterNotes);
+    },
+    addDiff: function(notes) {
+      // noop
+    },
+    clone: function() {
+      return construct(keyboard.cloneNode(true));
+    }
+  };
+}
+
+function getKeyStyle(chromatic) {
+  if (chromatic < 0) {
+    chromatic += Math.ceil(Math.abs(chromatic) / 12) * 12;
+  }
+  var relativePosition = chromatic % 12;
+  switch (relativePosition) {
+    case 4: // fallthrough
+    case 11:
+      return 0;
+    case 1: // fallthrough
+    case 3: // fallthrough
+    case 6: // fallthrough
+    case 8: // fallthrough
+    case 10:
+      return 1;
+    case 0: // fallthrough
+    case 2: // fallthrough
+    case 5: // fallthrough
+    case 7: // fallthrough
+    case 9:
+      return 2;
+    default:
+      console.error("No key style found for chromatic position: " + chromatic);
+      return 0;
+  }
+}
+
+function createStyles(context) {
+  var _ctx = context;
+  return {
+    event: {
+      normal: function(x, y, width, height) {
+        _ctx.strokeStyle = 'orange';
+        _ctx.fillStyle = 'blue';
+        //_ctx.fillRect(x + thinLine, y + thinLine, width - thinLine * 2, height - thinLine * 2);
+        _ctx.fillRect(x, y, width, height);
+        // _ctx.strokeRect(x, y, width, height);
+      },
+      highlighted: function(x, y, width, height) {
+        var grad1 = context.createLinearGradient(x, y, x + width, y);
+        grad1.addColorStop(0, 'orange');
+        grad1.addColorStop(1, 'red');
+        _ctx.strokeStyle = 'green';
+        _ctx.fillStyle = grad1;
+        _ctx.fillRect(x, y, width, height);
+        // _ctx.strokeRect(x, y, width, height);
+      }
+    }
+  }
+}
+
+},{"../../theory/base.js":40}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7100,12 +7315,52 @@ var chordTemplate = $_("templates").getElementsByClassName("chord")[0],
  * some features, so the actual instrument implementations can be simple.
  */
 lib.createInstrument = function(options, parentElement, sequencer) {
+  if (options.type === 'piano_roll') {
+    return createWorldInstrument(options, parentElement);
+  }
   if (options.compact) {
     return createCompactInstrument(options, parentElement);
   }
   return createInstrument1(options, parentElement, sequencer);
 }
 
+/**
+ * Everything is shown always.
+ */
+function createWorldInstrument(options, parentElement) {
+  var _parentElement = parentElement;
+  var _instrument;
+
+  return {
+    addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite, events) {
+      // create one instrument which fits the whole progression...
+      var lengthInQN = 0;
+      events.forEach(function(eventList) {
+        eventList.forEach(function(event) {
+          lengthInQN += event.getLengthInQN();
+        });
+      });
+
+      var factory = factoryLib.createInstrumentFactory(options);
+      _instrument = factory.create(progression.getLowestPosition(), progression.getHighestPosition(), lengthInQN);
+
+      // add all arpeggiated events
+      events.forEach(function(eventList) {
+        eventList.forEach(function(e) {
+          _instrument.addEvent(e);
+        });
+      });
+
+      _parentElement.appendChild(_instrument.getElement());
+    },
+    highlightEvent: function(event, chordIndex, quarterNotes) {
+      _instrument.highlightEvent(event, quarterNotes);
+    },
+    dehighlightEvent: function(event, chordIndex, quarterNotes) {
+      _instrument.dehighlightEvent(event, quarterNotes);
+    }
+  };
+}
 /**
  * All chords are shown on the same instrument and only one at a time.
  */
@@ -7115,6 +7370,35 @@ function createCompactInstrument(options, parentElement) {
   var _chords;
   var _instrument;
   var _chordIndex = -1;
+
+  function highlightEvent(event, chordIndex, dehighlight) {
+    if (!_chords || chordIndex >= _chords.length) {
+      return;
+    }
+
+    // update currently shown chord if needed
+    if (_chordIndex != chordIndex) {
+      // TODO also remove last chord
+      var chord = _chords[chordIndex];
+      _instrument.clear();
+      _instrument.add(chord, chord.getName(), _options);
+      _chordIndex = chordIndex;
+    }
+
+    if (event.isRest()) {
+      return;
+    }
+
+    if (dehighlight) {
+      event.getPitches().forEach(function(pitch) {
+        _instrument.dehighlightPitch(pitch);
+      });
+    } else {
+      event.getPitches().forEach(function(pitch) {
+        _instrument.highlightPitch(pitch);
+      });
+    }
+  }
 
   return {
     addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
@@ -7127,36 +7411,11 @@ function createCompactInstrument(options, parentElement) {
     addChord: function(chord, progression) {
       // noop, initially there is nothing to be seen
     },
-    highlightEvent: function(event, chordIndex, dehighlight) {
-      if (!_chords || chordIndex >= _chords.length) {
-        return;
-      }
-
-      // update currently shown chord if needed
-      if (_chordIndex != chordIndex) {
-        // TODO also remove last chord
-        var chord = _chords[chordIndex];
-        _instrument.clear();
-        _instrument.add(chord, chord.getName(), _options);
-        _chordIndex = chordIndex;
-      }
-
-      if (event.isRest()) {
-        return;
-      }
-
-      if (dehighlight) {
-        event.getPitches().forEach(function(pitch) {
-          _instrument.dehighlightPitch(pitch);
-        });
-      } else {
-        event.getPitches().forEach(function(pitch) {
-          _instrument.highlightPitch(pitch);
-        });
-      }
+    highlightEvent: function(event, chordIndex) {
+      highlightEvent(event, chordIndex);
     },
     dehighlightEvent: function(event, chordIndex) {
-      return this.highlightEvent(event, chordIndex, true);
+      highlightEvent(event, chordIndex, true);
     }
   };
 }
@@ -7182,6 +7441,26 @@ function createInstrument1(options, parentElement, sequencer) {
     };
   });
 
+  function highlightEvent(event, chordIndex, dehighlight) {
+    if (chordIndex >= _instruments.length) {
+      return;
+    }
+    if (event.isRest()) {
+      return;
+    }
+    var instrument = _instruments[chordIndex];
+
+    if (dehighlight) {
+      event.getPitches().forEach(function(pitch) {
+        instrument.dehighlightPitch(pitch);
+      });
+    } else {
+      event.getPitches().forEach(function(pitch) {
+        instrument.highlightPitch(pitch);
+      });
+    }
+  }
+
   var instrument = {
     // XXX This is the first mode: add one new GUI per chordDef
     addChord: function(chord, progression) {
@@ -7200,27 +7479,11 @@ function createInstrument1(options, parentElement, sequencer) {
       _instruments.push(instrument);
       _parentElement.appendChild(instrument.getElement());
     },
-    highlightEvent: function(event, chordIndex, dehighlight) {
-      if (chordIndex >= _instruments.length) {
-        return;
-      }
-      if (event.isRest()) {
-        return;
-      }
-      var instrument = _instruments[chordIndex];
-
-      if (dehighlight) {
-        event.getPitches().forEach(function(pitch) {
-          instrument.dehighlightPitch(pitch);
-        });
-      } else {
-        event.getPitches().forEach(function(pitch) {
-          instrument.highlightPitch(pitch);
-        });
-      }
+    highlightEvent: function(event, chordIndex) {
+      highlightEvent(event, chordIndex);
     },
     dehighlightEvent: function(event, chordIndex) {
-      return this.highlightEvent(event, chordIndex, true);
+      highlightEvent(event, chordIndex, true);
     },
     addChordProgressionUsingChordDefinitionComposite: function(progression, chordDefinitionComposite) {
       var chordsCopy = progression.getChords().slice();
@@ -7256,7 +7519,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./factory.js":16}],19:[function(require,module,exports){
+},{"./factory.js":16}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7270,6 +7533,26 @@ var types = {
   bass_guitar: [notesLib.parseNotes('b10 b7 4 1 E1'), [.045, .06, .08 , .1], 17],
   concert_ukulele: [notesLib.parseNotes('10 6 4 8 G4'), [.022, .026, .029, .024], 11],
 };
+
+var debug = true;
+if (debug) {
+  for (var type in types) {
+    if (!types.hasOwnProperty(type)) {
+      continue;
+    }
+    var name = type;
+    type = types[type];
+    console.log("type", name, type.map(function(el, i) {
+      if (i == 0) {
+        return el.map(function(n) {
+          return n.toString();
+        });
+      } else {
+        return el;
+      }
+    }));
+  }
+}
 
 /**
  * Returns false if the type is unknown.
@@ -7285,7 +7568,7 @@ lib.createStringInstrumentByType = function(typeName) {
 // template and then add chords to it, which creates the user interface then....
 var initializedStyles = {};
 
-var debug = false;
+var debug = true;
 /**
  * An array of pitches/notes provide the base pitches (object.getPosition())
  * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10.
@@ -7479,7 +7762,7 @@ function createFret(index) {
   return el;
 }
 
-},{"../../theory/notes.js":42}],20:[function(require,module,exports){
+},{"../../theory/notes.js":43}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7489,10 +7772,10 @@ var zebraKeyboardTemplate = document.getElementById("templates").getElementsByCl
 
 lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   function isDisplacedButton(chromatic) {
-    var relativePosition = chromatic % 12;
-    while (relativePosition < 0) {
-      relativePosition += 12;
+    if (chromatic < 0) {
+      chromatic += Math.ceil(Math.abs(chromatic) / 12) * 12;
     }
+    var relativePosition = chromatic % 12;
     return relativePosition === 1 || relativePosition === 3 || relativePosition === 6
       || relativePosition === 8 || relativePosition === 10;
   }
@@ -7629,7 +7912,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":39}],21:[function(require,module,exports){
+},{"../../theory/base.js":40}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7667,7 +7950,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],22:[function(require,module,exports){
+},{}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7741,7 +8024,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],23:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7875,7 +8158,7 @@ lib.createService = function(sequencer, parentElement) {
   return service;
 }
 
-},{"./track.js":24,"./transport.js":25}],24:[function(require,module,exports){
+},{"./track.js":25,"./transport.js":26}],25:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7907,6 +8190,7 @@ lib.createTrack = function(options) {
   var _audioPresetSelect = _optionsElement.getElementsByClassName('audio-preset')[0];
 
   var _progression;
+  var _events;
   var _chordDefParserResult;
 
   // do not change the parameter names of the first track, for backward compatibility!
@@ -7987,7 +8271,7 @@ lib.createTrack = function(options) {
       var options = collectInstrumentOptions();
       _visualizationElement.innerHTML = '';
       var instrument = instrumentLib.createInstrument(options, _visualizationElement, _sequencer);
-      instrument.addChordProgressionUsingChordDefinitionComposite(_progression, _chordDefParserResult.getComposite());
+      instrument.addChordProgressionUsingChordDefinitionComposite(_progression, _chordDefParserResult.getComposite(), _events);
       _content.setInstrumentGUI(instrument);
 
       // show/hide the string instrument options before validation
@@ -8010,8 +8294,8 @@ lib.createTrack = function(options) {
   track.updateContent = function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {
     _chordDefParserResult = parseChordDefinitions(_chordDefElement.value, voicings, scales, rhythmPatterns, arpeggioPatterns);
     _progression = p.createChordProgression(_chordDefParserResult.getList());
-    var events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-    _content.setEvents(events);
+    _events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    _content.setEvents(_events);
     track.updateVisualization();
   };
 
@@ -8031,23 +8315,61 @@ function addMessage(parentElement, type, message) {
   parentElement.appendChild(el);
 }
 
-},{"../../../resources/presets.js":12,"../../theory/arpeggio.js":38,"../../theory/base.js":39,"../../theory/progression.js":43,"../instrument/proxy.js":18,"../presets.js":22}],25:[function(require,module,exports){
+},{"../../../resources/presets.js":12,"../../theory/arpeggio.js":39,"../../theory/base.js":40,"../../theory/progression.js":44,"../instrument/proxy.js":19,"../presets.js":23}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 lib.createTransport = function(sequencer) {
   var _sequencer = sequencer;
+  var _controls;
+
+  function updatePlayState() {
+    if (_sequencer.isPlaying()) {
+      _controls.play.classList.add('active');
+    } else {
+      _controls.play.classList.remove('active');
+    }
+    if (_sequencer.isPaused()) {
+      _controls.pause.classList.add('active');
+    } else {
+      _controls.pause.classList.remove('active');
+    }
+  }
 
   return {
     initControlElements: function(controls) {
+      _controls = controls;
+      window.addEventListener("keydown", function(event) {
+        // ignore key presses in input fields
+        if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+          return;
+        }
+        if (event.key === ' ') {
+          // ctrl + space ... toggle play/pause
+          // space ... toggle play/stop
+          if (_sequencer.isPlaying()) {
+            if (event.ctrlKey) {
+              _sequencer.pause();
+            } else {
+              _sequencer.stop();
+            }
+          } else {
+            _sequencer.start();
+          }
+          updatePlayState();
+        }
+      });
       controls.play.addEventListener("click", function() {
         _sequencer.start();
+        updatePlayState();
       });
       controls.pause.addEventListener("click", function() {
         _sequencer.pause();
+        updatePlayState();
       });
       controls.stop.addEventListener("click", function() {
         _sequencer.stop();
+        updatePlayState();
       });
       controls.step_forward.addEventListener("click", function() {
         _sequencer.stepForward();
@@ -8062,11 +8384,14 @@ lib.createTransport = function(sequencer) {
         _sequencer.setBpm(controls.bpm.value);
       });
       controls.bpm.dispatchEvent(new Event('input'));
+      _sequencer.addStopCallback(function() {
+        updatePlayState();
+      });
     }
   };
 };
 
-},{}],26:[function(require,module,exports){
+},{}],27:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -8122,7 +8447,6 @@ session.saveTextAreaSizes = function(textArea) {
 }
 
 session.restoreTextAreaSizes = function(form) {
-  return;
   forEachItemsByKeyPrefix(TEXT_AREAS_KEY_PREFIX, function(key, value) {
     var keyParts = key.split(".");
     if (keyParts < 2) {
@@ -8132,7 +8456,7 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],27:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var formLib = require("./gui/form.js"),
  t = require("./theory/base.js"),
  compositeParser = require("./parser/composite_parser.js"),
@@ -8202,7 +8526,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"../resources/presets.js":12,"./gui/form.js":15,"./gui/sequencer/service.js":23,"./gui/sequencer/transport.js":25,"./midi.js":28,"./parser/composite.js":30,"./parser/composite_parser.js":31,"./sequencer/sequencer.js":34,"./server/client.js":36,"./theory/base.js":39}],28:[function(require,module,exports){
+},{"../resources/presets.js":12,"./gui/form.js":15,"./gui/sequencer/service.js":24,"./gui/sequencer/transport.js":26,"./midi.js":29,"./parser/composite.js":31,"./parser/composite_parser.js":32,"./sequencer/sequencer.js":35,"./server/client.js":37,"./theory/base.js":40}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8254,7 +8578,7 @@ lib.createMidi = function(chordEvents, chords, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":6}],29:[function(require,module,exports){
+},{"midi-writer-js":6}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8583,7 +8907,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8831,7 +9155,7 @@ function createOptions() {
   };
 }
 
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8993,7 +9317,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":29,"./message.js":32}],32:[function(require,module,exports){
+},{"./async_lexer.js":30,"./message.js":33}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9025,7 +9349,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],33:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9109,13 +9433,12 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],34:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
 var trackLib = require('./track.js');
 
-const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = require('../audio/instrument.js').getAudioContext();
 
 lib.createSequencer = function() {
@@ -9134,8 +9457,11 @@ lib.createSequencer = function() {
   var _loop = false;
   var _playIndex = 0;
   var _isPlaying = false;
+  var _isPaused = false;
   var _noteOffs = [];
   var _secondsPerQuarterNote;
+
+  var _onStopCallbacks = [];
 
   function playNextEvent(track) {
     return playEvent(track, true);
@@ -9209,7 +9535,6 @@ lib.createSequencer = function() {
         track.updateGUI();
       });
     },
-
     panic: function() {
       _tracks.forEach(function(track) {
         var audioInstrument = track.getAudioInstrument();
@@ -9217,6 +9542,15 @@ lib.createSequencer = function() {
           audioInstrument.allNotesOff();
         }
       });
+    },
+    addStopCallback: function(callback) {
+      _onStopCallbacks.push(callback);
+    },
+    isPlaying: function() {
+      return _isPlaying;
+    },
+    isPaused: function() {
+      return _isPaused;
     }
   };
 
@@ -9227,6 +9561,7 @@ lib.createSequencer = function() {
       return;
     }
     _isPlaying = true;
+    _isPaused = false;
 
     var velocity = 100;
 
@@ -9286,11 +9621,9 @@ lib.createSequencer = function() {
         var synth = track.getAudioInstrument();
         if (events.length > 0) {
           events.forEach(function(event) {
-            if (synth) {
-              if (previousEvent) {
-                if (!previousEvent.isRest()) {
-                  synth.allNotesOff(scheduleTimeInSeconds);
-                }
+            if (synth && !track.isMuted()) {
+              if (previousEvent && !previousEvent.isRest()) {
+                synth.allNotesOff(scheduleTimeInSeconds);
               }
               if (!event.isRest()) {
                 event.getPitches().forEach(function(note) {
@@ -9345,12 +9678,16 @@ lib.createSequencer = function() {
   }
 
   seq.pause = function() {
-    _isPlaying = false;
-    stopTimers();
+    if (_isPlaying) {
+      _isPlaying = false;
+      stopTimers();
+      _isPaused = true;
+    }
   };
 
   seq.stop = function() {
     _isPlaying = false;
+    _isPaused = false;
     _playIndex = 0;
     stopTimers();
     _lastEndInSeconds = 0;
@@ -9358,12 +9695,15 @@ lib.createSequencer = function() {
       track.stop();
       track.updateGUI();
     });
+    _onStopCallbacks.forEach(function(callback) {
+      callback();
+    });
   };
 
   return seq;
 }
 
-},{"../audio/instrument.js":13,"./track.js":35}],35:[function(require,module,exports){
+},{"../audio/instrument.js":13,"./track.js":36}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9396,6 +9736,7 @@ lib.createTrack = function() {
     },
     setEvents: function(events) {
       _events = events;
+      this.resetSeeker();
     },
     resetSeeker: function() {
       _audioEventIndex.reset();
@@ -9423,10 +9764,27 @@ lib.createTrack = function() {
       var event = _events[_chordIndex][_eventIndex];
       return event;
     },
-    getAudioInstrument: function() {
-      if (_muted) {
+
+    nextEvent: function() {
+      // check whether the current chord/event indexes are still in their array bounds:
+      if (_chordIndex >= _events.length) {
         return false;
       }
+      // does the chord need to be advanced?
+      if ((_eventIndex + 1) >= _events[_chordIndex].length) {
+        // yes
+        ++_chordIndex;
+        _eventIndex = 0;
+        if (_chordIndex >= _events.length) {
+          // there are no more chords
+          return false;
+        }
+      } else {
+        ++_eventIndex;
+      }
+      return _events[_chordIndex][_eventIndex];
+    },
+    getAudioInstrument: function() {
       return _audioInstrument;
     },
     setInstrumentGUI: function(instrumentGUI) {
@@ -9439,7 +9797,7 @@ lib.createTrack = function() {
     updateGUI: function(updateUsingQueue) {
       // dehighlight previously highlighted pitches
       if (_lastHighlighted && _lastHighlighted[0]) {
-        _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1]);
+        _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1], _lastHighlighted[2]);
         _lastHighlighted = false;
       }
 
@@ -9455,9 +9813,7 @@ lib.createTrack = function() {
         }
       } else {
         return;
-        event = _guiEventIndex.getEvent();
       }
-      var eventData;
 
       if (!event) {
         return;
@@ -9466,8 +9822,11 @@ lib.createTrack = function() {
       var chordIndex = _guiEventIndex.getChordIndex();
 
       // highlight current event and remember event indexes, so it can be dehighlighted later
-      _instrumentGUI.highlightEvent(event, chordIndex);
-      _lastHighlighted = [event, chordIndex];
+      _instrumentGUI.highlightEvent(event, chordIndex, _guiEventIndex.getQuarterNotes());
+      _lastHighlighted = [event, chordIndex, _guiEventIndex.getQuarterNotes()];
+    },
+    isMuted: function() {
+      return _muted;
     },
     mute: function(on) {
       if (!_muted && on) {
@@ -9534,12 +9893,14 @@ lib.createTrack = function() {
       var __chordIndex = 0;
       var __eventIndex = -1; // <- index "within" the current chord
       var __currentEvent = false;
+      var __quarterNotes = 0;
 
     return {
       reset: function() {
         __chordIndex = 0;
         __eventIndex = -1;
         __currentEvent = false;
+        __quarterNotes = 0;
       },
       getEvent: function() {
         return __currentEvent;
@@ -9547,7 +9908,13 @@ lib.createTrack = function() {
       getChordIndex: function() {
         return __chordIndex;
       },
+      getQuarterNotes: function() {
+        return __quarterNotes;
+      },
       nextEvent: function() {
+        if (__currentEvent) {
+          __quarterNotes += __currentEvent.getLengthInQN();
+        }
         __currentEvent = false;
         // check whether the current chord/event indexes are still in their array bounds:
         if (__chordIndex >= _events.length) {
@@ -9574,7 +9941,7 @@ lib.createTrack = function() {
   return track;
 };
 
-},{"../audio/instrument.js":13}],36:[function(require,module,exports){
+},{"../audio/instrument.js":13}],37:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9643,13 +10010,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":37}],37:[function(require,module,exports){
+},{"./host.js":38}],38:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],38:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10071,7 +10438,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":33}],39:[function(require,module,exports){
+},{"../recursive_parser.js":34}],40:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10086,7 +10453,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":41,"./notes.js":42,"./scale.js":45,"./voicing.js":46}],40:[function(require,module,exports){
+},{"./chord_definition.js":42,"./notes.js":43,"./scale.js":46,"./voicing.js":47}],41:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10197,7 +10564,7 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],41:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10482,23 +10849,15 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":30,"../parser/composite_parser.js":31,"./chord.js":40,"./voicing.js":46}],42:[function(require,module,exports){
+},{"../parser/composite.js":31,"../parser/composite_parser.js":32,"./chord.js":41,"./voicing.js":47}],43:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
 * TODO find better names for the functions and the file
 */
 
-// -- diatonic (~0-24) to chromatic notes (0-11) mapping of major scale
-// TODO enable bigger intervals
-var majorNotes = [
-// -- 1-7:
-  0, 2, 4, 5, 7, 9, 11,
-//  -- 8  9  10  11  12  13  14
-  0+12, 2+12, 4+12, 5+12, 7+12, 9+12, 11+12,
-// -- 15
-  0+12+12
-];
+// -- diatonic (0-6) to chromatic notes (0-11) mapping of major scale
+var majorNotes = [0, 2, 4, 5, 7, 9, 11];
 
 var WHITESPACE_REGEX = /\s+/;
 
@@ -10624,6 +10983,27 @@ function findIntervalName(interval, intervalNameMap) {
     return "b" + intervalName.accidentals + (intervalName.number + add);
   }
 
+  // fallback 3: interval matches the sharp version of an interval in intervalNameMap
+  var previousInterval = interval - 1;
+  var previousRelativeInterval = previousInterval % 12;
+  if (typeof intervalNameMap[previousRelativeInterval] !== "undefined") {
+    var intervalName = intervalNameMap[previousRelativeInterval];
+    add = 7 * (Math.floor(previousInterval / 12));
+    return "#" + intervalName.accidentals + (intervalName.number + add);
+  }
+
+  // fallback 4: interval matches an interval of the major scale flat or sharp
+  for (var i = 0; i < majorNotes.length; ++i) {
+    if (majorNotes[i] + 1 == relativeInterval) {
+      add = "b" + 7 * (Math.floor(interval / 12));
+      return i + 1 + add;
+    }
+    if (majorNotes[i] - 1 == relativeInterval) {
+      add = "#" + 7 * (Math.floor(interval / 12));
+      return i + 1 + add;
+    }
+  }
+
   console.error("findIntervalName() could not find name for interval=" + interval + " in scale ", intervalNameMap, " and automatic conversion also failed!");
 
   return "error";
@@ -10691,7 +11071,17 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   if (typeof majorNotes[interval - 1] === "undefined") {
     console.error("parseNote() - I have no mapping for major note: " + interval);
   }
-  var _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
+  var _chromaticInterval;
+
+  if (interval <= 7) {
+    _chromaticInterval = majorNotes[interval - 1];
+  } else {
+    var nullBasedInterval = interval - 1;
+    _chromaticInterval = majorNotes[nullBasedInterval % 7] + Math.floor(nullBasedInterval / 7) * 12;
+  }
+
+  _chromaticInterval += sharps - flats;
+
   _position += _chromaticInterval;
 
   var _voice;
@@ -10871,7 +11261,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],43:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -11044,7 +11434,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":14,"./base.js":39}],44:[function(require,module,exports){
+},{"../fingering.js":14,"./base.js":40}],45:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11275,7 +11665,7 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":33}],45:[function(require,module,exports){
+},{"../recursive_parser.js":34}],46:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11391,7 +11781,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":42}],46:[function(require,module,exports){
+},{"./notes.js":43}],47:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11623,7 +12013,7 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":33}]},{},[27]);
+},{"../recursive_parser.js":34}]},{},[28]);
 </script>
   </body>
 </html>
