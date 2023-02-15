@@ -1,3 +1,4 @@
+.*
 dist
 node_modules
 src/server/daw_input.txt

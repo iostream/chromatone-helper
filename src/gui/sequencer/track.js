@@ -29,6 +29,7 @@ lib.createTrack = function(options) {
   var _audioPresetSelect = _optionsElement.getElementsByClassName('audio-preset')[0];
 
   var _progression;
+  var _events;
   var _chordDefParserResult;
 
   // do not change the parameter names of the first track, for backward compatibility!
@@ -109,7 +110,7 @@ lib.createTrack = function(options) {
       var options = collectInstrumentOptions();
       _visualizationElement.innerHTML = '';
       var instrument = instrumentLib.createInstrument(options, _visualizationElement, _sequencer);
-      instrument.addChordProgressionUsingChordDefinitionComposite(_progression, _chordDefParserResult.getComposite());
+      instrument.addChordProgressionUsingChordDefinitionComposite(_progression, _chordDefParserResult.getComposite(), _events);
       _content.setInstrumentGUI(instrument);
 
       // show/hide the string instrument options before validation
@@ -132,8 +133,8 @@ lib.createTrack = function(options) {
   track.updateContent = function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {
     _chordDefParserResult = parseChordDefinitions(_chordDefElement.value, voicings, scales, rhythmPatterns, arpeggioPatterns);
     _progression = p.createChordProgression(_chordDefParserResult.getList());
-    var events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-    _content.setEvents(events);
+    _events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+    _content.setEvents(_events);
     track.updateVisualization();
   };
 

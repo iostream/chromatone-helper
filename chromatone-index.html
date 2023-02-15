@@ -26,6 +26,10 @@
         <div class="description"></div>
       </div>
 
+      <div class="piano-roll">
+        <canvas name="canvas" />
+      </div>
+
       <div class="chord-group">
         <h2 class="title"></h2>
       </div>
@@ -58,6 +62,7 @@
               <select name="instrument" class="instrument" title="the instrument type to be used to display the progression chords">
                 <option value="chromatic">Chromatone</option>
                 <option value="zebra">Zebra keyboard</option>
+                <option value="piano_roll">Piano Roll</option>
                 <option class="stringed" value="guitar">Guitar</option>
                 <option class="stringed" value="bass_guitar">Bass guitar</option>
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
@@ -119,9 +124,9 @@
 
           <div class="secondary-form-elements">
           <span class="form-element">
-            <span class="form-element">
-              <input type="button" value="▶" name="play" title="play progression"><!--
-              --><input type="button" value="⏸" name="pause" title="pause progression"><!--
+            <span class="form-element transport">
+              <input type="button" value="▶" name="play" title="play progression" class="lockable"><!--
+              --><input type="button" value="⏸" name="pause" title="pause progression" class="lockable"><!--
               --><input type="button" value="⏹" name="stop" title="stop progression"><!--
               --><input type="button" value="<" name="step_backward" title="step backward"><!--
               --><input type="button" value=">" name="step_forward" title="step forward">
@@ -166,6 +171,8 @@
             <div class="tracks"></div>
           </div>
         </form>
+        <div class="result">
+        </div>
         <form class="utility-form">
           <span class="form-element">
             <select name="pocket_knife">
@@ -175,8 +182,6 @@
             </select>
           </span>
         </form>
-        <div class="result">
-        </div>
       </div>
     </section>
 

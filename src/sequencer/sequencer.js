@@ -3,7 +3,6 @@ module.exports = lib;
 
 var trackLib = require('./track.js');
 
-const AudioContext = window.AudioContext || window.webkitAudioContext;
 const audioCtx = require('../audio/instrument.js').getAudioContext();
 
 lib.createSequencer = function() {
@@ -22,8 +21,11 @@ lib.createSequencer = function() {
   var _loop = false;
   var _playIndex = 0;
   var _isPlaying = false;
+  var _isPaused = false;
   var _noteOffs = [];
   var _secondsPerQuarterNote;
+
+  var _onStopCallbacks = [];
 
   function playNextEvent(track) {
     return playEvent(track, true);
@@ -97,7 +99,6 @@ lib.createSequencer = function() {
         track.updateGUI();
       });
     },
-
     panic: function() {
       _tracks.forEach(function(track) {
         var audioInstrument = track.getAudioInstrument();
@@ -105,6 +106,15 @@ lib.createSequencer = function() {
           audioInstrument.allNotesOff();
         }
       });
+    },
+    addStopCallback: function(callback) {
+      _onStopCallbacks.push(callback);
+    },
+    isPlaying: function() {
+      return _isPlaying;
+    },
+    isPaused: function() {
+      return _isPaused;
     }
   };
 
@@ -115,6 +125,7 @@ lib.createSequencer = function() {
       return;
     }
     _isPlaying = true;
+    _isPaused = false;
 
     var velocity = 100;
 
@@ -174,11 +185,9 @@ lib.createSequencer = function() {
         var synth = track.getAudioInstrument();
         if (events.length > 0) {
           events.forEach(function(event) {
-            if (synth) {
-              if (previousEvent) {
-                if (!previousEvent.isRest()) {
-                  synth.allNotesOff(scheduleTimeInSeconds);
-                }
+            if (synth && !track.isMuted()) {
+              if (previousEvent && !previousEvent.isRest()) {
+                synth.allNotesOff(scheduleTimeInSeconds);
               }
               if (!event.isRest()) {
                 event.getPitches().forEach(function(note) {
@@ -233,18 +242,25 @@ lib.createSequencer = function() {
   }
 
   seq.pause = function() {
-    _isPlaying = false;
-    stopTimers();
+    if (_isPlaying) {
+      _isPlaying = false;
+      stopTimers();
+      _isPaused = true;
+    }
   };
 
   seq.stop = function() {
     _isPlaying = false;
+    _isPaused = false;
     _playIndex = 0;
     stopTimers();
     _lastEndInSeconds = 0;
     _tracks.forEach(function(track) {
       track.stop();
       track.updateGUI();
+    });
+    _onStopCallbacks.forEach(function(callback) {
+      callback();
     });
   };
 

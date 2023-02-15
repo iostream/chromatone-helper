@@ -7,10 +7,10 @@ var zebraKeyboardTemplate = document.getElementById("templates").getElementsByCl
 
 lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   function isDisplacedButton(chromatic) {
-    var relativePosition = chromatic % 12;
-    while (relativePosition < 0) {
-      relativePosition += 12;
+    if (chromatic < 0) {
+      chromatic += Math.ceil(Math.abs(chromatic) / 12) * 12;
     }
+    var relativePosition = chromatic % 12;
     return relativePosition === 1 || relativePosition === 3 || relativePosition === 6
       || relativePosition === 8 || relativePosition === 10;
   }

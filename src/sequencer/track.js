@@ -30,6 +30,7 @@ lib.createTrack = function() {
     },
     setEvents: function(events) {
       _events = events;
+      this.resetSeeker();
     },
     resetSeeker: function() {
       _audioEventIndex.reset();
@@ -57,10 +58,27 @@ lib.createTrack = function() {
       var event = _events[_chordIndex][_eventIndex];
       return event;
     },
-    getAudioInstrument: function() {
-      if (_muted) {
+
+    nextEvent: function() {
+      // check whether the current chord/event indexes are still in their array bounds:
+      if (_chordIndex >= _events.length) {
         return false;
       }
+      // does the chord need to be advanced?
+      if ((_eventIndex + 1) >= _events[_chordIndex].length) {
+        // yes
+        ++_chordIndex;
+        _eventIndex = 0;
+        if (_chordIndex >= _events.length) {
+          // there are no more chords
+          return false;
+        }
+      } else {
+        ++_eventIndex;
+      }
+      return _events[_chordIndex][_eventIndex];
+    },
+    getAudioInstrument: function() {
       return _audioInstrument;
     },
     setInstrumentGUI: function(instrumentGUI) {
@@ -73,7 +91,7 @@ lib.createTrack = function() {
     updateGUI: function(updateUsingQueue) {
       // dehighlight previously highlighted pitches
       if (_lastHighlighted && _lastHighlighted[0]) {
-        _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1]);
+        _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1], _lastHighlighted[2]);
         _lastHighlighted = false;
       }
 
@@ -89,9 +107,7 @@ lib.createTrack = function() {
         }
       } else {
         return;
-        event = _guiEventIndex.getEvent();
       }
-      var eventData;
 
       if (!event) {
         return;
@@ -100,8 +116,11 @@ lib.createTrack = function() {
       var chordIndex = _guiEventIndex.getChordIndex();
 
       // highlight current event and remember event indexes, so it can be dehighlighted later
-      _instrumentGUI.highlightEvent(event, chordIndex);
-      _lastHighlighted = [event, chordIndex];
+      _instrumentGUI.highlightEvent(event, chordIndex, _guiEventIndex.getQuarterNotes());
+      _lastHighlighted = [event, chordIndex, _guiEventIndex.getQuarterNotes()];
+    },
+    isMuted: function() {
+      return _muted;
     },
     mute: function(on) {
       if (!_muted && on) {
@@ -168,12 +187,14 @@ lib.createTrack = function() {
       var __chordIndex = 0;
       var __eventIndex = -1; // <- index "within" the current chord
       var __currentEvent = false;
+      var __quarterNotes = 0;
 
     return {
       reset: function() {
         __chordIndex = 0;
         __eventIndex = -1;
         __currentEvent = false;
+        __quarterNotes = 0;
       },
       getEvent: function() {
         return __currentEvent;
@@ -181,7 +202,13 @@ lib.createTrack = function() {
       getChordIndex: function() {
         return __chordIndex;
       },
+      getQuarterNotes: function() {
+        return __quarterNotes;
+      },
       nextEvent: function() {
+        if (__currentEvent) {
+          __quarterNotes += __currentEvent.getLengthInQN();
+        }
         __currentEvent = false;
         // check whether the current chord/event indexes are still in their array bounds:
         if (__chordIndex >= _events.length) {

@@ -22,33 +22,35 @@ lib.createInstrument = function(instrumentName) {
   return INSTRUMENT_FACTORIES[instrumentName]();
 }
 
-/*
- * This is a workaround, because it was not possible to pass an audio context
- * to tiny synth :(
+/**
+ * Shared audio context
  */
-var audioContext = new AudioContext();
-lib.getAudioContext = function() {
-//  return getTinySynth().getAudioContext();
+var audioContext;
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
   return audioContext;
 }
+lib.getAudioContext = getAudioContext;
 
+/**
+ * Shared tiny synth
+ */
 var tinySynth;
 function getTinySynth() {
   if (!tinySynth) {
-    tinySynth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20});
+    tinySynth = new WebAudioTinySynth({quality: 1, useReverb: 1, voices: 20, internalContext: 0, graph: 0});
+    tinySynth.setAudioContext(getAudioContext());
   }
   return tinySynth;
 }
 
 var lastTinySynthChannel = -1;
-/**
- * XXX When there will be many tracks (and hence many audio instruments), then use one
- *     tiny synth for many tracks using the channels! ... does not work!! D:
- */
+
 function createTinySynthInstrument() {
-  var _synth = new WebAudioTinySynth({quality: 2, useReverb: 1, voices: 20, internalcontext: 0});
-  _synth.setAudioContext(audioContext);
-  var _channel = 0;
+  var _synth = getTinySynth();
+  var _channel = ++lastTinySynthChannel;
   var _noteOns = [];
 
   var instrument = {
@@ -71,7 +73,7 @@ function createTinySynthInstrument() {
       });
     },
     setPreset: function(index) {
-      _synth.setTimbre(0, _channel, _synth.program[index].p);
+      _synth.setProgram(_channel, index);
     }
   };
 

@@ -4,7 +4,7 @@ module.exports = lib;
 var keyboard = require("./keyboard.js");
 var zebra = require("./zebra.js");
 var stringInstrument = require("./string_instrument.js");
-// var pianoRollLib = require("./piano_roll.js");
+var pianoRollLib = require("./piano_roll.js");
 
 lib.createInstrumentFactory = function(options) {
   var type = options.type || 'chromatic';
@@ -24,13 +24,13 @@ lib.createInstrumentFactory = function(options) {
         }
       };
       break;
-    // case 'piano_roll':
-    //   return {
-    //     create: function(lowestPosition, highestPosition) {
-    //       return pianoRollLib.createPianoRoll(lowestPosition, highestPosition);
-    //     }
-    //   };
-    //   break;
+    case 'piano_roll':
+      return {
+        create: function(lowestPosition, highestPosition, lengthInQN) {
+          return pianoRollLib.createPianoRoll(lowestPosition, highestPosition, lengthInQN);
+        }
+      };
+      break;
     default:
       return {
         create: function(lowestPosition, highestPosition) {

@@ -6,6 +6,10 @@
 body {
   background-color: var(--main-background-color);
 }
+input[type="button"] {
+  line-height: 7pt;
+  height: 13pt;
+}
 .form textarea {
   height: 50pt;
 }
@@ -79,11 +83,8 @@ section#templates {
   background-color: yellow;
   color: #354b45;
 }
-.chromatic.keyboard {
-  margin-bottom: 8pt;
-}
 .chromatic.keyboard .description {
-margin-top: 4pt;
+  margin-top: 4pt;
 }
 .chromatic.keyboard .diff {
   font-size: 7px;
@@ -146,7 +147,6 @@ margin-top: 4pt;
   display: inline-block;
   vertical-align: top;
   padding: 1pt;
-  padding-right: 3pt;
   border: outset 2pt;
   background-color: var(--form-element-background-color);
 }
@@ -157,14 +157,16 @@ margin-top: 4pt;
 .form-element input[type="range"] {
   max-width: 100%;
 }
-.form-element input[name="loop"],
-.form-element input[name="play"],
-.form-element input[name="pause"],
-.form-element input[name="stop"] {
+.transport input[type="button"] {
   display: inline-block;
   padding: 0;
   margin: 0;
-  width: calc(33.33% - 1pt)
+  width: calc(33.33% - 1pt);
+}
+.transport input.lockable:active,
+.transport input.lockable.active {
+	position: relative;
+	top: 2px;
 }
 .form-element input[name="loop"] {
   margin-right: 5pt;
@@ -182,13 +184,14 @@ margin-top: 4pt;
 .form-element input[name="bpm"] {
   width: calc(100% - 20pt - 20px);
 }
-
 .form-element label {
   display: inline-block;
 }
 .form-element textarea {
   display: block;
   width: 100%;
+  padding: 0;
+  box-sizing: border-box;
 }
 .form-element .messages .error {
   color: red;
@@ -206,4 +209,10 @@ margin-top: 4pt;
 }
 .hidden {
   display: none;
+}
+.visualization > div, .visualization > span  {
+  margin-bottom: 2px;
+}
+.track .visualization {
+  margin: 5px 0 10px 0;
 }

@@ -4,16 +4,8 @@ module.exports = lib;
 * TODO find better names for the functions and the file
 */
 
-// -- diatonic (~0-24) to chromatic notes (0-11) mapping of major scale
-// TODO enable bigger intervals
-var majorNotes = [
-// -- 1-7:
-  0, 2, 4, 5, 7, 9, 11,
-//  -- 8  9  10  11  12  13  14
-  0+12, 2+12, 4+12, 5+12, 7+12, 9+12, 11+12,
-// -- 15
-  0+12+12
-];
+// -- diatonic (0-6) to chromatic notes (0-11) mapping of major scale
+var majorNotes = [0, 2, 4, 5, 7, 9, 11];
 
 var WHITESPACE_REGEX = /\s+/;
 
@@ -230,11 +222,13 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
   var _chromaticInterval;
 
   if (interval <= 7) {
-    _chromaticInterval = majorNotes[interval - 1] + sharps - flats;
+    _chromaticInterval = majorNotes[interval - 1];
   } else {
     var nullBasedInterval = interval - 1;
-    _chromaticInterval = majorNotes[nullBasedInterval % 7] + Math.floor(nullBasedInterval / 7) * 7;
+    _chromaticInterval = majorNotes[nullBasedInterval % 7] + Math.floor(nullBasedInterval / 7) * 12;
   }
+
+  _chromaticInterval += sharps - flats;
 
   _position += _chromaticInterval;
 
