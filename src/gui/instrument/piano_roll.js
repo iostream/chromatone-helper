@@ -30,7 +30,7 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
   var headerHeight = 1.5 * semitoneHeight + 0.5;
 
   var width = zebraWidth + lengthInQN * 2 * eightNoteWidth;
-  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight;
+  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
 
   var scale = 1.5;
   canvas.width = width * scale;
@@ -67,7 +67,7 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
     y += semitoneHeight;
   }
   // horizontal line
-  drawLine(x, y, width, y + semitoneHeight);
+  drawLine(x, y, width, y);
 
   _ctx.fillStyle = "black";
 
