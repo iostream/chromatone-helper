@@ -39,6 +39,7 @@ lib.createTransport = function(sequencer) {
             _sequencer.start();
           }
           updatePlayState();
+          event.preventDefault();
         }
       });
       controls.play.addEventListener("click", function() {
