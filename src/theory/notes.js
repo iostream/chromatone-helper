@@ -216,9 +216,6 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
     };
   }
 
-  if (typeof majorNotes[interval - 1] === "undefined") {
-    console.error("parseNote() - I have no mapping for major note: " + interval);
-  }
   var _chromaticInterval;
 
   if (interval <= 7) {
