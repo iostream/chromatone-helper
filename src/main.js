@@ -43,7 +43,7 @@ function updateExports(scales, options) {
   }
 
   if (options.uploadToDAW) {
-    serverClient.uploadToDAW(sequencer, chords, scales, buildGeneratorUrl(options.serializedForm));
+    serverClient.uploadToDAW(sequencer, buildGeneratorUrl(options.serializedForm));
   }
 
   if (options.uploadMidi || options.generateMidi) {

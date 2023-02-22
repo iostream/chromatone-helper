@@ -8,23 +8,26 @@ const host = require("./host.js");
  * many lines each containing of:
  * <iPosOut> <endTime> <pitch>
  */
-function serializeProgressionForDAW(chordEvents, chords, scales, generatorUrl) {
+function serializeProgressionForDAW(tracks, generatorUrl) {
   var result = generatorUrl + "\n";
-  var chordIPosOut = 0;
-  // for each chord definition...
-  chordEvents.forEach(function(events) {
-    // for each event...
-    events.forEach(function(event) {
-      var eventLengthInQN = event.getLengthInQN();
-      if (!event.isRest()) {
-        var pitchEndTime = chordIPosOut + eventLengthInQN;
-        event.getPitches().forEach(function(note) {
-          var pitch = note.getPosition();
-          result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
-        });
-      }
+  // for each track
+  tracks.forEach(track => {
+    var chordIPosOut = 0;
+    // for each chord definition...
+    track.getEvents().forEach(function(events) {
+      // for each event...
+      events.forEach(function(event) {
+        var eventLengthInQN = event.getLengthInQN();
+        if (!event.isRest()) {
+          var pitchEndTime = chordIPosOut + eventLengthInQN;
+          event.getPitches().forEach(function(note) {
+            var pitch = note.getPosition();
+            result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
+          });
+        }
 
-      chordIPosOut += eventLengthInQN;
+        chordIPosOut += eventLengthInQN;
+      });
     });
   });
 
@@ -47,8 +50,8 @@ function upload(path, text) {
   request.send(text);
 }
 
-lib.uploadToDAW = function(events, chords, scales, generatorUrl) {
-  var text = serializeProgressionForDAW(events, chords, scales, generatorUrl);
+lib.uploadToDAW = function(sequencer, generatorUrl) {
+  var text = serializeProgressionForDAW(sequencer.getTracks(), generatorUrl);
   if (!text) {
     console.error("Skipping DAW upload, because the serialization into the DAW format did not work.");
     return;
