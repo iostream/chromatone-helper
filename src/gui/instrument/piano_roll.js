@@ -27,7 +27,7 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
   var semitoneHeight = 20 * 0.4;
   var thinLine = 0.5;
   var thickLine = 1;
-  var headerHeight = 1.5 * semitoneHeight + 0.5;
+  var headerHeight = 1.5 * semitoneHeight;
 
   var width = zebraWidth + lengthInQN * 2 * eightNoteWidth;
   var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
@@ -102,7 +102,7 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
           _styles.event.normal(x, y, width, semitoneHeight);
         }
         // TODO add naming
-        // _ctx.fillText("b3", x, y);
+        // _ctx.fillText(pitch, x, y);
       });
     }
   }
@@ -169,11 +169,10 @@ function createStyles(context) {
   return {
     event: {
       normal: function(x, y, width, height) {
-        _ctx.strokeStyle = 'orange';
+        _ctx.strokeStyle = 'black';
         _ctx.fillStyle = 'blue';
-        //_ctx.fillRect(x + thinLine, y + thinLine, width - thinLine * 2, height - thinLine * 2);
         _ctx.fillRect(x, y, width, height);
-        // _ctx.strokeRect(x, y, width, height);
+        _ctx.strokeRect(x, y, width, height);
       },
       highlighted: function(x, y, width, height) {
         var grad1 = context.createLinearGradient(x, y, x + width, y);
@@ -182,7 +181,7 @@ function createStyles(context) {
         _ctx.strokeStyle = 'green';
         _ctx.fillStyle = grad1;
         _ctx.fillRect(x, y, width, height);
-        // _ctx.strokeRect(x, y, width, height);
+        _ctx.strokeRect(x, y, width, height);
       }
     }
   }
