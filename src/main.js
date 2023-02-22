@@ -26,26 +26,36 @@ formLib.addForm(
     sequencerGui.updateByParameters(parameters);
   },
   function onSubmit(scales, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-    
-    sequencerGui.updateTracks(scales, voicings, rhythmPatterns, arpeggioPatterns);
-    sequencer.updateGUI();
-
-    if (options.uploadToDAW) {
-      serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-    }
-
-    if (options.uploadMidi || options.generateMidi) {
-      var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-      if (options.generateMidi) {
-        downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
-      }
-      if (options.uploadMidi) {
-        serverClient.uploadMidi(midiWriter.dataUri());
-      }
-    }
+    updateSequencer(scales, voicings, rhythmPatterns, arpeggioPatterns);
+    updateExports(scales, options);
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );
+
+function updateSequencer(scales, voicings, rhythmPatterns, arpeggioPatterns) {
+  sequencerGui.updateTracks(scales, voicings, rhythmPatterns, arpeggioPatterns);
+  sequencer.updateGUI();
+}
+
+function updateExports(scales, options) {
+  if (!options.uploadToDAW && !options.uploadMidi && !options.generateMidi) {
+    return;
+  }
+
+  if (options.uploadToDAW) {
+    serverClient.uploadToDAW(sequencer, chords, scales, buildGeneratorUrl(options.serializedForm));
+  }
+
+  if (options.uploadMidi || options.generateMidi) {
+    var midiWriter = midi.createMidi(sequencer, scales, buildGeneratorUrl(options.serializedForm));
+    if (options.generateMidi) {
+      downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
+    }
+    if (options.uploadMidi) {
+      serverClient.uploadMidi(midiWriter.dataUri());
+    }
+  }
+}
 
 function buildGeneratorUrl(serializedForm) {
   var url = new URL("#" + serializedForm, document.location.href);

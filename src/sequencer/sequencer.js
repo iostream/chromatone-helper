@@ -1,9 +1,8 @@
 var lib = {};
 module.exports = lib;
 
+const { getAudioContext } = require('../audio/instrument.js');
 var trackLib = require('./track.js');
-
-const audioCtx = require('../audio/instrument.js').getAudioContext();
 
 lib.createSequencer = function() {
   var _pollDelayInMS = 25;
@@ -59,6 +58,9 @@ lib.createSequencer = function() {
         track.resetSeeker();
       });
       seq.panic();
+    },
+    getBpm: function() {
+      return _secondsPerQuarterNote * 60;
     },
     /**
      * TODO: chord index
@@ -121,6 +123,7 @@ lib.createSequencer = function() {
   var _lastEndInSeconds = 0;
   var _trackGUIUpdateTimes; // <- queue, in order to update GUI synchronized with the audio thread
   seq.start = function() {
+    var audioCtx = getAudioContext();
     if (_isPlaying) {
       return;
     }

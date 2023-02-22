@@ -32,6 +32,9 @@ lib.createTrack = function() {
       _events = events;
       this.resetSeeker();
     },
+    getEvents: function() {
+      return _events;
+    },
     resetSeeker: function() {
       _audioEventIndex.reset();
       _seekPosMs = 0;
