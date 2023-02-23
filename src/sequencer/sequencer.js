@@ -60,7 +60,7 @@ lib.createSequencer = function() {
       seq.panic();
     },
     getBpm: function() {
-      return _secondsPerQuarterNote * 60;
+      return 60 / _secondsPerQuarterNote;
     },
     /**
      * TODO: chord index

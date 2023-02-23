@@ -19,32 +19,28 @@ lib.createMidi = function(sequencer, scales, generatorUrl) {
   sequencer.getTracks().forEach(track => {
     var midiTrack = new MidiWriter.Track();
     midiTracks.push(midiTrack);
-    midiTrack.setTempo(sequencer.getBpm());
     if (midiTracks.length == 1) {
       midiTrack.addTrackName(buildScalesDescription(scales) + " Generated via: " + generatorUrl);
+      midiTrack.setTempo(sequencer.getBpm());
+      midiTrack.setTimeSignature(4, 4);
     }
 
-    var restingTime = 0;
+    var qnPos = 0;
     track.getEvents().forEach(events => {
+      // TODO can we bring back chord names in MIDI export?
+      // track.addMarker(chord.getName());
       events.forEach(function(event) {
-        // Tn : where n is an explicit number of ticks (T128 = 1 beat)
-        var eventDuration = "T" + event.getLengthInQN() * 128;
-        if (event.isRest()) {
-          restingTime += event.getLengthInQN();
-        } else {
-          var pitches = event.getPitches().map(function(note) {
-            return note.getPosition();
-          });
-          var noteData = {pitch: pitches, duration: eventDuration};
-          if (restingTime > 0) {
-            // Tn : where n is an explicit number of ticks (T128 = 1 beat)
-            noteData.wait = "T" + restingTime * 128;
-            restingTime = 0;
-          }
+        if (!event.isRest()) {
+          var pitches = event.getPitches().map(note => note.getPosition());
+          var eventDuration = "T" + event.getLengthInQN() * 128;
+          var noteData = {
+            startTick: qnPos * 128,
+            pitch: pitches,
+            duration: eventDuration
+          };
           midiTrack.addEvent(new MidiWriter.NoteEvent(noteData));
         }
-        // TODO can we bring back chord names in MIDI export?
-        // track.addMarker(chord.getName());
+        qnPos += event.getLengthInQN();
       });
     });
   });
