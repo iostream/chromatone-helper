@@ -30,6 +30,7 @@ lib.createTrack = function() {
     },
     setEvents: function(events) {
       _events = events;
+      _lastHighlighted = false;
       this.resetSeeker();
     },
     getEvents: function() {
