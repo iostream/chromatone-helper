@@ -167,8 +167,8 @@ function createState(notes) {
       this.voicingIndex = (this.voicingIndex + 1) % _notes.length;
       var foundNoteIndex;
       // find the oressponding values for this.pitchIndex and this.noteIndex
-      this.pitchIndex = this.voicingIndexesByPitchIndex.findIndex(function(voicingIndexes) {
-          var noteIndex = voicingIndexes.findIndex(function(voicingIndex) {
+      this.pitchIndex = this.voicingIndexesByPitchIndex.findIndex(voicingIndexes => {
+          var noteIndex = voicingIndexes.findIndex(voicingIndex => {
             return voicingIndex === this.voicingIndex;
           });
           if (noteIndex !== -1) {
@@ -197,7 +197,7 @@ function createState(notes) {
       } else {
         // find the first note of the needed pitch which comes first after the last used note
         var smallestDiff = -1, bestNoteIndex;
-        voicingIndexes.forEach(function(voicingIndex, noteIndex) {
+        voicingIndexes.forEach((voicingIndex, noteIndex) => {
           var diff;
           if (this.voicingIndex > voicingIndex) {
             diff = (voicingIndex + _notes.length) - this.voicingIndex;
