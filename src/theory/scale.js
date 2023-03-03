@@ -68,14 +68,13 @@ lib.createScale = function(definition) {
       }
 
       // set the new chromatic roots after transposing, so they are not affected by it
-      rootNote = this.getRootNote();
+      var rootNote = this.getRootNote();
       rootNote.setRoot(true);
 
       // rewrite the chromatic intervals, so they make sense again
       var rootPosition = _notes[0].getPosition();
       _notes.forEach(function (note) {
         note.setChromaticInterval(note.getPosition() - rootPosition);
-        previousPosition = note.getPosition();
       });
 
       // rewrite the positions, so the root has the same position like before
