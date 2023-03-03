@@ -18,7 +18,7 @@ function handleUrlAction(value) {
       newUrlBase = 'http://localhost:3042/';
       break;
     case 'www':
-      newUrlBase = 'https://iostream.github.io/chromatone-helper/v2-dev/';
+      newUrlBase = 'https://iostream.github.io/chromatone-helper/multi-track-sequencer/';
       break;
     case 'file':
       newUrlBase = 'file:///home/iostream/chromatone-helper/chromatone-helper/chromatone-index.html';
