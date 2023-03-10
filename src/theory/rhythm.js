@@ -227,3 +227,5 @@ lib.parseRhythmPatterns = function(multilineString) {
   }
   return map;
 };
+
+lib.parseRhythmPattern = parseRhythmPattern;

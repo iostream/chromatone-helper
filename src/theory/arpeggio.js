@@ -106,6 +106,8 @@ lib.parseArpeggioPatterns = function(multilineString) {
   return patterns;
 };
 
+lib.parseArpeggioPattern = parseArpeggioPattern;
+
 function createArpeggioPattern(internalPitchIterators) {
   var _internalPitchIterators = internalPitchIterators;
   var pattern = {

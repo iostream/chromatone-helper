@@ -228,3 +228,5 @@ lib.parseVoicings = function(voicingsString) {
 lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
+
+lib.parseVoicing = parseVoicing;

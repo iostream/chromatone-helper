@@ -14,6 +14,7 @@ var BIG_CHARACTER_REGEX_STR = '[A-Z]';//;
 var VARIABLE_REGEX_STR = '[A-Za-z_][A-Za-z_\\d]*';
 var VARIABLE_DECLARATION_SUFFIX = ':';
 var PURE_VARIABLE_DECLARATION_PREFIX = '\\$';
+var EXPRESSION_REGEX_STR = '\\([^\)]+\\)';
 var LINE_COMMENT_STR = "#";
 
 // Next possible token states:
@@ -103,7 +104,7 @@ function createState(thingRegex) {
   };
   allStates[SHORT_CHARACTER_OPTION].nestedStates = allStates[SHORT_CHARACTER_OPTION].notNestedStates.concat([CLOSED_BRACKET]);
   allStates[LONG_OPTION] = {
-    regexp: new RegExp('^(' + VARIABLE_REGEX_STR + ')([+-]?=)(' + VARIABLE_REGEX_STR + '|' + NUMBER_REGEX_STR + ')(!?)'),
+    regexp: new RegExp('^(' + VARIABLE_REGEX_STR + ')([+-]?=)(' + VARIABLE_REGEX_STR + '|' + NUMBER_REGEX_STR + '|' + EXPRESSION_REGEX_STR + ')(!?)'),
     notNestedStates: [WHITESPACE],
     nestedStates: [WHITESPACE, CLOSED_BRACKET],
     getNextStates: function () {

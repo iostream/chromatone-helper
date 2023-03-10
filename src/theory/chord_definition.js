@@ -5,8 +5,9 @@ var voicingLib = require("./voicing.js");
 var chordLib = require("./chord.js");
 var compositeLib = require("../parser/composite.js");
 var compositeParser = require("../parser/composite_parser.js");
-
-var REGEX_COUNT_SCALE = /\*/g;
+const { parseVoicing } = require("./voicing.js");
+const { parseRhythmPattern } = require("./rhythm.js");
+const { parseArpeggioPattern } = require("./arpeggio.js");
 
 /**
  * TODO make this a clean method again (which needs some f)
@@ -119,12 +120,39 @@ lib.parseChordDefinitions = function(multilineString, voicings, scales, rhythmPa
   };
 }
 
-function resolveVariable(variableName, map, type, messages) {
-  if (typeof(map[variableName]) === 'undefined') {
-    messages.addWarning("Ignoring unknown " + type + " reference: " + variableName);
-    return false;
+function resolveVariableOrParseSubject(variableNameOrSubject, map, type, messages) {
+  if (variableNameOrSubject.length > 1 && variableNameOrSubject[0] === '(' 
+    && variableNameOrSubject[variableNameOrSubject.length - 1] == ')'
+  ) {
+    // parse subject
+    let value = variableNameOrSubject.substring(1, variableNameOrSubject.length - 1);
+    let subject;
+    switch (type) {
+      case 'voicing':
+        subject = parseVoicing(value);
+        break;
+      case 'rhythm pattern':
+        subject = parseRhythmPattern(value);
+        break;
+      case 'arpeggio pattern':
+        subject = parseArpeggioPattern(value);
+        break;
+      default:
+        break;
+    }
+    if (!subject) {
+      messages.addWarning("Ignoring unknown " + type + " expression: " + variableNameOrSubject);
+      return false;
+    }
+    return subject;
+  } else {
+    // resolve variable
+    if (typeof(map[variableNameOrSubject]) === 'undefined') {
+      messages.addWarning("Ignoring unknown " + type + " reference: " + variableNameOrSubject);
+      return false;
+    }
+    return map[variableNameOrSubject];
   }
-  return map[variableName];
 }
 
 function resolveScale(scaleIndex, scales, messages) {
@@ -199,15 +227,15 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
             _scale = alterSubject(_scale, subject, operator, "scale", _messages);
             break;
           case 'V':
-            var subject = resolveVariable(value, _voicings, "voicing", _messages);
+            var subject = resolveVariableOrParseSubject(value, _voicings, "voicing", _messages);
             _voicing = alterSubject(_voicing, subject, operator, "voicing", _messages);
             break;
           case 'R':
-            var subject = resolveVariable(value, rhythmPatterns, "rhythm pattern", _messages);
+            var subject = resolveVariableOrParseSubject(value, rhythmPatterns, "rhythm pattern", _messages);
             _rhythmPattern = alterSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
             break;
           case 'A':
-            var subject = resolveVariable(value, _arpeggioPatterns, "arpeggio pattern", _messages);
+            var subject = resolveVariableOrParseSubject(value, _arpeggioPatterns, "arpeggio pattern", _messages);
             _arpeggioPattern = alterSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
             break;
           default:
