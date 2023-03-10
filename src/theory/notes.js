@@ -21,6 +21,9 @@ var defaultRegister = 4;
  * Returns the chromatic position of the tonic of the key.
  */
 function parseKeyPosition(keyName) {
+  if (keyName === '') {
+    return 60;
+  }
   var register = defaultRegister;
   var pos = 0;
   var letter = keyName[pos].toLowerCase();
