@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>Chromatone Helper 🧙 by iostream 2018-2023</title>
@@ -400,7 +400,7 @@ section#templates {
       </div>
 
       <div class="piano-roll">
-        <canvas name="canvas" />
+        <canvas></canvas>
       </div>
 
       <div class="chord-group">
@@ -420,9 +420,17 @@ section#templates {
             <div class="messages"></div>
           </span>
           <span class="form-element">
-            <span class="form-element">
+            <span class="form-element hidden">
               <label for="instrument">audio</label>
-              <select name="audio_preset" class="audio-preset" value="" title="select the (fm) instrument to be used when using the play button"></select>
+              <select name="audio" class="audio" value="" title="select the audio instrument implementation to be used when using the play button"></select>
+            </span>
+            <span class="form-element">
+              <label for="instrument">audio preset</label>
+              <select name="audio_preset" class="audio-preset" value="" title="Select an audio preset. Available presets depend on the selected audio instrument implementation."></select>
+            </span>
+            <span class="form-element">
+              <label for="vol">Volume</label>
+              <input type="range" min="0" max="100" value="100" name="vol" title="set the audio volume of the track">
             </span>
             <span class="form-element">
               <label for="mute">mute</label>
@@ -435,7 +443,7 @@ section#templates {
               <select name="instrument" class="instrument" title="the instrument type to be used to display the progression chords">
                 <option value="chromatic">Chromatone</option>
                 <option value="zebra">Zebra keyboard</option>
-                <option value="piano_roll">Piano Roll</option>
+                <option class="world" value="piano_roll">Piano Roll</option>
                 <option class="stringed" value="guitar">Guitar</option>
                 <option class="stringed" value="bass_guitar">Bass guitar</option>
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
@@ -448,11 +456,11 @@ section#templates {
             <span class="stringed-options hidden">
               <span class="form-element">
                 <label for="all_registers">all registers</label>
-                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
+                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord">
                 <label for="all_intervals">all intervals</label>
-                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
+                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch">
                 <label for="chord_mode">chord mode</label>
-                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown."></input>
+                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown.">
               </span>
             </span>
           </span>
@@ -509,8 +517,8 @@ section#templates {
               </span>
             </span>
             <span class="form-element">
-            <input type="range" min="1" max="350" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
-            <input type="text" disabled="disabled" name="bpm_output" title="the current speed in beat per minutes">
+            <input type="range" min="1" max="350" value="120" name="bpm" title="sets the speed of the playback in beat per minutes">
+            <input type="text" disabled name="bpm_output" title="the current speed in beat per minutes">
           </span>
           </div>
           <div class="secondary-form-elements">
@@ -716,8 +724,6 @@ function fromByteArray (uint8) {
 }
 
 },{}],2:[function(require,module,exports){
-
-},{}],3:[function(require,module,exports){
 (function (Buffer){(function (){
 /*!
  * The buffer module from node.js, for the browser.
@@ -2498,269 +2504,7 @@ function numberIsNaN (obj) {
 }
 
 }).call(this)}).call(this,require("buffer").Buffer)
-},{"base64-js":1,"buffer":3,"ieee754":5}],4:[function(require,module,exports){
-// get successful control from form and assemble into object
-// http://www.w3.org/TR/html401/interact/forms.html#h-17.13.2
-
-// types which indicate a submit action and are not successful controls
-// these will be ignored
-var k_r_submitter = /^(?:submit|button|image|reset|file)$/i;
-
-// node names which could be successful controls
-var k_r_success_contrls = /^(?:input|select|textarea|keygen)/i;
-
-// Matches bracket notation.
-var brackets = /(\[[^\[\]]*\])/g;
-
-// serializes form fields
-// @param form MUST be an HTMLForm element
-// @param options is an optional argument to configure the serialization. Default output
-// with no options specified is a url encoded string
-//    - hash: [true | false] Configure the output type. If true, the output will
-//    be a js object.
-//    - serializer: [function] Optional serializer function to override the default one.
-//    The function takes 3 arguments (result, key, value) and should return new result
-//    hash and url encoded str serializers are provided with this module
-//    - disabled: [true | false]. If true serialize disabled fields.
-//    - empty: [true | false]. If true serialize empty fields
-function serialize(form, options) {
-    if (typeof options != 'object') {
-        options = { hash: !!options };
-    }
-    else if (options.hash === undefined) {
-        options.hash = true;
-    }
-
-    var result = (options.hash) ? {} : '';
-    var serializer = options.serializer || ((options.hash) ? hash_serializer : str_serialize);
-
-    var elements = form && form.elements ? form.elements : [];
-
-    //Object store each radio and set if it's empty or not
-    var radio_store = Object.create(null);
-
-    for (var i=0 ; i<elements.length ; ++i) {
-        var element = elements[i];
-
-        // ingore disabled fields
-        if ((!options.disabled && element.disabled) || !element.name) {
-            continue;
-        }
-        // ignore anyhting that is not considered a success field
-        if (!k_r_success_contrls.test(element.nodeName) ||
-            k_r_submitter.test(element.type)) {
-            continue;
-        }
-
-        var key = element.name;
-        var val = element.value;
-
-        // we can't just use element.value for checkboxes cause some browsers lie to us
-        // they say "on" for value when the box isn't checked
-        if ((element.type === 'checkbox' || element.type === 'radio') && !element.checked) {
-            val = undefined;
-        }
-
-        // If we want empty elements
-        if (options.empty) {
-            // for checkbox
-            if (element.type === 'checkbox' && !element.checked) {
-                val = '';
-            }
-
-            // for radio
-            if (element.type === 'radio') {
-                if (!radio_store[element.name] && !element.checked) {
-                    radio_store[element.name] = false;
-                }
-                else if (element.checked) {
-                    radio_store[element.name] = true;
-                }
-            }
-
-            // if options empty is true, continue only if its radio
-            if (val == undefined && element.type == 'radio') {
-                continue;
-            }
-        }
-        else {
-            // value-less fields are ignored unless options.empty is true
-            if (!val) {
-                continue;
-            }
-        }
-
-        // multi select boxes
-        if (element.type === 'select-multiple') {
-            val = [];
-
-            var selectOptions = element.options;
-            var isSelectedOptions = false;
-            for (var j=0 ; j<selectOptions.length ; ++j) {
-                var option = selectOptions[j];
-                var allowedEmpty = options.empty && !option.value;
-                var hasValue = (option.value || allowedEmpty);
-                if (option.selected && hasValue) {
-                    isSelectedOptions = true;
-
-                    // If using a hash serializer be sure to add the
-                    // correct notation for an array in the multi-select
-                    // context. Here the name attribute on the select element
-                    // might be missing the trailing bracket pair. Both names
-                    // "foo" and "foo[]" should be arrays.
-                    if (options.hash && key.slice(key.length - 2) !== '[]') {
-                        result = serializer(result, key + '[]', option.value);
-                    }
-                    else {
-                        result = serializer(result, key, option.value);
-                    }
-                }
-            }
-
-            // Serialize if no selected options and options.empty is true
-            if (!isSelectedOptions && options.empty) {
-                result = serializer(result, key, '');
-            }
-
-            continue;
-        }
-
-        result = serializer(result, key, val);
-    }
-
-    // Check for all empty radio buttons and serialize them with key=""
-    if (options.empty) {
-        for (var key in radio_store) {
-            if (!radio_store[key]) {
-                result = serializer(result, key, '');
-            }
-        }
-    }
-
-    return result;
-}
-
-function parse_keys(string) {
-    var keys = [];
-    var prefix = /^([^\[\]]*)/;
-    var children = new RegExp(brackets);
-    var match = prefix.exec(string);
-
-    if (match[1]) {
-        keys.push(match[1]);
-    }
-
-    while ((match = children.exec(string)) !== null) {
-        keys.push(match[1]);
-    }
-
-    return keys;
-}
-
-function hash_assign(result, keys, value) {
-    if (keys.length === 0) {
-        result = value;
-        return result;
-    }
-
-    var key = keys.shift();
-    var between = key.match(/^\[(.+?)\]$/);
-
-    if (key === '[]') {
-        result = result || [];
-
-        if (Array.isArray(result)) {
-            result.push(hash_assign(null, keys, value));
-        }
-        else {
-            // This might be the result of bad name attributes like "[][foo]",
-            // in this case the original `result` object will already be
-            // assigned to an object literal. Rather than coerce the object to
-            // an array, or cause an exception the attribute "_values" is
-            // assigned as an array.
-            result._values = result._values || [];
-            result._values.push(hash_assign(null, keys, value));
-        }
-
-        return result;
-    }
-
-    // Key is an attribute name and can be assigned directly.
-    if (!between) {
-        result[key] = hash_assign(result[key], keys, value);
-    }
-    else {
-        var string = between[1];
-        // +var converts the variable into a number
-        // better than parseInt because it doesn't truncate away trailing
-        // letters and actually fails if whole thing is not a number
-        var index = +string;
-
-        // If the characters between the brackets is not a number it is an
-        // attribute name and can be assigned directly.
-        if (isNaN(index)) {
-            result = result || {};
-            result[string] = hash_assign(result[string], keys, value);
-        }
-        else {
-            result = result || [];
-            result[index] = hash_assign(result[index], keys, value);
-        }
-    }
-
-    return result;
-}
-
-// Object/hash encoding serializer.
-function hash_serializer(result, key, value) {
-    var matches = key.match(brackets);
-
-    // Has brackets? Use the recursive assignment function to walk the keys,
-    // construct any missing objects in the result tree and make the assignment
-    // at the end of the chain.
-    if (matches) {
-        var keys = parse_keys(key);
-        hash_assign(result, keys, value);
-    }
-    else {
-        // Non bracket notation can make assignments directly.
-        var existing = result[key];
-
-        // If the value has been assigned already (for instance when a radio and
-        // a checkbox have the same name attribute) convert the previous value
-        // into an array before pushing into it.
-        //
-        // NOTE: If this requirement were removed all hash creation and
-        // assignment could go through `hash_assign`.
-        if (existing) {
-            if (!Array.isArray(existing)) {
-                result[key] = [ existing ];
-            }
-
-            result[key].push(value);
-        }
-        else {
-            result[key] = value;
-        }
-    }
-
-    return result;
-}
-
-// urlform encoding serializer
-function str_serialize(result, key, value) {
-    // encode newlines as \r\n cause the html spec says so
-    value = value.replace(/(\r)?\n/g, '\r\n');
-    value = encodeURIComponent(value);
-
-    // spaces should be '+' rather than '%20'.
-    value = value.replace(/%20/g, '+');
-    return result + (result ? '&' : '') + encodeURIComponent(key) + '=' + value;
-}
-
-module.exports = serialize;
-
-},{}],5:[function(require,module,exports){
+},{"base64-js":1,"buffer":2,"ieee754":3}],3:[function(require,module,exports){
 /*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
@@ -2847,7 +2591,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],6:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 (function (process,Buffer){(function (){
 'use strict';
 
@@ -2858,7 +2602,7 @@ var tonalMidi = require('tonal-midi');
  * @return {Constants}
  */
 var Constants = {
-  VERSION: require('../package.json').version,
+  VERSION: '2.1.4',
   HEADER_CHUNK_TYPE: [0x4d, 0x54, 0x68, 0x64],
   // Mthd
   HEADER_CHUNK_LENGTH: [0x00, 0x00, 0x00, 0x06],
@@ -2886,8 +2630,6 @@ var Constants = {
   META_END_OF_TRACK_ID: [0x2F, 0x00],
   CONTROLLER_CHANGE_STATUS: 0xB0,
   // includes channel number (0)
-  PROGRAM_CHANGE_STATUS: 0xC0,
-  // includes channel number (0)
   PITCH_BEND_STATUS: 0xE0 // includes channel number (0)
 
 };
@@ -2895,17 +2637,59 @@ var Constants = {
 function _typeof(obj) {
   "@babel/helpers - typeof";
 
-  if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
-    _typeof = function (obj) {
-      return typeof obj;
-    };
-  } else {
-    _typeof = function (obj) {
-      return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-    };
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function (obj) {
+    return typeof obj;
+  } : function (obj) {
+    return obj && "function" == typeof Symbol && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+  }, _typeof(obj);
+}
+
+function _wrapRegExp() {
+  _wrapRegExp = function (re, groups) {
+    return new BabelRegExp(re, void 0, groups);
+  };
+
+  var _super = RegExp.prototype,
+      _groups = new WeakMap();
+
+  function BabelRegExp(re, flags, groups) {
+    var _this = new RegExp(re, flags);
+
+    return _groups.set(_this, groups || _groups.get(re)), _setPrototypeOf(_this, BabelRegExp.prototype);
   }
 
-  return _typeof(obj);
+  function buildGroups(result, re) {
+    var g = _groups.get(re);
+
+    return Object.keys(g).reduce(function (groups, name) {
+      return groups[name] = result[g[name]], groups;
+    }, Object.create(null));
+  }
+
+  return _inherits(BabelRegExp, RegExp), BabelRegExp.prototype.exec = function (str) {
+    var result = _super.exec.call(this, str);
+
+    return result && (result.groups = buildGroups(result, this)), result;
+  }, BabelRegExp.prototype[Symbol.replace] = function (str, substitution) {
+    if ("string" == typeof substitution) {
+      var groups = _groups.get(this);
+
+      return _super[Symbol.replace].call(this, str, substitution.replace(/\$<([^>]+)>/g, function (_, name) {
+        return "$" + groups[name];
+      }));
+    }
+
+    if ("function" == typeof substitution) {
+      var _this = this;
+
+      return _super[Symbol.replace].call(this, str, function () {
+        var args = arguments;
+        return "object" != typeof args[args.length - 1] && (args = [].slice.call(args)).push(buildGroups(args, _this)), substitution.apply(this, args);
+      });
+    }
+
+    return _super[Symbol.replace].call(this, str, substitution);
+  }, _wrapRegExp.apply(this, arguments);
 }
 
 function _classCallCheck(instance, Constructor) {
@@ -2927,6 +2711,9 @@ function _defineProperties(target, props) {
 function _createClass(Constructor, protoProps, staticProps) {
   if (protoProps) _defineProperties(Constructor.prototype, protoProps);
   if (staticProps) _defineProperties(Constructor, staticProps);
+  Object.defineProperty(Constructor, "prototype", {
+    writable: false
+  });
   return Constructor;
 }
 
@@ -2942,14 +2729,10 @@ function _inherits(subClass, superClass) {
       configurable: true
     }
   });
+  Object.defineProperty(subClass, "prototype", {
+    writable: false
+  });
   if (superClass) _setPrototypeOf(subClass, superClass);
-}
-
-function _getPrototypeOf(o) {
-  _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) {
-    return o.__proto__ || Object.getPrototypeOf(o);
-  };
-  return _getPrototypeOf(o);
 }
 
 function _setPrototypeOf(o, p) {
@@ -2959,139 +2742,6 @@ function _setPrototypeOf(o, p) {
   };
 
   return _setPrototypeOf(o, p);
-}
-
-function _isNativeReflectConstruct() {
-  if (typeof Reflect === "undefined" || !Reflect.construct) return false;
-  if (Reflect.construct.sham) return false;
-  if (typeof Proxy === "function") return true;
-
-  try {
-    Date.prototype.toString.call(Reflect.construct(Date, [], function () {}));
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-function _construct(Parent, args, Class) {
-  if (_isNativeReflectConstruct()) {
-    _construct = Reflect.construct;
-  } else {
-    _construct = function _construct(Parent, args, Class) {
-      var a = [null];
-      a.push.apply(a, args);
-      var Constructor = Function.bind.apply(Parent, a);
-      var instance = new Constructor();
-      if (Class) _setPrototypeOf(instance, Class.prototype);
-      return instance;
-    };
-  }
-
-  return _construct.apply(null, arguments);
-}
-
-function _isNativeFunction(fn) {
-  return Function.toString.call(fn).indexOf("[native code]") !== -1;
-}
-
-function _wrapNativeSuper(Class) {
-  var _cache = typeof Map === "function" ? new Map() : undefined;
-
-  _wrapNativeSuper = function _wrapNativeSuper(Class) {
-    if (Class === null || !_isNativeFunction(Class)) return Class;
-
-    if (typeof Class !== "function") {
-      throw new TypeError("Super expression must either be null or a function");
-    }
-
-    if (typeof _cache !== "undefined") {
-      if (_cache.has(Class)) return _cache.get(Class);
-
-      _cache.set(Class, Wrapper);
-    }
-
-    function Wrapper() {
-      return _construct(Class, arguments, _getPrototypeOf(this).constructor);
-    }
-
-    Wrapper.prototype = Object.create(Class.prototype, {
-      constructor: {
-        value: Wrapper,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-    return _setPrototypeOf(Wrapper, Class);
-  };
-
-  return _wrapNativeSuper(Class);
-}
-
-function _wrapRegExp(re, groups) {
-  _wrapRegExp = function (re, groups) {
-    return new BabelRegExp(re, undefined, groups);
-  };
-
-  var _RegExp = _wrapNativeSuper(RegExp);
-
-  var _super = RegExp.prototype;
-
-  var _groups = new WeakMap();
-
-  function BabelRegExp(re, flags, groups) {
-    var _this = _RegExp.call(this, re, flags);
-
-    _groups.set(_this, groups || _groups.get(re));
-
-    return _this;
-  }
-
-  _inherits(BabelRegExp, _RegExp);
-
-  BabelRegExp.prototype.exec = function (str) {
-    var result = _super.exec.call(this, str);
-
-    if (result) result.groups = buildGroups(result, this);
-    return result;
-  };
-
-  BabelRegExp.prototype[Symbol.replace] = function (str, substitution) {
-    if (typeof substitution === "string") {
-      var groups = _groups.get(this);
-
-      return _super[Symbol.replace].call(this, str, substitution.replace(/\$<([^>]+)>/g, function (_, name) {
-        return "$" + groups[name];
-      }));
-    } else if (typeof substitution === "function") {
-      var _this = this;
-
-      return _super[Symbol.replace].call(this, str, function () {
-        var args = [];
-        args.push.apply(args, arguments);
-
-        if (typeof args[args.length - 1] !== "object") {
-          args.push(buildGroups(args, _this));
-        }
-
-        return substitution.apply(this, args);
-      });
-    } else {
-      return _super[Symbol.replace].call(this, str, substitution);
-    }
-  };
-
-  function buildGroups(result, re) {
-    var g = _groups.get(re);
-
-    return Object.keys(g).reduce(function (groups, name) {
-      groups[name] = result[g[name]];
-      return groups;
-    }, Object.create(null));
-  }
-
-  return _wrapRegExp.apply(this, arguments);
 }
 
 /**
@@ -3105,12 +2755,12 @@ var Utils = /*#__PURE__*/function () {
 
   _createClass(Utils, null, [{
     key: "version",
-
+    value:
     /**
      * Gets MidiWriterJS version number.
      * @return {string}
      */
-    value: function version() {
+    function version() {
       return Constants.VERSION;
     }
     /**
@@ -3141,13 +2791,15 @@ var Utils = /*#__PURE__*/function () {
      * Returns the correct MIDI number for the specified pitch.
      * Uses Tonal Midi - https://github.com/danigb/tonal/tree/master/packages/midi
      * @param {(string|number)} pitch - 'C#4' or midi note code
+     * @param {string} middleC
      * @return {number}
      */
 
   }, {
     key: "getPitch",
     value: function getPitch(pitch) {
-      return tonalMidi.toMidi(pitch);
+      var middleC = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'C4';
+      return 60 - tonalMidi.toMidi(middleC) + tonalMidi.toMidi(pitch);
     }
     /**
      * Translates number of ticks to MIDI timestamp format, returning an array of
@@ -3163,7 +2815,7 @@ var Utils = /*#__PURE__*/function () {
     key: "numberToVariableLength",
     value: function numberToVariableLength(ticks) {
       ticks = Math.round(ticks);
-      var buffer = ticks & 0x7F;
+      var buffer = ticks & 0x7F; // eslint-disable-next-line no-cond-assign
 
       while (ticks = ticks >> 7) {
         buffer <<= 8;
@@ -3292,7 +2944,13 @@ var Utils = /*#__PURE__*/function () {
 
       if (duration.toLowerCase().charAt(0) === 't') {
         // If duration starts with 't' then the number that follows is an explicit tick count
-        return parseInt(duration.substring(1));
+        var ticks = parseInt(duration.substring(1));
+
+        if (isNaN(ticks) || ticks < 0) {
+          throw new Error(duration + ' is not a valid duration.');
+        }
+
+        return ticks;
       } // Need to apply duration here.  Quarter note == Constants.HEADER_CHUNK_DIVISION
 
 
@@ -3344,7 +3002,7 @@ var Utils = /*#__PURE__*/function () {
       // Need to apply duration here.
       // Quarter note == Constants.HEADER_CHUNK_DIVISION ticks.
       if (duration === '0') return 0;
-      var match = duration.match( /*#__PURE__*/_wrapRegExp(/^(d+)?([0-9]+)(?:t([0-9]*))?/, {
+      var match = duration.match( /*#__PURE__*/_wrapRegExp(/^(d+)?(\d+)(?:t(\d*))?/, {
         dotted: 1,
         base: 2,
         tuplet: 3
@@ -3388,6 +3046,183 @@ var Utils = /*#__PURE__*/function () {
 }();
 
 /**
+ * Holds all data for a "controller change" MIDI event
+ * @param {object} fields {controllerNumber: integer, controllerValue: integer, delta: integer}
+ * @return {ControllerChangeEvent}
+ */
+
+var ControllerChangeEvent = /*#__PURE__*/_createClass(function ControllerChangeEvent(fields) {
+  _classCallCheck(this, ControllerChangeEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'controller'; // delta time defaults to 0.
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.CONTROLLER_CHANGE_STATUS, fields.controllerNumber, fields.controllerValue);
+});
+
+/**
+ * Object representation of a cue point meta event.
+ * @param {object} fields {text: string, delta: integer}
+ * @return {CuePointEvent}
+ */
+
+var CuePointEvent = /*#__PURE__*/_createClass(function CuePointEvent(fields) {
+  _classCallCheck(this, CuePointEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'cue-point';
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_CUE_POINT, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+});
+
+/**
+ * Object representation of a end track meta event.
+ * @param {object} fields {delta: integer}
+ * @return {EndTrackEvent}
+ */
+
+var EndTrackEvent = /*#__PURE__*/_createClass(function EndTrackEvent(fields) {
+  _classCallCheck(this, EndTrackEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'end-track'; // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_END_OF_TRACK_ID);
+});
+
+/**
+ * Object representation of an instrument name meta event.
+ * @param {object} fields {text: string, delta: integer}
+ * @return {InstrumentNameEvent}
+ */
+
+var InstrumentNameEvent = /*#__PURE__*/_createClass(function InstrumentNameEvent(fields) {
+  _classCallCheck(this, InstrumentNameEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'instrument-name';
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_INSTRUMENT_NAME_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Instrument name
+  );
+});
+
+/**
+ * Object representation of a key signature meta event.
+ * @return {KeySignatureEvent}
+ */
+
+var KeySignatureEvent = /*#__PURE__*/_createClass(function KeySignatureEvent(sf, mi) {
+  _classCallCheck(this, KeySignatureEvent);
+
+  this.type = 'key-signature';
+  var mode = mi || 0;
+  sf = sf || 0; //	Function called with string notation
+
+  if (typeof mi === 'undefined') {
+    var fifths = [['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'], ['ab', 'eb', 'bb', 'f', 'c', 'g', 'd', 'a', 'e', 'b', 'f#', 'c#', 'g#', 'd#', 'a#']];
+    var _sflen = sf.length;
+    var note = sf || 'C';
+    if (sf[0] === sf[0].toLowerCase()) mode = 1;
+
+    if (_sflen > 1) {
+      switch (sf.charAt(_sflen - 1)) {
+        case 'm':
+          mode = 1;
+          note = sf.charAt(0).toLowerCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+
+        case '-':
+          mode = 1;
+          note = sf.charAt(0).toLowerCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+
+        case 'M':
+          mode = 0;
+          note = sf.charAt(0).toUpperCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+
+        case '+':
+          mode = 0;
+          note = sf.charAt(0).toUpperCase();
+          note = note.concat(sf.substring(1, _sflen - 1));
+          break;
+      }
+    }
+
+    var fifthindex = fifths[mode].indexOf(note);
+    sf = fifthindex === -1 ? 0 : fifthindex - 7;
+  } // Start with zero time delta
+
+
+  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_KEY_SIGNATURE_ID, [0x02], // Size
+  Utils.numberToBytes(sf, 1), // Number of sharp or flats ( < 0 flat; > 0 sharp)
+  Utils.numberToBytes(mode, 1) // Mode: 0 major, 1 minor
+  );
+});
+
+/**
+ * Object representation of a lyric meta event.
+ * @param {object} fields {text: string, delta: integer}
+ * @return {LyricEvent}
+ */
+
+var LyricEvent = /*#__PURE__*/_createClass(function LyricEvent(fields) {
+  _classCallCheck(this, LyricEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'lyric';
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_LYRIC_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+});
+
+/**
+ * Object representation of a marker meta event.
+ * @param {object} fields {text: string, delta: integer}
+ * @return {MarkerEvent}
+ */
+
+var MarkerEvent = /*#__PURE__*/_createClass(function MarkerEvent(fields) {
+  _classCallCheck(this, MarkerEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'marker';
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_MARKER_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+});
+
+/**
  * Holds all data for a "note on" MIDI event
  * @param {object} fields {data: []}
  * @return {NoteOnEvent}
@@ -3410,7 +3245,6 @@ var NoteOnEvent = /*#__PURE__*/function () {
     this.wait = fields.wait;
     this.velocity = fields.velocity;
     this.startTick = fields.startTick;
-    this.midiNumber = Utils.getPitch(this.pitch);
     this.tick = null;
     this.delta = null;
     this.data = fields.data;
@@ -3425,6 +3259,7 @@ var NoteOnEvent = /*#__PURE__*/function () {
   _createClass(NoteOnEvent, [{
     key: "buildData",
     value: function buildData(track, precisionDelta) {
+      var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
       this.data = []; // Explicitly defined startTick event
 
       if (this.startTick) {
@@ -3439,7 +3274,7 @@ var NoteOnEvent = /*#__PURE__*/function () {
       }
 
       this.deltaWithPrecisionCorrection = Utils.getRoundedIfClose(this.delta - precisionDelta);
-      this.data = Utils.numberToVariableLength(this.deltaWithPrecisionCorrection).concat(this.getStatusByte(), this.midiNumber, Utils.convertVelocity(this.velocity));
+      this.data = Utils.numberToVariableLength(this.deltaWithPrecisionCorrection).concat(this.getStatusByte(), Utils.getPitch(this.pitch, options.middleC), Utils.convertVelocity(this.velocity));
       return this;
     }
     /**
@@ -3480,7 +3315,6 @@ var NoteOffEvent = /*#__PURE__*/function () {
     this.pitch = fields.pitch;
     this.duration = fields.duration;
     this.velocity = fields.velocity;
-    this.midiNumber = Utils.getPitch(this.pitch);
     this.tick = fields.tick;
     this.delta = Utils.getTickDuration(this.duration);
     this.data = fields.data;
@@ -3495,12 +3329,14 @@ var NoteOffEvent = /*#__PURE__*/function () {
   _createClass(NoteOffEvent, [{
     key: "buildData",
     value: function buildData(track, precisionDelta) {
+      var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {};
+
       if (this.tick === null) {
         this.tick = Utils.getRoundedIfClose(this.delta + track.tickPointer);
       }
 
       this.deltaWithPrecisionCorrection = Utils.getRoundedIfClose(this.delta - precisionDelta);
-      this.data = Utils.numberToVariableLength(this.deltaWithPrecisionCorrection).concat(this.getStatusByte(), this.midiNumber, Utils.convertVelocity(this.velocity));
+      this.data = Utils.numberToVariableLength(this.deltaWithPrecisionCorrection).concat(this.getStatusByte(), Utils.getPitch(this.pitch, options.middleC), Utils.convertVelocity(this.velocity));
       return this;
     }
     /**
@@ -3566,31 +3402,33 @@ var NoteEvent = /*#__PURE__*/function () {
       var _this = this;
 
       // Reset data array
-      this.data = [];
-      var tickDuration = this.tickDuration;
-      var restDuration = this.restDuration; // Apply grace note(s) and subtract ticks (currently 1 tick per grace note) from tickDuration so net value is the same
+      this.data = []; // Apply grace note(s) and subtract ticks (currently 1 tick per grace note) from tickDuration so net value is the same
 
       if (this.grace) {
         var graceDuration = 1;
         this.grace = Utils.toArray(this.grace);
-        this.grace.forEach(function (pitch) {
+        this.grace.forEach(function () {
           var noteEvent = new NoteEvent({
             pitch: _this.grace,
             duration: 'T' + graceDuration
           });
           _this.data = _this.data.concat(noteEvent.data);
-          tickDuration -= graceDuration;
         });
       } // fields.pitch could be an array of pitches.
+      // If so create note events for each and apply the same duration.
+      // By default this is a chord if it's an array of notes that requires one NoteOnEvent.
       // If this.sequential === true then it's a sequential string of notes that requires separate NoteOnEvents.
+
 
       if (!this.sequential) {
         // Handle repeat
         for (var j = 0; j < this.repeat; j++) {
           // Note on
           this.pitch.forEach(function (p, i) {
+            var noteOnNew;
+
             if (i == 0) {
-              var noteOnNew = new NoteOnEvent({
+              noteOnNew = new NoteOnEvent({
                 channel: _this.channel,
                 wait: _this.wait,
                 velocity: _this.velocity,
@@ -3600,7 +3438,7 @@ var NoteEvent = /*#__PURE__*/function () {
             } else {
               // Running status (can ommit the note on status)
               //noteOn = new NoteOnEvent({data: [0, Utils.getPitch(p), Utils.convertVelocity(this.velocity)]});
-              var noteOnNew = new NoteOnEvent({
+              noteOnNew = new NoteOnEvent({
                 channel: _this.channel,
                 wait: 0,
                 velocity: _this.velocity,
@@ -3613,24 +3451,26 @@ var NoteEvent = /*#__PURE__*/function () {
           }); // Note off
 
           this.pitch.forEach(function (p, i) {
+            var noteOffNew;
+
             if (i == 0) {
               //noteOff = new NoteOffEvent({data: Utils.numberToVariableLength(tickDuration).concat(this.getNoteOffStatus(), Utils.getPitch(p), Utils.convertVelocity(this.velocity))});
-              var noteOffNew = new NoteOffEvent({
+              noteOffNew = new NoteOffEvent({
                 channel: _this.channel,
                 duration: _this.duration,
                 velocity: _this.velocity,
                 pitch: p,
-                tick: _this.startTick !== null ? Utils.getTickDuration(_this.duration) - _this.startTick : null
+                tick: _this.startTick !== null ? Utils.getTickDuration(_this.duration) + _this.startTick : null
               });
             } else {
               // Running status (can ommit the note off status)
               //noteOff = new NoteOffEvent({data: [0, Utils.getPitch(p), Utils.convertVelocity(this.velocity)]});
-              var noteOffNew = new NoteOffEvent({
+              noteOffNew = new NoteOffEvent({
                 channel: _this.channel,
                 duration: 0,
                 velocity: _this.velocity,
                 pitch: p,
-                tick: _this.startTick !== null ? Utils.getTickDuration(_this.duration) - _this.startTick : null
+                tick: _this.startTick !== null ? Utils.getTickDuration(_this.duration) + _this.startTick : null
               });
             }
 
@@ -3639,13 +3479,8 @@ var NoteEvent = /*#__PURE__*/function () {
         }
       } else {
         // Handle repeat
-        for (var j = 0; j < this.repeat; j++) {
+        for (var _j = 0; _j < this.repeat; _j++) {
           this.pitch.forEach(function (p, i) {
-            // restDuration only applies to first note
-            if (i > 0) {
-              restDuration = 0;
-            }
-
             var noteOnNew = new NoteOnEvent({
               channel: _this.channel,
               wait: i > 0 ? 0 : _this.wait,
@@ -3676,7 +3511,7 @@ var NoteEvent = /*#__PURE__*/function () {
 /**
  * Holds all data for a "Pitch Bend" MIDI event
  * [ -1.0, 0, 1.0 ] ->  [ 0, 8192, 16383]
- * @param {object} fields { bend : float, channel : int }
+ * @param {object} fields { bend : float, channel : int, delta: int }
  * @return {PitchBendEvent}
  */
 
@@ -3688,240 +3523,107 @@ var scale14bits = function scale14bits(zeroOne) {
   return Math.floor(16383 * (zeroOne + 1) / 2);
 };
 
-var PitchBendEvent = function PitchBendEvent(fields) {
+var PitchBendEvent = /*#__PURE__*/_createClass(function PitchBendEvent(fields) {
   _classCallCheck(this, PitchBendEvent);
 
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
   this.type = 'pitch-bend';
   var bend14 = scale14bits(fields.bend);
   var channel = fields.channel || 0;
   var lsbValue = bend14 & 0x7f;
   var msbValue = bend14 >> 7 & 0x7f;
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.PITCH_BEND_STATUS | channel, lsbValue, msbValue);
-};
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.PITCH_BEND_STATUS | channel, lsbValue, msbValue);
+});
 
 /**
  * Holds all data for a "program change" MIDI event
- * @param {object} fields {instrument: integer}
+ * @param {object} fields {instrument: integer, delta: integer}
  * @return {ProgramChangeEvent}
  */
 
-var ProgramChangeEvent = function ProgramChangeEvent(fields) {
-  _classCallCheck(this, ProgramChangeEvent);
+var ProgramChangeEvent = /*#__PURE__*/function () {
+  function ProgramChangeEvent(fields) {
+    _classCallCheck(this, ProgramChangeEvent);
 
-  this.type = 'program'; // delta time defaults to 0.
+    // Set default fields
+    this.fields = Object.assign({
+      channel: 1,
+      delta: 0x00
+    }, fields);
+    this.type = 'program'; // delta time defaults to 0.
 
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.PROGRAM_CHANGE_STATUS, fields.instrument);
-};
+    this.data = Utils.numberToVariableLength(this.fields.delta).concat(this.getStatusByte(), this.fields.instrument);
+  }
+  /**
+   * Gets the status code based on the selected channel. 0xC{0-F}
+   * Program change status byte for channel 0 is 0xC0 (192)
+   * 0 = Ch 1
+   * @return {number}
+   */
 
-/**
- * Holds all data for a "controller change" MIDI event
- * @param {object} fields {controllerNumber: integer, controllerValue: integer}
- * @return {ControllerChangeEvent}
- */
 
-var ControllerChangeEvent = function ControllerChangeEvent(fields) {
-  _classCallCheck(this, ControllerChangeEvent);
-
-  this.type = 'controller'; // delta time defaults to 0.
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.CONTROLLER_CHANGE_STATUS, fields.controllerNumber, fields.controllerValue);
-};
-
-/**
- * Object representation of a tempo meta event.
- * @param {string} text - Copyright text
- * @return {CopyrightEvent}
- */
-
-var CopyrightEvent = function CopyrightEvent(text) {
-  _classCallCheck(this, CopyrightEvent);
-
-  this.type = 'copyright';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_COPYRIGHT_ID, Utils.numberToVariableLength(textBytes.length), // Size
-  textBytes // Text
-  );
-};
-
-/**
- * Object representation of a cue point meta event.
- * @param {string} text - Cue point text
- * @return {CuePointEvent}
- */
-
-var CuePointEvent = function CuePointEvent(text) {
-  _classCallCheck(this, CuePointEvent);
-
-  this.type = 'marker';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_CUE_POINT, Utils.numberToVariableLength(textBytes.length), // Size
-  textBytes // Text
-  );
-};
-
-/**
- * Object representation of a end track meta event.
- * @return {EndTrackEvent}
- */
-
-var EndTrackEvent = function EndTrackEvent() {
-  _classCallCheck(this, EndTrackEvent);
-
-  this.type = 'end-track'; // Start with zero time delta
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_END_OF_TRACK_ID);
-};
-
-/**
- * Object representation of an instrument name meta event.
- * @param {number} bpm - Beats per minute
- * @return {InstrumentNameEvent}
- */
-
-var InstrumentNameEvent = function InstrumentNameEvent(text) {
-  _classCallCheck(this, InstrumentNameEvent);
-
-  this.type = 'instrument-name';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_INSTRUMENT_NAME_ID, Utils.numberToVariableLength(textBytes.length), // Size
-  textBytes // Instrument name
-  );
-};
-
-/**
- * Object representation of a key signature meta event.
- * @return {KeySignatureEvent}
- */
-
-var KeySignatureEvent = function KeySignatureEvent(sf, mi) {
-  _classCallCheck(this, KeySignatureEvent);
-
-  this.type = 'key-signature';
-  var mode = mi || 0;
-  sf = sf || 0; //	Function called with string notation
-
-  if (typeof mi === 'undefined') {
-    var fifths = [['Cb', 'Gb', 'Db', 'Ab', 'Eb', 'Bb', 'F', 'C', 'G', 'D', 'A', 'E', 'B', 'F#', 'C#'], ['ab', 'eb', 'bb', 'f', 'c', 'g', 'd', 'a', 'e', 'b', 'f#', 'c#', 'g#', 'd#', 'a#']];
-    var _sflen = sf.length;
-    var note = sf || 'C';
-    if (sf[0] === sf[0].toLowerCase()) mode = 1;
-
-    if (_sflen > 1) {
-      switch (sf.charAt(_sflen - 1)) {
-        case 'm':
-          mode = 1;
-          note = sf.charAt(0).toLowerCase();
-          note = note.concat(sf.substring(1, _sflen - 1));
-          break;
-
-        case '-':
-          mode = 1;
-          note = sf.charAt(0).toLowerCase();
-          note = note.concat(sf.substring(1, _sflen - 1));
-          break;
-
-        case 'M':
-          mode = 0;
-          note = sf.charAt(0).toUpperCase();
-          note = note.concat(sf.substring(1, _sflen - 1));
-          break;
-
-        case '+':
-          mode = 0;
-          note = sf.charAt(0).toUpperCase();
-          note = note.concat(sf.substring(1, _sflen - 1));
-          break;
-      }
+  _createClass(ProgramChangeEvent, [{
+    key: "getStatusByte",
+    value: function getStatusByte() {
+      return 192 + this.fields.channel - 1;
     }
+  }]);
 
-    var fifthindex = fifths[mode].indexOf(note);
-    sf = fifthindex === -1 ? 0 : fifthindex - 7;
-  } // Start with zero time delta
-
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_KEY_SIGNATURE_ID, [0x02], // Size
-  Utils.numberToBytes(sf, 1), // Number of sharp or flats ( < 0 flat; > 0 sharp)
-  Utils.numberToBytes(mode, 1) // Mode: 0 major, 1 minor
-  );
-};
-
-/**
- * Object representation of a lyric meta event.
- * @param {string} text - Lyric text
- * @return {LyricEvent}
- */
-
-var LyricEvent = function LyricEvent(text) {
-  _classCallCheck(this, LyricEvent);
-
-  this.type = 'marker';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_LYRIC_ID, Utils.numberToVariableLength(textBytes.length), // Size
-  textBytes // Text
-  );
-};
-
-/**
- * Object representation of a marker meta event.
- * @param {string} text - Marker text
- * @return {MarkerEvent}
- */
-
-var MarkerEvent = function MarkerEvent(text) {
-  _classCallCheck(this, MarkerEvent);
-
-  this.type = 'marker';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
-
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_MARKER_ID, Utils.numberToVariableLength(textBytes.length), // Size
-  textBytes // Text
-  );
-};
+  return ProgramChangeEvent;
+}();
 
 /**
  * Object representation of a tempo meta event.
- * @param {number} bpm - Beats per minute
+ * @param {object} fields {bpm: integer, delta: integer}
  * @return {TempoEvent}
  */
 
-var TempoEvent = function TempoEvent(bpm) {
+var TempoEvent = /*#__PURE__*/_createClass(function TempoEvent(fields) {
   _classCallCheck(this, TempoEvent);
 
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
   this.type = 'tempo';
-  var tempo = Math.round(60000000 / bpm); // Start with zero time delta
+  this.tick = fields.tick;
+  var tempo = Math.round(60000000 / fields.bpm); // Start with zero time delta
 
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TEMPO_ID, [0x03], // Size
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_TEMPO_ID, [0x03], // Size
   Utils.numberToBytes(tempo, 3) // Tempo, 3 bytes
   );
-};
+});
 
 /**
  * Object representation of a tempo meta event.
- * @param {number} bpm - Beats per minute
+ * @param {object} fields {text: string, delta: integer}
  * @return {TextEvent}
  */
 
-var TextEvent = function TextEvent(text) {
+var TextEvent = /*#__PURE__*/_createClass(function TextEvent(fields) {
   _classCallCheck(this, TextEvent);
 
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
   this.type = 'text';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
 
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TEXT_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_TEXT_ID, Utils.numberToVariableLength(textBytes.length), // Size
   textBytes // Text
   );
-};
+});
 
 /**
  * Object representation of a time signature meta event.
  * @return {TimeSignatureEvent}
  */
 
-var TimeSignatureEvent = function TimeSignatureEvent(numerator, denominator, midiclockspertick, notespermidiclock) {
+var TimeSignatureEvent = /*#__PURE__*/_createClass(function TimeSignatureEvent(numerator, denominator, midiclockspertick, notespermidiclock) {
   _classCallCheck(this, TimeSignatureEvent);
 
   this.type = 'time-signature'; // Start with zero time delta
@@ -3932,24 +3634,49 @@ var TimeSignatureEvent = function TimeSignatureEvent(numerator, denominator, mid
   Utils.numberToBytes(midiclockspertick || 24, 1), // MIDI Clocks per tick, 1 bytes
   Utils.numberToBytes(notespermidiclock || 8, 1) // Number of 1/32 notes per MIDI clocks, 1 bytes
   );
-};
+});
 
 /**
  * Object representation of a tempo meta event.
- * @param {number} bpm - Beats per minute
+ * @param {object} fields {text: string, delta: integer}
+ * @return {CopyrightEvent}
+ */
+
+var CopyrightEvent = /*#__PURE__*/_createClass(function CopyrightEvent(fields) {
+  _classCallCheck(this, CopyrightEvent);
+
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
+  this.type = 'copyright';
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
+
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_COPYRIGHT_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  textBytes // Text
+  );
+});
+
+/**
+ * Object representation of a tempo meta event.
+ * @param {object} fields {text: string, delta: integer}
  * @return {TrackNameEvent}
  */
 
-var TrackNameEvent = function TrackNameEvent(text) {
+var TrackNameEvent = /*#__PURE__*/_createClass(function TrackNameEvent(fields) {
   _classCallCheck(this, TrackNameEvent);
 
+  // Set default fields
+  fields = Object.assign({
+    delta: 0x00
+  }, fields);
   this.type = 'track-name';
-  var textBytes = Utils.stringToBytes(text); // Start with zero time delta
+  var textBytes = Utils.stringToBytes(fields.text); // Start with zero time delta
 
-  this.data = Utils.numberToVariableLength(0x00).concat(Constants.META_EVENT_ID, Constants.META_TRACK_NAME_ID, Utils.numberToVariableLength(textBytes.length), // Size
+  this.data = Utils.numberToVariableLength(fields.delta).concat(Constants.META_EVENT_ID, Constants.META_TRACK_NAME_ID, Utils.numberToVariableLength(textBytes.length), // Size
   textBytes // Text
   );
-};
+});
 
 /**
  * Holds all data for a track.
@@ -4023,6 +3750,12 @@ var Track = /*#__PURE__*/function () {
               return _this.events.push(e);
             });
           }
+        } else if (event instanceof EndTrackEvent) {
+          // Only one EndTrackEvent is allowed, so remove
+          // any existing ones before adding.
+          _this.removeEventsByType('end-track');
+
+          _this.events.push(event);
         } else {
           _this.events.push(event);
         }
@@ -4031,6 +3764,7 @@ var Track = /*#__PURE__*/function () {
     }
     /**
      * Builds int array of all events.
+     * @param {object} options
      * @return {Track}
      */
 
@@ -4039,21 +3773,28 @@ var Track = /*#__PURE__*/function () {
     value: function buildData() {
       var _this2 = this;
 
-      // Remove existing end track event and add one.
-      // This makes sure it's at the very end of the event list.
-      this.removeEventsByType('end-track').addEvent(new EndTrackEvent()); // Reset
+      var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+      // If the last event isn't EndTrackEvent, then tack it onto the data.
+      if (!this.events.length || !(this.events[this.events.length - 1] instanceof EndTrackEvent)) {
+        this.addEvent(new EndTrackEvent());
+      } // Reset
+
 
       this.data = [];
       this.size = [];
       this.tickPointer = 0;
       var precisionLoss = 0;
-      this.events.forEach(function (event, eventIndex) {
+      this.events.forEach(function (event) {
         // Build event & add to total tick duration
         if (event instanceof NoteOnEvent || event instanceof NoteOffEvent) {
-          var built = event.buildData(_this2, precisionLoss);
+          var built = event.buildData(_this2, precisionLoss, options);
           precisionLoss = Utils.getPrecisionLoss(event.deltaWithPrecisionCorrection || 0);
           _this2.data = _this2.data.concat(built.data);
           _this2.tickPointer = Utils.getRoundedIfClose(event.tick);
+        } else if (event instanceof TempoEvent) {
+          _this2.tickPointer = Utils.getRoundedIfClose(event.tick);
+          _this2.data = _this2.data.concat(event.data);
         } else {
           _this2.data = _this2.data.concat(event.data);
         }
@@ -4119,8 +3860,14 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "mergeSingleEvent",
     value: function mergeSingleEvent(event) {
-      // Find index of existing event we need to follow with
-      var lastEventIndex = 0;
+      // There are no events yet, so just add it in.
+      if (!this.events.length) {
+        this.addEvent(event);
+        return;
+      } // Find index of existing event we need to follow with
+
+
+      var lastEventIndex;
 
       for (var i = 0; i < this.events.length; i++) {
         if (this.events[i].tick > event.tick) break;
@@ -4133,10 +3880,10 @@ var Track = /*#__PURE__*/function () {
 
       this.events.splice(splicedEventIndex, 0, event); // Now adjust delta of all following events
 
-      for (var i = splicedEventIndex + 1; i < this.events.length; i++) {
+      for (var _i = splicedEventIndex + 1; _i < this.events.length; _i++) {
         // Since each existing event should have a tick value at this point we just need to
         // adjust delta to that the event still falls on the correct tick.
-        this.events[i].delta = this.events[i].tick - this.events[i - 1].tick;
+        this.events[_i].delta = this.events[_i].tick - this.events[_i - 1].tick;
       }
     }
     /**
@@ -4160,13 +3907,18 @@ var Track = /*#__PURE__*/function () {
     /**
      * Sets tempo of the MIDI file.
      * @param {number} bpm - Tempo in beats per minute.
+     * @param {number} tick - Start tick.
      * @return {Track}
      */
 
   }, {
     key: "setTempo",
     value: function setTempo(bpm) {
-      return this.addEvent(new TempoEvent(bpm));
+      var tick = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      return this.addEvent(new TempoEvent({
+        bpm: bpm,
+        tick: tick
+      }));
     }
     /**
      * Sets time signature.
@@ -4203,7 +3955,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addText",
     value: function addText(text) {
-      return this.addEvent(new TextEvent(text));
+      return this.addEvent(new TextEvent({
+        text: text
+      }));
     }
     /**
      * Adds copyright to MIDI file.
@@ -4214,7 +3968,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addCopyright",
     value: function addCopyright(text) {
-      return this.addEvent(new CopyrightEvent(text));
+      return this.addEvent(new CopyrightEvent({
+        text: text
+      }));
     }
     /**
      * Adds Sequence/Track Name.
@@ -4225,7 +3981,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addTrackName",
     value: function addTrackName(text) {
-      return this.addEvent(new TrackNameEvent(text));
+      return this.addEvent(new TrackNameEvent({
+        text: text
+      }));
     }
     /**
      * Sets instrument name of track.
@@ -4236,7 +3994,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addInstrumentName",
     value: function addInstrumentName(text) {
-      return this.addEvent(new InstrumentNameEvent(text));
+      return this.addEvent(new InstrumentNameEvent({
+        text: text
+      }));
     }
     /**
      * Adds marker to MIDI file.
@@ -4247,7 +4007,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addMarker",
     value: function addMarker(text) {
-      return this.addEvent(new MarkerEvent(text));
+      return this.addEvent(new MarkerEvent({
+        text: text
+      }));
     }
     /**
      * Adds cue point to MIDI file.
@@ -4258,7 +4020,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addCuePoint",
     value: function addCuePoint(text) {
-      return this.addEvent(new CuePointEvent(text));
+      return this.addEvent(new CuePointEvent({
+        text: text
+      }));
     }
     /**
      * Adds lyric to MIDI file.
@@ -4269,7 +4033,9 @@ var Track = /*#__PURE__*/function () {
   }, {
     key: "addLyric",
     value: function addLyric(text) {
-      return this.addEvent(new LyricEvent(text));
+      return this.addEvent(new LyricEvent({
+        text: text
+      }));
     }
     /**
      * Channel mode messages
@@ -4324,20 +4090,25 @@ var VexFlow = /*#__PURE__*/function () {
 
   _createClass(VexFlow, [{
     key: "trackFromVoice",
-
+    value:
     /**
      * Support for converting VexFlow voice into MidiWriterJS track
      * @return MidiWriter.Track object
      */
-    value: function trackFromVoice(voice) {
+    function trackFromVoice(voice) {
       var _this = this;
 
+      var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {
+        addRenderedAccidentals: false
+      };
       var track = new Track();
       var wait = [];
       voice.tickables.forEach(function (tickable) {
         if (tickable.noteType === 'n') {
           track.addEvent(new NoteEvent({
-            pitch: tickable.keys.map(_this.convertPitch),
+            pitch: tickable.keys.map(function (pitch, index) {
+              return _this.convertPitch(pitch, index, tickable, options.addRenderedAccidentals);
+            }),
             duration: _this.convertDuration(tickable),
             wait: wait
           })); // reset wait
@@ -4347,7 +4118,6 @@ var VexFlow = /*#__PURE__*/function () {
           // move on to the next tickable and add this to the stack
           // of the `wait` property for the next note event
           wait.push(_this.convertDuration(tickable));
-          return;
         }
       }); // There may be outstanding rests at the end of the track,
       // pad with a ghost note (zero duration and velocity), just to capture the wait.
@@ -4366,12 +4136,36 @@ var VexFlow = /*#__PURE__*/function () {
     /**
      * Converts VexFlow pitch syntax to MidiWriterJS syntax
      * @param pitch string
+     * @param index pitch index
+     * @param note struct from Vexflow
+     * @param addRenderedAccidentals adds Vexflow rendered accidentals
      */
 
   }, {
     key: "convertPitch",
-    value: function convertPitch(pitch) {
-      return pitch.replace('/', '');
+    value: function convertPitch(pitch, index, note) {
+      var addRenderedAccidentals = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : false;
+      // Splits note name from octave
+      var pitchParts = pitch.split('/'); // Retrieves accidentals from pitch
+      // Removes natural accidentals since they are not accepted in Tonal Midi
+
+      var accidentals = pitchParts[0].substring(1).replace('n', '');
+
+      if (addRenderedAccidentals) {
+        var _note$getAccidentals;
+
+        (_note$getAccidentals = note.getAccidentals()) === null || _note$getAccidentals === void 0 ? void 0 : _note$getAccidentals.forEach(function (accidental) {
+          if (accidental.index === index) {
+            if (accidental.type === 'n') {
+              accidentals = '';
+            } else {
+              accidentals += accidental.type;
+            }
+          }
+        });
+      }
+
+      return pitchParts[0][0] + accidentals + pitchParts[1];
     }
     /**
      * Converts VexFlow duration syntax to MidiWriterJS syntax
@@ -4381,21 +4175,30 @@ var VexFlow = /*#__PURE__*/function () {
   }, {
     key: "convertDuration",
     value: function convertDuration(note) {
-      switch (note.duration) {
+      return 'd'.repeat(note.dots) + this.convertBaseDuration(note.duration) + (note.tuplet ? 't' + note.tuplet.num_notes : '');
+    }
+    /**
+     * Converts VexFlow base duration syntax to MidiWriterJS syntax
+     * @param duration Vexflow duration
+     * @returns MidiWriterJS duration
+     */
+
+  }, {
+    key: "convertBaseDuration",
+    value: function convertBaseDuration(duration) {
+      switch (duration) {
         case 'w':
           return '1';
 
         case 'h':
-          return note.isDotted() ? 'd2' : '2';
+          return '2';
 
         case 'q':
-          return note.isDotted() ? 'd4' : '4';
+          return '4';
 
-        case '8':
-          return note.isDotted() ? 'd8' : '8';
+        default:
+          return duration;
       }
-
-      return note.duration;
     }
   }]);
 
@@ -4408,7 +4211,7 @@ var VexFlow = /*#__PURE__*/function () {
  * @return {HeaderChunk}
  */
 
-var HeaderChunk = function HeaderChunk(numberOfTracks) {
+var HeaderChunk = /*#__PURE__*/_createClass(function HeaderChunk(numberOfTracks) {
   _classCallCheck(this, HeaderChunk);
 
   this.type = Constants.HEADER_CHUNK_TYPE;
@@ -4416,41 +4219,55 @@ var HeaderChunk = function HeaderChunk(numberOfTracks) {
   this.data = trackType.concat(Utils.numberToBytes(numberOfTracks, 2), // two bytes long,
   Constants.HEADER_CHUNK_DIVISION);
   this.size = [0, 0, 0, this.data.length];
-};
+});
 
 /**
  * Object that puts together tracks and provides methods for file output.
  * @param {array|Track} tracks - A single {Track} object or an array of {Track} objects.
+ * @param {object} options - {middleC: 'C4'}
  * @return {Writer}
  */
 
 var Writer = /*#__PURE__*/function () {
   function Writer(tracks) {
-    var _this = this;
+    var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
 
     _classCallCheck(this, Writer);
 
-    // Ensure track is an array
-    tracks = Utils.toArray(tracks);
-    this.data = [];
-    this.data.push(new HeaderChunk(tracks.length)); // For each track add final end of track event and build data
-
-    tracks.forEach(function (track, i) {
-      _this.data.push(track.buildData());
-    });
+    // Ensure tracks is an array
+    this.tracks = Utils.toArray(tracks);
+    this.options = options;
   }
   /**
-   * Builds the file into a Uint8Array
-   * @return {Uint8Array}
+   * Builds array of data from chunkschunks.
+   * @return {array}
    */
 
 
   _createClass(Writer, [{
+    key: "buildData",
+    value: function buildData() {
+      var _this = this;
+
+      var data = [];
+      data.push(new HeaderChunk(this.tracks.length)); // For each track add final end of track event and build data
+
+      this.tracks.forEach(function (track) {
+        data.push(track.buildData(_this.options));
+      });
+      return data;
+    }
+    /**
+     * Builds the file into a Uint8Array
+     * @return {Uint8Array}
+     */
+
+  }, {
     key: "buildFile",
     value: function buildFile() {
       var build = []; // Data consists of chunks which consists of data
 
-      this.data.forEach(function (d) {
+      this.buildData().forEach(function (d) {
         return build = build.concat(d.type, d.size, d.data);
       });
       return new Uint8Array(build);
@@ -4477,6 +4294,19 @@ var Writer = /*#__PURE__*/function () {
       return 'data:audio/midi;base64,' + this.base64();
     }
     /**
+     * Set option on instantiated Writer.
+     * @param {string} key
+     * @param {any} value
+     * @return {Writer}
+     */
+
+  }, {
+    key: "setOption",
+    value: function setOption(key, value) {
+      this.options[key] = value;
+      return this;
+    }
+    /**
      * Output to stdout
      * @return {string}
      */
@@ -4484,22 +4314,7 @@ var Writer = /*#__PURE__*/function () {
   }, {
     key: "stdout",
     value: function stdout() {
-      return process.stdout.write(new Buffer(this.buildFile()));
-    }
-    /**
-     * Save to MIDI file
-     * @param {string} filename
-     */
-
-  }, {
-    key: "saveMIDI",
-    value: function saveMIDI(filename) {
-      var fs = require('fs');
-
-      var buffer = new Buffer.from(this.buildFile());
-      fs.writeFile(filename + '.mid', buffer, function (err) {
-        if (err) throw err;
-      });
+      return process.stdout.write(Buffer.from(this.buildFile()));
     }
   }]);
 
@@ -4508,12 +4323,23 @@ var Writer = /*#__PURE__*/function () {
 
 var main = {
   Constants: Constants,
+  ControllerChangeEvent: ControllerChangeEvent,
+  CuePointEvent: CuePointEvent,
+  EndTrackEvent: EndTrackEvent,
+  InstrumentNameEvent: InstrumentNameEvent,
+  KeySignatureEvent: KeySignatureEvent,
+  LyricEvent: LyricEvent,
+  MarkerEvent: MarkerEvent,
   NoteOnEvent: NoteOnEvent,
   NoteOffEvent: NoteOffEvent,
   NoteEvent: NoteEvent,
   PitchBendEvent: PitchBendEvent,
   ProgramChangeEvent: ProgramChangeEvent,
+  TempoEvent: TempoEvent,
+  TextEvent: TextEvent,
+  TimeSignatureEvent: TimeSignatureEvent,
   Track: Track,
+  TrackNameEvent: TrackNameEvent,
   Utils: Utils,
   VexFlow: VexFlow,
   Writer: Writer
@@ -4522,99 +4348,11 @@ var main = {
 module.exports = main;
 
 }).call(this)}).call(this,require('_process'),require("buffer").Buffer)
-},{"../package.json":7,"_process":9,"buffer":3,"fs":2,"tonal-midi":10}],7:[function(require,module,exports){
-module.exports={
-  "_from": "midi-writer-js@1.7.5",
-  "_id": "midi-writer-js@1.7.5",
-  "_inBundle": false,
-  "_integrity": "sha512-JTWcKdsrvfzMehRwIggK53F7NHHyNr2eUxPnaFrz8acnq6vPRvbdVAvzOqzbMMcaYW08k/Ujx9DfviumlD0czA==",
-  "_location": "/midi-writer-js",
-  "_phantomChildren": {},
-  "_requested": {
-    "type": "version",
-    "registry": true,
-    "raw": "midi-writer-js@1.7.5",
-    "name": "midi-writer-js",
-    "escapedName": "midi-writer-js",
-    "rawSpec": "1.7.5",
-    "saveSpec": null,
-    "fetchSpec": "1.7.5"
-  },
-  "_requiredBy": [
-    "#USER",
-    "/"
-  ],
-  "_resolved": "https://registry.npmjs.org/midi-writer-js/-/midi-writer-js-1.7.5.tgz",
-  "_shasum": "76a65d18fe665d25c5878aa03eee74c5b7107c93",
-  "_spec": "midi-writer-js@1.7.5",
-  "_where": "/home/iostream/chromatone-helper/chromatone-helper",
-  "author": {
-    "name": "Garrett Grimm"
-  },
-  "bugs": {
-    "url": "https://github.com/grimmdude/MidiWriterJS/issues"
-  },
-  "bundleDependencies": false,
-  "dependencies": {
-    "tonal-midi": "^0.69.7"
-  },
-  "deprecated": false,
-  "description": "A library providing an API for generating MIDI files.",
-  "devDependencies": {
-    "@babel/core": "^7.9.6",
-    "@babel/plugin-transform-destructuring": "^7.9.5",
-    "@babel/preset-env": "^7.9.6",
-    "@rollup/plugin-babel": "^5.0.0",
-    "eslint": "^7.0.0",
-    "eslint-config-standard": "^12.0.0",
-    "eslint-plugin-import": "^2.20.2",
-    "eslint-plugin-node": "^9.2.0",
-    "eslint-plugin-promise": "^4.1.1",
-    "eslint-plugin-standard": "^4.0.1",
-    "jsdoc": "^3.6.4",
-    "minami": "^1.1.1",
-    "mocha": "^6.2.3",
-    "nyc": "^15.0.1",
-    "rollup": "^2.9.0",
-    "watch": "^1.0.2"
-  },
-  "directories": {
-    "lib": "src",
-    "example": "examples",
-    "test": "test"
-  },
-  "homepage": "https://github.com/grimmdude/MidiWriterJS#readme",
-  "keywords": [
-    "midi",
-    "generator",
-    "music"
-  ],
-  "license": "MIT",
-  "main": "build/index.js",
-  "name": "midi-writer-js",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/grimmdude/MidiWriterJS.git"
-  },
-  "scripts": {
-    "build": "mkdir -p build && rollup -c && npm run docs",
-    "docs": "jsdoc -r src README.md -d ./docs -t ./node_modules/minami",
-    "lint:js": "eslint 'src/**/**.js'",
-    "postinstall": "node postinstall.js",
-    "prepublishOnly": "npm test",
-    "pretest": "npm run build",
-    "test": "nyc --reporter=text mocha --no-config --no-package",
-    "watch": "watch 'npm run build' src"
-  },
-  "types": "types.d.ts",
-  "version": "1.7.5"
-}
-
-},{}],8:[function(require,module,exports){
+},{"_process":6,"buffer":2,"tonal-midi":7}],5:[function(require,module,exports){
 !function(t,n){"object"==typeof exports&&"undefined"!=typeof module?n(exports):"function"==typeof define&&define.amd?define(["exports"],n):n(t.NoteParser=t.NoteParser||{})}(this,function(t){"use strict";function n(t,n){return Array(n+1).join(t)}function r(t){return"number"==typeof t}function e(t){return"string"==typeof t}function u(t){return void 0!==t}function c(t,n){return Math.pow(2,(t-69)/12)*(n||440)}function o(){return b}function i(t,n,r){if("string"!=typeof t)return null;var e=b.exec(t);if(!e||!n&&e[4])return null;var u={letter:e[1].toUpperCase(),acc:e[2].replace(/x/g,"##")};u.pc=u.letter+u.acc,u.step=(u.letter.charCodeAt(0)+3)%7,u.alt="b"===u.acc[0]?-u.acc.length:u.acc.length;var o=A[u.step]+u.alt;return u.chroma=o<0?12+o:o%12,e[3]&&(u.oct=+e[3],u.midi=o+12*(u.oct+1),u.freq=c(u.midi,r)),n&&(u.tonicOf=e[4]),u}function f(t){return r(t)?t<0?n("b",-t):n("#",t):""}function a(t){return r(t)?""+t:""}function l(t,n,r){return null===t||void 0===t?null:t.step?l(t.step,t.alt,t.oct):t<0||t>6?null:C.charAt(t)+f(n)+a(r)}function p(t){if((r(t)||e(t))&&t>=0&&t<128)return+t;var n=i(t);return n&&u(n.midi)?n.midi:null}function s(t,n){var r=p(t);return null===r?null:c(r,n)}function d(t){return(i(t)||{}).letter}function m(t){return(i(t)||{}).acc}function h(t){return(i(t)||{}).pc}function v(t){return(i(t)||{}).step}function g(t){return(i(t)||{}).alt}function x(t){return(i(t)||{}).chroma}function y(t){return(i(t)||{}).oct}var b=/^([a-gA-G])(#{1,}|b{1,}|x{1,}|)(-?\d*)\s*(.*)\s*$/,A=[0,2,4,5,7,9,11],C="CDEFGAB";t.regex=o,t.parse=i,t.build=l,t.midi=p,t.freq=s,t.letter=d,t.acc=m,t.pc=h,t.step=v,t.alt=g,t.chroma=x,t.oct=y});
 
 
-},{}],9:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -4800,7 +4538,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],10:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -4870,7 +4608,7 @@ function note (num, sharps) {
 exports.toMidi = toMidi;
 exports.note = note;
 
-},{"note-parser":8}],11:[function(require,module,exports){
+},{"note-parser":5}],8:[function(require,module,exports){
 ( function(window){
 "use strict";
 
@@ -6337,6 +6075,8 @@ class WebAudioTinySynth {
         this.setQuality(opt.quality);
       if(opt.voices!=undefined)
         this.setVoices(opt.voices);
+      if(opt.internalContext!=undefined)
+        this.internalcontext = opt.internalContext;
     }
     this.init();
   }
@@ -6356,102 +6096,78 @@ else{
 
 })(this);
 
-},{}],12:[function(require,module,exports){
-var std4Voicing = "1 3 5 7";
-var std6Voicing = "1 3 5 6";
-module.exports.progressions = [
-// [ scales, chords, optional voicing ]
-  [["1 2 b3 4 5 6 b7", "1 2 b3 4 b5 5 6"], "6 2 4 5 1, 1* 2 4* 5 1*, 1", std4Voicing],
-  [["1 2 3 #4 5 6 7"], "2 5 1 6 4 5 1", std4Voicing],
-  [["1 b2 b3 4 b5 b6 b7", "1 2 3 4 5 6 b7"], "2 5 1 6, 4 5 1* 4, 5 1* 4  5, 1* 4", std6Voicing],
-  [["1 b2 #3 b5 b6 6 b7"], "1 6 2 4 5 1", std4Voicing],
-  [["1 b2 b3 3 4 5 b6"], "1 6 2 4 5 1", std4Voicing],
-  [["1 2 3 4 5 6 7"], "2i2 5 1, 2 5 1", std6Voicing],
-  [["1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1", std4Voicing],
-  [["1 2 3 4 5 6 7", "1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1", std6Voicing],
-  [["1 3 4 5 6"], "1 2 3 4 5, 4 3 2 1", std4Voicing],
-  [["1 b2 b3 3 5 b6 b7", "1 2 3 4 5 6 b7"], "2Vb 5 1Va 6, 4 5Vb 1* 4, 5 1* 4Vb  5, 1* 4", "a: 1 3 5 7\nb: 6 8 11 13\n3 6 8 11"]
-];
+},{}],9:[function(require,module,exports){
+module.exports = new (function AudioContextWrapper() {
+  /**
+  * Shared audio context
+  */
+  var audioContext;
+  var consumers = [];
+  
+  /**
+   * Add a consumer of the shared AudioContext. It will be called as soon as the audio context becomes available. 
+   * This has to be used when the audio context is not initialized yet and it cannot be used right away, because
+   * the creation of an audio context always requires user interaction (= the first input event).
+   * 
+   * @param {function(AudioContext)} consumer
+   */
+  this.addAudioContextConsumer = function(consumer) {
+    if (this.isAudioContextInitialized()) {
+      consumer(audioContext);
+    } else {
+      consumers.push(consumer);
+    }
+  }
 
-module.exports.chords = [
-  ["A\nA: 2 5 1"],
-  ["A\nA: 1 6 4 5"]
-];
+  /**
+   * First call initializes the shared audio context.
+   */
+  this.getAudioContext = function() {
+    if (!audioContext) {
+      audioContext = new AudioContext({latencyHint: 'playback'});
+      consumers.forEach(consumer => consumer(audioContext));
+      consumers = [];
+    }
+    return audioContext;
+  }
 
-module.exports.voicings = [
-  ["1 3 5 7"],
-  ["1 2 5 7"],
-  ["1 4 5 7"],
-  ["1 4 7 9"],
-  ["1 3 7 10 14"],
-  ["3 7 8"]
-];
+  this.isAudioContextInitialized = function() {
+    return !!audioContext;
+  }
+})();
 
-module.exports.scales = [
-// 7 note scales
-  ["1 2 3 4 5 6 7"], // major
-  ["1 2 3 4 5 b6 7"], // harmonic major
-  ["1 2 b3 4 5 6 7"], // melodic minor
-  ["1 2 b3 4 5 b6 7"], // harmonic minor
-// 8 note scales
-  ["1 2 3 4 5 b6 6 7"],
-  ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
-// 5/6 note scales
-  ["1 3 4 5 6"],
-  ["1 2 3 b5 b6 b7"], // wholetone scale
-  ["1 #2 3 5 #5 7"], // augmented scale
-  ["1 b2 b3 4 5 b6"] // "by me"
-];
-
-module.exports.arpeggioPatterns = [
-  [">*_"],// play all notes of voicing at once
-  [">*"] // play all notes of the voicing after one another in order of the voicing
-];
-
-module.exports.rhythmPatterns = [
-  ["1"], // default rhythm
-  ["8 8 8 8 8 8 8 8"], // 8 events
-  ["!1 1 !1 1 !1 1 !1 1"], // 8 events, but the first and every other event is a rest
-  ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
-  ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
-];
-
-},{}],13:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
+const audioContextWrapper = require("./audio_context_wrapper.js");
+
 var WebAudioTinySynth = require('webaudio-tinysynth');
+const { MyToneSynth } = require('./my_tone_synth.js');
 
 var INSTRUMENT_FACTORIES = {
-  'webaudio-tinysynth': createTinySynthInstrument
+  'webaudio-tinysynth': createTinySynthInstrument,
+  'my-tone-synth': () => new MyToneSynth()
 };
 
 lib.getInstrumentNames = function() {
-  return INSTRUMENT_FACTORIES.keys();
+  return Object.keys(INSTRUMENT_FACTORIES);
 }
 
 lib.createInstrument = function(instrumentName) {
   if (typeof(instrumentName) === 'undefined') {
     return createTinySynthInstrument();
   }
-  if (typeof(INSTRUMENT_FACTORIES[instrumentName] === 'undefined')) {
+  if (typeof(INSTRUMENT_FACTORIES[instrumentName]) === 'undefined') {
     console.error('createInstrument() - Unknown instrument name: ' + instrumentName);
     return createTinySynthInstrument();
   }
   return INSTRUMENT_FACTORIES[instrumentName]();
 }
 
-/**
- * Shared audio context
- */
-var audioContext;
-function getAudioContext() {
-  if (!audioContext) {
-    audioContext = new AudioContext();
-  }
-  return audioContext;
+lib.releaseInstrument = function(audioInstrument) {
+  // TODO
 }
-lib.getAudioContext = getAudioContext;
 
 /**
  * Shared tiny synth
@@ -6459,8 +6175,12 @@ lib.getAudioContext = getAudioContext;
 var tinySynth;
 function getTinySynth() {
   if (!tinySynth) {
-    tinySynth = new WebAudioTinySynth({quality: 1, useReverb: 1, voices: 20, internalContext: 0, graph: 0});
-    tinySynth.setAudioContext(getAudioContext());
+    tinySynth = new WebAudioTinySynth({internalContext: 0, quality: 1, useReverb: 1, voices: 100});
+    if (audioContextWrapper.isAudioContextInitialized()) {
+      tinySynth.setAudioContext(audioContextWrapper.getAudioContext());
+    } else {
+      audioContextWrapper.addAudioContextConsumer(audioContext => tinySynth.setAudioContext(audioContext));
+    }
   }
   return tinySynth;
 }
@@ -6470,21 +6190,16 @@ var lastTinySynthChannel = -1;
 function createTinySynthInstrument() {
   var _synth = getTinySynth();
   var _channel = ++lastTinySynthChannel;
-  var _noteOns = [];
 
   var instrument = {
     noteOn: function(position, velocity, time) {
       _synth.noteOn(_channel, position, velocity, time);
-      _noteOns.push(position);
     },
     noteOff: function(position, time) {
       _synth.noteOff(_channel, position, time);
     },
-    allNotesOff: function(time) {
-      _noteOns.forEach(function(position) {
-        _synth.noteOff(_channel, position, time);
-      });
-      _noteOns = [];
+    allNotesOff: function() {
+      _synth.allSoundOff(_channel);
     },
     getPresetNames: function() {
       return _synth.program.map(function(programEntry) {
@@ -6493,13 +6208,67 @@ function createTinySynthInstrument() {
     },
     setPreset: function(index) {
       _synth.setProgram(_channel, index);
+    },
+    setVolume: function(volume) {
+      _synth.setChVol(_channel, (volume / 100) * 127);
     }
   };
 
   return instrument;
 }
 
-},{"webaudio-tinysynth":11}],14:[function(require,module,exports){
+},{"./audio_context_wrapper.js":9,"./my_tone_synth.js":11,"webaudio-tinysynth":8}],11:[function(require,module,exports){
+const audioContextWrapper = require("./audio_context_wrapper.js");
+var Tone;
+var isToneInitialized = false;
+
+function MyToneSynth(options) {
+    var options = options || {};
+    var voices = options.voices || 100;
+    if (!isToneInitialized) {
+        isToneInitialized = true;
+        audioContextWrapper.addAudioContextConsumer(context => {
+            /*Tone = require("tone");
+            Tone.setContext(context);
+            return Tone.start();*/
+        });
+    }
+
+    var synth;
+    audioContextWrapper.addAudioContextConsumer(context => {
+        synth = new Tone.PolySynth({context: context});
+    });
+
+    this.noteOn = function(position, velocity, time) {
+        synth.triggerAttack(Tone.Frequency(position, "midi"), time, velocity / 127);
+    };
+
+    this.noteOff = function(position, time) {
+        synth.triggerRelease(Tone.Frequency(position, "midi"), time);
+    };
+
+    this.allNotesOff = function() {
+        synth.releaseAll();
+    };
+       
+    this.getPresetNames = function() {
+        return ["one"];
+    };
+        
+    this.setPreset = function(index) {
+
+    };
+
+    this.setVolume = function(volume) {
+        vol.volume.rampTo(newDecibelVolume, 0.3)
+        var min = -100;
+        var max = 0;    
+        synth.volume.value = -100 + (volume / 100) * max;
+    };
+}
+
+module.exports = {MyToneSynth};
+},{"./audio_context_wrapper.js":9}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6549,11 +6318,9 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":40,"./theory/notes.js":43}],15:[function(require,module,exports){
+},{"./theory/base.js":39,"./theory/notes.js":42}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
-
-var formSerialize = require('form-serialize');
 
 var session = require("./session.js");
 var presetLib = require("./presets.js");
@@ -6770,9 +6537,6 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
     form.bpm.addEventListener("input", function() {
       form.bpm_output.value = form.bpm.value;
     });
-    form.bpm.addEventListener("change", function() {
-      form.bpm_output.value = form.bpm.value;
-    });
     return {
       play: form.play,
       stop: form.stop,
@@ -6781,6 +6545,7 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
       step_backward: form.step_backward,
       loop: form.loop,
       bpm: form.bpm,
+      bpm_out: form.bpm_output,
       form: form,
       updateURL: function() {
         serializedForm = serializeForm(form);
@@ -6842,7 +6607,7 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
     // initialize the form and submit it
     // reset all form elements but the checkbox which activates the DAW update
     var inputs = form.elements;
-    for (i = 0; i < inputs.length; i++) {
+    for (var i = 0; i < inputs.length; i++) {
       if (inputs[i].type === "checkbox") {
         inputs[i].checked = false;
       }
@@ -6879,12 +6644,12 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
 function serializeForm(form) {
   // disable the preset elements while serializing, so they are ignored for serializing
   presetLib.enablePresets(form, false);
-  var newSerializedForm = formSerialize(form);
+  var newSerializedForm = new URLSearchParams(new FormData(form)).toString();
   presetLib.enablePresets(form, true);
   return newSerializedForm;
 }
 
-},{"../theory/arpeggio.js":39,"../theory/base.js":40,"../theory/rhythm.js":45,"./pocket_knife.js":22,"./presets.js":23,"./session.js":27,"form-serialize":4}],16:[function(require,module,exports){
+},{"../theory/arpeggio.js":38,"../theory/base.js":39,"../theory/rhythm.js":44,"./pocket_knife.js":20,"./presets.js":21,"./session.js":25}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6933,7 +6698,7 @@ lib.createInstrumentFactory = function(options) {
   }
 }
 
-},{"./keyboard.js":17,"./piano_roll.js":18,"./string_instrument.js":20,"./zebra.js":21}],17:[function(require,module,exports){
+},{"./keyboard.js":15,"./piano_roll.js":16,"./string_instrument.js":18,"./zebra.js":19}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7107,7 +6872,7 @@ function checkCrossRow(chromatic) {
   return chromatic % 2 === (cIsCrossRow ? 0 : 1);
 }
 
-},{"../../theory/base.js":40}],18:[function(require,module,exports){
+},{"../../theory/base.js":39}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7137,10 +6902,10 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
   var semitoneHeight = 20 * 0.4;
   var thinLine = 0.5;
   var thickLine = 1;
-  var headerHeight = 1.5 * semitoneHeight + 0.5;
+  var headerHeight = 1.5 * semitoneHeight;
 
   var width = zebraWidth + lengthInQN * 2 * eightNoteWidth;
-  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight;
+  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
 
   var scale = 1.5;
   canvas.width = width * scale;
@@ -7177,7 +6942,7 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
     y += semitoneHeight;
   }
   // horizontal line
-  drawLine(x, y, width, y + semitoneHeight);
+  drawLine(x, y, width, y);
 
   _ctx.fillStyle = "black";
 
@@ -7212,7 +6977,7 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
           _styles.event.normal(x, y, width, semitoneHeight);
         }
         // TODO add naming
-        // _ctx.fillText("b3", x, y);
+        // _ctx.fillText(pitch, x, y);
       });
     }
   }
@@ -7279,11 +7044,10 @@ function createStyles(context) {
   return {
     event: {
       normal: function(x, y, width, height) {
-        _ctx.strokeStyle = 'orange';
+        _ctx.strokeStyle = 'black';
         _ctx.fillStyle = 'blue';
-        //_ctx.fillRect(x + thinLine, y + thinLine, width - thinLine * 2, height - thinLine * 2);
         _ctx.fillRect(x, y, width, height);
-        // _ctx.strokeRect(x, y, width, height);
+        _ctx.strokeRect(x, y, width, height);
       },
       highlighted: function(x, y, width, height) {
         var grad1 = context.createLinearGradient(x, y, x + width, y);
@@ -7292,13 +7056,13 @@ function createStyles(context) {
         _ctx.strokeStyle = 'green';
         _ctx.fillStyle = grad1;
         _ctx.fillRect(x, y, width, height);
-        // _ctx.strokeRect(x, y, width, height);
+        _ctx.strokeRect(x, y, width, height);
       }
     }
   }
 }
 
-},{"../../theory/base.js":40}],19:[function(require,module,exports){
+},{"../../theory/base.js":39}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7519,7 +7283,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./factory.js":16}],20:[function(require,module,exports){
+},{"./factory.js":14}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7529,30 +7293,10 @@ var stringInstrumentTemplate = document.getElementById("templates").getElementsB
 
 var types = {
   // name: [stringBaseNotes, stringGauges, fretCount]
-  guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
+  guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 22], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
   bass_guitar: [notesLib.parseNotes('b10 b7 4 1 E1'), [.045, .06, .08 , .1], 17],
   concert_ukulele: [notesLib.parseNotes('10 6 4 8 G4'), [.022, .026, .029, .024], 11],
 };
-
-var debug = true;
-if (debug) {
-  for (var type in types) {
-    if (!types.hasOwnProperty(type)) {
-      continue;
-    }
-    var name = type;
-    type = types[type];
-    console.log("type", name, type.map(function(el, i) {
-      if (i == 0) {
-        return el.map(function(n) {
-          return n.toString();
-        });
-      } else {
-        return el;
-      }
-    }));
-  }
-}
 
 /**
  * Returns false if the type is unknown.
@@ -7568,7 +7312,7 @@ lib.createStringInstrumentByType = function(typeName) {
 // template and then add chords to it, which creates the user interface then....
 var initializedStyles = {};
 
-var debug = true;
+var debug = false;
 /**
  * An array of pitches/notes provide the base pitches (object.getPosition())
  * of the strings. One note per pitch. .g. bass would be 1 4 b7 b10.
@@ -7673,6 +7417,7 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
       _stringPitches.forEach(function(stringPitch, stringIndex) {
         var relativeStringPosition = stringPitch.getPosition() % 12;
         notes.forEach(function(pitchToAdd) {
+          var positionOnString;
           var position = pitchToAdd.getPosition();
           // check for all registers
           var stringRegister = -1;
@@ -7762,7 +7507,7 @@ function createFret(index) {
   return el;
 }
 
-},{"../../theory/notes.js":43}],21:[function(require,module,exports){
+},{"../../theory/notes.js":42}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7912,7 +7657,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":40}],22:[function(require,module,exports){
+},{"../../theory/base.js":39}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7933,7 +7678,7 @@ function handleUrlAction(value) {
       newUrlBase = 'http://localhost:3042/';
       break;
     case 'www':
-      newUrlBase = 'https://iostream.github.io/chromatone-helper/v2-dev/';
+      newUrlBase = 'https://iostream.github.io/chromatone-helper/multi-track-sequencer/';
       break;
     case 'file':
       newUrlBase = 'file:///home/iostream/chromatone-helper/chromatone-helper/chromatone-index.html';
@@ -7950,7 +7695,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],23:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8024,20 +7769,22 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],24:[function(require,module,exports){
+},{}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var trackLib = require('./track.js');
-var transportLib = require('./transport.js');
+const trackLib = require('./track.js');
+const transportLib = require('./transport.js');
 
-var templates = document.getElementById('templates');
-var trackTemplate = templates.getElementsByClassName('track')[0];
+const templates = document.getElementById('templates');
+const trackTemplate = templates.getElementsByClassName('track')[0];
+
+const isAudioContextInitialized  = require("../../audio/audio_context_wrapper.js").isAudioContextInitialized;
+const getAudioContext = require("../../audio/audio_context_wrapper.js").getAudioContext;
 
 lib.createService = function(sequencer, parentElement) {
   var _sequencer = sequencer;
   var _tracks = [];
-  var _transport = transportLib.createTransport(sequencer);
   var _rootElement = parentElement.getElementsByClassName("sequencer")[0];
   var _tracksElement = _rootElement.getElementsByClassName('tracks')[0];
   var _adminElement = _rootElement.getElementsByClassName('administration')[0];
@@ -8058,6 +7805,19 @@ lib.createService = function(sequencer, parentElement) {
   }
 
   var service = {
+    start: function() {
+      if (_sequencer.isEmpty()) {
+        return;
+      }
+      // create audio context, when the user starts the sequencer the first time
+      if (!isAudioContextInitialized()) {
+        getAudioContext();
+        for (var track of _tracks) {
+          track.applyAudioSettings();
+        }
+      }
+      _sequencer.start();
+    },
     addNewTrack: function(options) {
       var trackEl = _tracksElement.appendChild(trackTemplate.cloneNode(true));
       var sequencerTrack = _sequencer.createTrack();
@@ -8079,6 +7839,7 @@ lib.createService = function(sequencer, parentElement) {
       var track = _tracks.pop();
       _sequencer.popTrack();
       _tracksElement.removeChild(track.getElement());
+      _controls.updateURL();
       return track;
     },
     updateTracks: function(scales, voicings, rhythmPatterns, arpeggioPatterns) {
@@ -8091,13 +7852,21 @@ lib.createService = function(sequencer, parentElement) {
       var chordDefs;
       _tracks.forEach(function(track) {
         chordDefs = track.updateContent(_scales, _voicings, _rhythmPatterns, _arpeggioPatterns, chordDefs);
+        if (isAudioContextInitialized()) {
+          track.applyAudioSettings();
+        }
       });
+      _sequencer.resetGUIUpdates();
+      _transport.applyAudioSettings();
     },
     /* the UI root element of the sequencer */
     getElement: function() {
       return _rootElement;
     }
   };
+
+  var _transport = transportLib.createTransport(sequencer, service) ;
+
   service.initControlElements = function(controls) {
     _controls = controls;
     _transport.initControlElements(controls);
@@ -8111,29 +7880,19 @@ lib.createService = function(sequencer, parentElement) {
     });
 
     _tracksElement.addEventListener("change", function(event) {
-      if (event.target.name.indexOf('audio_preset') === 0) {
-        getTrack(event).updateAudioPreset();
-      }
+      var target = event.target;
 
-      if (event.target.name.indexOf('chords') === 0) {
+      if (target.name.indexOf('chords') === 0) {
         service.updateTracks();
+        controls.updateURL();
+      } else if (getTrack(event).handleEvent(event)) {
+        controls.updateURL();
       }
-
-      if (event.target.name.indexOf('instrument') === 0) {
-        getTrack(event).updateVisualization();
-      }
-        
-      if (event.target.type === 'checkbox') {
-        event.target.value = (event.target.checked) ? '1' : '0';
-        if (event.target.classList.contains("mute")) {
-          getTrack(event).mute(event.target.checked);
-        }
-        getTrack(event).updateVisualization();
-      }
-
-      controls.updateURL();
     });
 
+    _tracksElement.addEventListener("input", function(event) {
+      getTrack(event).handleEvent(event);
+    });
     // assure we have at least on track at all times
     // if (sequencer.getTracks().length == 0) {
     //   sequencer.createTrack();
@@ -8142,32 +7901,30 @@ lib.createService = function(sequencer, parentElement) {
   };
 
   service.updateByParameters = function(parameters) {
-    // there is no chord[0] and the is always at least one track
+    // there is no chord[0] and there is always at least one track
     // add as many scale GUIs as needed
     while (parameters.has("chords" + _tracks.length)) {
       service.addNewTrack();
     }
 
     // TODO also delete tracks if needed
-
-    _tracks.forEach(function(track) {
-      track.initAudioControls();
-    });
   }
 
   return service;
 }
 
-},{"./track.js":25,"./transport.js":26}],25:[function(require,module,exports){
+},{"../../audio/audio_context_wrapper.js":9,"./track.js":23,"./transport.js":24}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../../theory/base.js");
-var p = require("../../theory/progression.js");
-var arpeggioLib = require("../../theory/arpeggio.js");
-var presetLib = require("../presets.js");
-var chordPresets = require("../../../resources/presets.js").chords;
-var instrumentLib = require("../instrument/proxy.js");
+const tLib = require("../../theory/base.js");
+const p = require("../../theory/progression.js");
+const arpeggioLib = require("../../theory/arpeggio.js");
+const instrumentLib = require("../instrument/proxy.js");
+const audioInstrumentLib = require("../../audio/instrument.js");
+
+const isAudioContextInitialized  = require("../../audio/audio_context_wrapper.js").isAudioContextInitialized;
+const getAudioContext = require("../../audio/audio_context_wrapper.js").getAudioContext;
 
 lib.createTrack = function(options) {
   var _index = options.index || 0;
@@ -8187,47 +7944,38 @@ lib.createTrack = function(options) {
   var _stringedOptionsGroup = _optionsElement.getElementsByClassName("stringed-options")[0];
   var _stringedOptionElements = _stringedOptionsGroup.getElementsByTagName("input");
 
+  var _audioInstrumentSelect = _optionsElement.getElementsByClassName('audio')[0];
   var _audioPresetSelect = _optionsElement.getElementsByClassName('audio-preset')[0];
+  var _muteElement = _optionsElement.querySelector('input[name="mute"]');
+  var _volumeElement = _optionsElement.querySelector('input[name="vol"]');
 
   var _progression;
   var _events;
   var _chordDefParserResult;
 
+  var _currentAudioInstrumentName;
+
+  // append the track index to the name of the track's form elements, for serialising etc.
   // do not change the parameter names of the first track, for backward compatibility!
   if (_index > 0) {
     [
       _optionsElement.getElementsByTagName("input"),
       _optionsElement.getElementsByTagName("select"),
-      _optionsElement.getElementsByTagName("textarea")
+      _optionsElement.getElementsByTagName("textarea"),
+      _optionsElement.getElementsByTagName("label"),
     ].forEach(function(els) {
       for (var i=0; i < els.length; ++i) {
-        els[i].name = ((els[i]).name) + _index;
+        if (els[i].tagName == 'LABEL') {
+          els[i].setAttribute('for', ((els[i]).getAttribute('for')) + _index);
+        } else {
+          els[i].name = ((els[i]).name) + _index;
+        }
       }
     });
   }
 
-  initAudioControls();
-
   // used for event delegation:
   _rootElement.dataset.index = _index;
-
-  function initAudioControls() {
-    // remove previously added preset names
-    var options = _audioPresetSelect.getElementsByTagName('option');
-    while (options.length > 0) {
-      _audioPresetSelect.removeChild(options[0]);
-    }
-    if (!_content || !_content.getAudioInstrument()) {
-      return;
-    }
-    // add all current preset names
-    _content.getAudioInstrument().getPresetNames().forEach(function(name, index) {
-      option = document.createElement('option');
-      option.appendChild(document.createTextNode(name));
-      option.value = index;
-      _audioPresetSelect.appendChild(option);
-    });
-  }
 
   function collectInstrumentOptions() {
     var options = {type: _instrumentSelect.value, compact: _instrumentCompact.checked};
@@ -8251,7 +7999,6 @@ lib.createTrack = function(options) {
     return chordDefParserResult;
   }
 
-
   var track = {
     getElement: function() {
       return _rootElement;
@@ -8267,6 +8014,29 @@ lib.createTrack = function(options) {
         _content.getAudioInstrument().setPreset(_audioPresetSelect.options[_audioPresetSelect.selectedIndex].value);
       }
     },
+    updateAudioInstrument: function() {
+      if (_audioInstrumentSelect.selectedIndex === -1) {
+        // make backward compatible: select first instrument when none is explicitly set
+        _audioInstrumentSelect.selectedIndex = 0;
+      }
+      var implementation = _audioInstrumentSelect.options[_audioInstrumentSelect.selectedIndex].innerHTML;
+      if (!_currentAudioInstrumentName || _currentAudioInstrumentName !== implementation) {
+        if (_content.getAudioInstrument()) {
+          audioInstrumentLib.releaseInstrument(_content.getAudioInstrument());
+        }
+        _content.setAudioInstrument(audioInstrumentLib.createInstrument(implementation));
+        _currentAudioInstrumentName = implementation;
+
+        // add preset names
+        _audioPresetSelect.innerHTML = '';
+        _content.getAudioInstrument().getPresetNames().forEach(function(name, index) {
+          var option = document.createElement('option');
+          option.appendChild(document.createTextNode(name));
+          option.value = index;
+          _audioPresetSelect.appendChild(option);
+        });
+      }
+    },
     updateVisualization: function(progression, chordComposite) {
       var options = collectInstrumentOptions();
       _visualizationElement.innerHTML = '';
@@ -8274,32 +8044,100 @@ lib.createTrack = function(options) {
       instrument.addChordProgressionUsingChordDefinitionComposite(_progression, _chordDefParserResult.getComposite(), _events);
       _content.setInstrumentGUI(instrument);
 
-      // show/hide the string instrument options before validation
-      if (_instrumentSelect.selectedIndex > -1 && _instrumentSelect.options[_instrumentSelect.selectedIndex].classList.contains("stringed")) {
-        _stringedOptionsGroup.classList.remove("hidden");
-      } else {
-        _stringedOptionsGroup.classList.add("hidden");
+      updateOptionsVisibility();
+    },
+    mute: function(on) {
+      _content.mute(on);
+    },
+    setVolume: function(volume) {
+      if (!_content || !_content.getAudioInstrument()) {
+        return;
       }
+      _content.getAudioInstrument().setVolume(volume);
+    },
+    initControlElements: function(controls) {
+    },
+    updateContent: function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {
+      _chordDefParserResult = parseChordDefinitions(_chordDefElement.value, voicings, scales, rhythmPatterns, arpeggioPatterns);
+      _progression = p.createChordProgression(_chordDefParserResult.getList());
+      _events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+      _content.setEvents(_events);
+      if (_content && _content.getAudioInstrument()) {
+        _content.getAudioInstrument().allNotesOff();
+      }
+      this.updateVisualization();
+    },
+    handleEvent: function(event) {
+      // call getAudioContext() in order to prevent errors, when the audio context was not initialized yet
+      getAudioContext();
+      var target = event.target;
+      if (target.name.indexOf('audio_preset') === 0) {
+        this.updateAudioPreset();
+        return true;
+      }
+      if (target.name.indexOf('audio') === 0) {
+        this.updateAudioInstrument();
+        this.updateAudioPreset();
+        return true;
+      }
+      if (target.name.indexOf('instrument') === 0) {
+        this.updateVisualization();
+        return true;
+      }
+      if (target.type === 'checkbox') {
+        target.value = (target.checked) ? '1' : '0';
+        if (target.classList.contains("mute")) {
+          this.mute(target.checked);
+        }
+        this.updateVisualization();
+        return true;
+      }
+      if (target.name.indexOf('vol') === 0) {
+        this.setVolume(target.value);
+        return true;
+      }
+      return false;
+    },
+    applyAudioSettings: function() {
+      this.updateAudioInstrument();
+      this.updateAudioPreset();
+      this.mute(_muteElement.checked);
+      this.setVolume(_volumeElement.value);
     }
   };
 
-  track.mute = function(on) {
-    _content.mute(on);
-  };
+  function updateOptionsVisibility() {
+    if (_instrumentSelect.selectedIndex == -1) {
+      return;
+    }
+    var selectedInstrument = _instrumentSelect.options[_instrumentSelect.selectedIndex];
+    if (selectedInstrument.classList.contains("stringed")) {
+      _stringedOptionsGroup.classList.remove("hidden");
+    } else {
+      _stringedOptionsGroup.classList.add("hidden");
+    }
 
-  track.initControlElements = function(controls) {
-    track.updateAudioPreset();
-  };
+    if (selectedInstrument.classList.contains("world")) {
+      _instrumentCompact.parentElement.classList.add("hidden");
+    } else {
+      _instrumentCompact.parentElement.classList.remove("hidden");
+    }
+  }
 
-  track.updateContent = function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {
-    _chordDefParserResult = parseChordDefinitions(_chordDefElement.value, voicings, scales, rhythmPatterns, arpeggioPatterns);
-    _progression = p.createChordProgression(_chordDefParserResult.getList());
-    _events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-    _content.setEvents(_events);
-    track.updateVisualization();
-  };
+  // add audio instrument options
+  audioInstrumentLib.getInstrumentNames().forEach((instrumentName, index) => {
+    var option = document.createElement('option');
+    option.appendChild(document.createTextNode(instrumentName));
+    option.value = index;
+    _audioInstrumentSelect.appendChild(option);
+  });
 
-  track.initAudioControls = initAudioControls;
+  track.updateAudioInstrument();  
+
+  if (isAudioContextInitialized()) {
+    track.applyAudioSettings();
+  }
+
   return track;
 };
 
@@ -8315,12 +8153,13 @@ function addMessage(parentElement, type, message) {
   parentElement.appendChild(el);
 }
 
-},{"../../../resources/presets.js":12,"../../theory/arpeggio.js":39,"../../theory/base.js":40,"../../theory/progression.js":44,"../instrument/proxy.js":19,"../presets.js":23}],26:[function(require,module,exports){
+},{"../../audio/audio_context_wrapper.js":9,"../../audio/instrument.js":10,"../../theory/arpeggio.js":38,"../../theory/base.js":39,"../../theory/progression.js":43,"../instrument/proxy.js":17}],24:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-lib.createTransport = function(sequencer) {
+lib.createTransport = function(sequencer, sequencerGUI) {
   var _sequencer = sequencer;
+  var _sequencerGUI = sequencerGUI;
   var _controls;
 
   function updatePlayState() {
@@ -8354,13 +8193,14 @@ lib.createTransport = function(sequencer) {
               _sequencer.stop();
             }
           } else {
-            _sequencer.start();
+            _sequencerGUI.start();
           }
           updatePlayState();
+          event.preventDefault();
         }
       });
       controls.play.addEventListener("click", function() {
-        _sequencer.start();
+        _sequencerGUI.start();
         updatePlayState();
       });
       controls.pause.addEventListener("click", function() {
@@ -8379,19 +8219,25 @@ lib.createTransport = function(sequencer) {
       });
       controls.loop.addEventListener("click", function() {
         _sequencer.setLoop(controls.loop.checked);
+        _controls.updateURL();
       });
       controls.bpm.addEventListener("input", function() {
         _sequencer.setBpm(controls.bpm.value);
+        _controls.updateURL();
       });
-      controls.bpm.dispatchEvent(new Event('input'));
       _sequencer.addStopCallback(function() {
         updatePlayState();
       });
+    },
+    applyAudioSettings: function() {
+      _sequencer.setLoop(_controls.loop.checked);
+      _sequencer.setBpm(_controls.bpm.value);
+      _controls.bpm_out.value = _controls.bpm.value;
     }
   };
 };
 
-},{}],27:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -8456,7 +8302,7 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],28:[function(require,module,exports){
+},{}],26:[function(require,module,exports){
 var formLib = require("./gui/form.js"),
  t = require("./theory/base.js"),
  compositeParser = require("./parser/composite_parser.js"),
@@ -8464,7 +8310,7 @@ var formLib = require("./gui/form.js"),
 
  midi = require("./midi.js"),
  serverClient = require("./server/client.js"),
- presets = require("../resources/presets.js"),
+ presets = require("./presets.js"),
  sequencerLib = require("./sequencer/sequencer.js"),
  sequencerGuiLib = require("./gui/sequencer/service.js"),
  sequencerTransport = require("./gui/sequencer/transport.js");
@@ -8485,26 +8331,36 @@ formLib.addForm(
     sequencerGui.updateByParameters(parameters);
   },
   function onSubmit(scales, voicings, rhythmPatterns, arpeggioPatterns, options, resultSection) {
-    
-    sequencerGui.updateTracks(scales, voicings, rhythmPatterns, arpeggioPatterns);
-    sequencer.updateGUI();
-
-    if (options.uploadToDAW) {
-      serverClient.uploadToDAW(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-    }
-
-    if (options.uploadMidi || options.generateMidi) {
-      var midiWriter = midi.createMidi(events, chords, scales, buildGeneratorUrl(options.serializedForm));
-      if (options.generateMidi) {
-        downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
-      }
-      if (options.uploadMidi) {
-        serverClient.uploadMidi(midiWriter.dataUri());
-      }
-    }
+    updateSequencer(scales, voicings, rhythmPatterns, arpeggioPatterns);
+    updateExports(scales, options);
   },
   presets.progressions, presets.chords, presets.voicings, presets.scales, presets.rhythmPatterns, presets.arpeggioPatterns
 );
+
+function updateSequencer(scales, voicings, rhythmPatterns, arpeggioPatterns) {
+  sequencerGui.updateTracks(scales, voicings, rhythmPatterns, arpeggioPatterns);
+  sequencer.updateGUI();
+}
+
+function updateExports(scales, options) {
+  if (!options.uploadToDAW && !options.uploadMidi && !options.generateMidi) {
+    return;
+  }
+
+  if (options.uploadToDAW) {
+    serverClient.uploadToDAW(sequencer, buildGeneratorUrl(options.serializedForm));
+  }
+
+  if (options.uploadMidi || options.generateMidi) {
+    var midiWriter = midi.createMidi(sequencer, scales, buildGeneratorUrl(options.serializedForm));
+    if (options.generateMidi) {
+      downloadDataUri(midiWriter.dataUri(), "chromatone-helper.mid");
+    }
+    if (options.uploadMidi) {
+      serverClient.uploadMidi(midiWriter.dataUri());
+    }
+  }
+}
 
 function buildGeneratorUrl(serializedForm) {
   var url = new URL("#" + serializedForm, document.location.href);
@@ -8526,9 +8382,11 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"../resources/presets.js":12,"./gui/form.js":15,"./gui/sequencer/service.js":24,"./gui/sequencer/transport.js":26,"./midi.js":29,"./parser/composite.js":31,"./parser/composite_parser.js":32,"./sequencer/sequencer.js":35,"./server/client.js":37,"./theory/base.js":40}],29:[function(require,module,exports){
+},{"./gui/form.js":13,"./gui/sequencer/service.js":22,"./gui/sequencer/transport.js":24,"./midi.js":27,"./parser/composite.js":29,"./parser/composite_parser.js":30,"./presets.js":32,"./sequencer/sequencer.js":34,"./server/client.js":36,"./theory/base.js":39}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
+
+const MidiWriter = require("midi-writer-js");
 
 function buildScalesDescription(scales) {
   return scales.map(function(scale, i) {
@@ -8541,44 +8399,43 @@ function buildScalesDescription(scales) {
  *
  * @return MidiWriter object
  */
-lib.createMidi = function(chordEvents, chords, scales, generatorUrl) {
-  var MidiWriter = require("midi-writer-js");
+lib.createMidi = function(sequencer, scales, generatorUrl) {
+  var midiTracks = [];
+  sequencer.getTracks().forEach(track => {
+    var midiTrack = new MidiWriter.Track();
+    midiTracks.push(midiTrack);
+    if (midiTracks.length == 1) {
+      midiTrack.addTrackName(buildScalesDescription(scales) + " Generated via: " + generatorUrl);
+      midiTrack.addText(generatorUrl);
+      midiTrack.setTempo(sequencer.getBpm());
+      midiTrack.setTimeSignature(4, 4);
+    }
 
-  // Start with a new track
-  var track = new MidiWriter.Track();
-
-  track.setTempo(140);
-  track.addTrackName(buildScalesDescription(scales) + " Generated via: " + generatorUrl);
-
-  var restingTime = 0;
-  chordEvents.forEach(function(events) {
-    events.forEach(function(event) {
-      // Tn : where n is an explicit number of ticks (T128 = 1 beat)
-      var eventDuration = "T" + event.getLengthInQN() * 128;
-      if (event.isRest()) {
-        restingTime += event.getLengthInQN();
-      } else {
-        var pitches = event.getPitches().map(function(note) {
-          return note.getPosition();
-        });
-        var noteData = {pitch: pitches, duration: eventDuration};
-        if (restingTime > 0) {
-          // Tn : where n is an explicit number of ticks (T128 = 1 beat)
-          noteData.wait = "T" + restingTime * 128;
-          restingTime = 0;
-        }
-        track.addEvent(new MidiWriter.NoteEvent(noteData));
-      }
+    var qnPos = 0;
+    track.getEvents().forEach(events => {
       // TODO can we bring back chord names in MIDI export?
       // track.addMarker(chord.getName());
+      events.forEach(function(event) {
+        if (!event.isRest()) {
+          var pitches = event.getPitches().map(note => note.getPosition());
+          var eventDuration = "T" + event.getLengthInQN() * 128;
+          var noteData = {
+            startTick: qnPos * 128,
+            pitch: pitches,
+            duration: eventDuration
+          };
+          midiTrack.addEvent(new MidiWriter.NoteEvent(noteData));
+        }
+        qnPos += event.getLengthInQN();
+      });
     });
   });
 
-  var writer = new MidiWriter.Writer([track]);
+  var writer = new MidiWriter.Writer(midiTracks);
   return writer;
 }
 
-},{"midi-writer-js":6}],30:[function(require,module,exports){
+},{"midi-writer-js":4}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8595,6 +8452,7 @@ var BIG_CHARACTER_REGEX_STR = '[A-Z]';//;
 var VARIABLE_REGEX_STR = '[A-Za-z_][A-Za-z_\\d]*';
 var VARIABLE_DECLARATION_SUFFIX = ':';
 var PURE_VARIABLE_DECLARATION_PREFIX = '\\$';
+var EXPRESSION_REGEX_STR = '\\([^\)]+\\)';
 var LINE_COMMENT_STR = "#";
 
 // Next possible token states:
@@ -8684,7 +8542,7 @@ function createState(thingRegex) {
   };
   allStates[SHORT_CHARACTER_OPTION].nestedStates = allStates[SHORT_CHARACTER_OPTION].notNestedStates.concat([CLOSED_BRACKET]);
   allStates[LONG_OPTION] = {
-    regexp: new RegExp('^(' + VARIABLE_REGEX_STR + ')([+-]?=)(' + VARIABLE_REGEX_STR + '|' + NUMBER_REGEX_STR + ')(!?)'),
+    regexp: new RegExp('^(' + VARIABLE_REGEX_STR + ')([+-]?=)(' + VARIABLE_REGEX_STR + '|' + NUMBER_REGEX_STR + '|' + EXPRESSION_REGEX_STR + ')(!?)'),
     notNestedStates: [WHITESPACE],
     nestedStates: [WHITESPACE, CLOSED_BRACKET],
     getNextStates: function () {
@@ -8907,7 +8765,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],31:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9155,7 +9013,7 @@ function createOptions() {
   };
 }
 
-},{}],32:[function(require,module,exports){
+},{}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9317,7 +9175,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":30,"./message.js":33}],33:[function(require,module,exports){
+},{"./async_lexer.js":28,"./message.js":31}],31:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9349,7 +9207,67 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],34:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
+var std4Voicing = "1 3 5 7";
+var std6Voicing = "1 3 5 6";
+module.exports.progressions = [
+// [ scales, chords, optional voicing ]
+  [["1 2 b3 4 5 6 b7", "1 2 b3 4 b5 5 6"], "6 2 4 5 1, 1* 2 4* 5 1*, 1", std4Voicing],
+  [["1 2 3 #4 5 6 7"], "2 5 1 6 4 5 1", std4Voicing],
+  [["1 b2 b3 4 b5 b6 b7", "1 2 3 4 5 6 b7"], "2 5 1 6, 4 5 1* 4, 5 1* 4  5, 1* 4", std6Voicing],
+  [["1 b2 #3 b5 b6 6 b7"], "1 6 2 4 5 1", std4Voicing],
+  [["1 b2 b3 3 4 5 b6"], "1 6 2 4 5 1", std4Voicing],
+  [["1 2 3 4 5 6 7"], "2i2 5 1, 2 5 1", std6Voicing],
+  [["1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1", std4Voicing],
+  [["1 2 3 4 5 6 7", "1 2 3 4 5 6 7"], "4 5 4 5, 1 2 6 4 1", std6Voicing],
+  [["1 3 4 5 6"], "1 2 3 4 5, 4 3 2 1", std4Voicing],
+  [["1 b2 b3 3 5 b6 b7", "1 2 3 4 5 6 b7"], "2Vb 5 1Va 6, 4 5Vb 1* 4, 5 1* 4Vb  5, 1* 4", "a: 1 3 5 7\nb: 6 8 11 13\n3 6 8 11"]
+];
+
+module.exports.chords = [
+  ["A\nA: 2 5 1"],
+  ["A\nA: 1 6 4 5"]
+];
+
+module.exports.voicings = [
+  ["1 3 5 7"],
+  ["1 2 5 7"],
+  ["1 4 5 7"],
+  ["1 4 7 9"],
+  ["1 3 7 10 14"],
+  ["3 7 8"]
+];
+
+module.exports.scales = [
+// 7 note scales
+  ["1 2 3 4 5 6 7"], // major
+  ["1 2 3 4 5 b6 7"], // harmonic major
+  ["1 2 b3 4 5 6 7"], // melodic minor
+  ["1 2 b3 4 5 b6 7"], // harmonic minor
+// 8 note scales
+  ["1 2 3 4 5 b6 6 7"],
+  ["1 b2 b3 3 4 b5 b6 b7"], // "by me"
+// 5/6 note scales
+  ["1 3 4 5 6"],
+  ["1 2 3 b5 b6 b7"], // wholetone scale
+  ["1 #2 3 5 #5 7"], // augmented scale
+  ["1 b2 b3 4 5 b6"] // "by me"
+];
+
+module.exports.arpeggioPatterns = [
+  [">*_"],// play all notes of voicing at once
+  [">*"] // play all notes of the voicing after one another in order of the voicing
+];
+
+module.exports.rhythmPatterns = [
+  ["1"], // default rhythm
+  ["8 8 8 8 8 8 8 8"], // 8 events
+  ["!1 1 !1 1 !1 1 !1 1"], // 8 events, but the first and every other event is a rest
+  ["6 6 6 6 6 6 q=3"], // 6 events in 3 beats/quarter notes = 6
+  ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
+];
+
+},{}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9433,17 +9351,17 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],35:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var trackLib = require('./track.js');
+const audioContextWrapper = require('../audio/audio_context_wrapper.js');
 
-const audioCtx = require('../audio/instrument.js').getAudioContext();
+const trackLib = require('./track.js');
 
-lib.createSequencer = function() {
+lib.createSequencer = function () {
   var _pollDelayInMS = 25;
-  var _lookAheadInMS = 100; // https://www.html5rocks.com/en/tutorials/audio/scheduling/
+  var _lookAheadInMS = 200; // https://www.html5rocks.com/en/tutorials/audio/scheduling/
 
   // XXX Why not just use the requestAnimationFrame() polling?
   // TODO try it out, I would suspect that this solution (two timers) will also play audio while the browser tab is in
@@ -9455,10 +9373,8 @@ lib.createSequencer = function() {
 
   var _tracks = [];
   var _loop = false;
-  var _playIndex = 0;
   var _isPlaying = false;
   var _isPaused = false;
-  var _noteOffs = [];
   var _secondsPerQuarterNote;
 
   var _onStopCallbacks = [];
@@ -9472,7 +9388,10 @@ lib.createSequencer = function() {
   }
 
   var seq = {
-    createTrack: function() {
+    isEmpty: function () {
+      return !_tracks.some(track => track.getEvents().length > 0);
+    },
+    createTrack: function () {
       var track = trackLib.createTrack();
       track.setMSPerQuarterNote(_secondsPerQuarterNote * 1000);
       _tracks.push(track);
@@ -9490,11 +9409,14 @@ lib.createSequencer = function() {
     setBpm: function(bpm) {
       // XXX Doing it this way sometimes does stop the audio when incrementing bpm very fast
       _secondsPerQuarterNote = 60 / bpm;
-      _tracks.forEach(function(track) {
+      _tracks.forEach(track => {
         track.setMSPerQuarterNote(_secondsPerQuarterNote * 1000);
         track.resetSeeker();
       });
       seq.panic();
+    },
+    getBpm: function() {
+      return 60 / _secondsPerQuarterNote;
     },
     /**
      * TODO: chord index
@@ -9531,12 +9453,12 @@ lib.createSequencer = function() {
       track.updateGUI();
     },
     updateGUI: function() {
-      _tracks.forEach(function(track) {
+      _tracks.forEach(track => {
         track.updateGUI();
       });
     },
     panic: function() {
-      _tracks.forEach(function(track) {
+      _tracks.forEach(track => {
         var audioInstrument = track.getAudioInstrument();
         if (audioInstrument) {
           audioInstrument.allNotesOff();
@@ -9556,10 +9478,28 @@ lib.createSequencer = function() {
 
   var _lastEndInSeconds = 0;
   var _trackGUIUpdateTimes; // <- queue, in order to update GUI synchronized with the audio thread
-  seq.start = function() {
+
+  seq.resetGUIUpdates = function () {
+    _trackGUIUpdateTimes = [];
+    for (var i = 0; i < _tracks.length; ++i) {
+      _trackGUIUpdateTimes.push([]);
+    }
+  }
+
+  var debug;
+  if (false) {
+    debug = new VisualDebug(10);
+  }
+
+  seq.start = function () {
+    var audioCtx = audioContextWrapper.getAudioContext();
     if (_isPlaying) {
       return;
     }
+    if (debug) {
+      debug.reset();
+    }
+
     _isPlaying = true;
     _isPaused = false;
 
@@ -9567,19 +9507,19 @@ lib.createSequencer = function() {
 
     var __startTime = false;
 
-    // init _trackGUIUpdateTimes
-    _trackGUIUpdateTimes = [];
-    _tracks.forEach(function(track, index) {
-      _trackGUIUpdateTimes[index] = [];
-    });
+    seq.resetGUIUpdates();
+
+    var loopCount = 0;
 
     // GUI update polling...
     function guiTick() {
       var currentTime = audioCtx.currentTime;
-      _trackGUIUpdateTimes.forEach(function(trackUpdateTimes, trackIndex) {
-        var i = 0;
-        while (trackUpdateTimes[0] <= currentTime) {
-          _tracks[trackIndex].updateGUI(true);
+      _trackGUIUpdateTimes.forEach((trackUpdateTimes, trackIndex) => {
+        for (var updateInfo of trackUpdateTimes) {
+          if (updateInfo[0] > currentTime) {
+            break;
+          }
+          _tracks[trackIndex].updateGUI(updateInfo[1], updateInfo[2], updateInfo[3]);
           trackUpdateTimes.shift();
         }
       });
@@ -9594,9 +9534,13 @@ lib.createSequencer = function() {
 
     // Audio update polling....
     function tick() {
+      // whether all tracks have no events left
       var isSeekingDone = true;
 
       var currentTime = audioCtx.currentTime;
+      if (debug) {
+        debug.addTick(currentTime);
+      }
       if (__startTime === false) {
         __startTime = currentTime;
       }
@@ -9604,13 +9548,16 @@ lib.createSequencer = function() {
       var rangeStartInMS = (currentTime - __startTime) * 1000.0;
       var rangeEndInMS = rangeStartInMS + _pollDelayInMS + _lookAheadInMS;
       if (rangeEndInMS < 0) {
+        // console.log("skipping", rangeStartInMS, rangeEndInMS);
         // skip ranges which cannot be in a track, this can happen while repeating
         return;
       }
 
-      _tracks.forEach(function(track, trackIndex) {
+      for (let trackIndex = 0; trackIndex < _tracks.length; ++trackIndex) {
+        let track = _tracks[trackIndex];
         var previousEvent = track.getLastFoundEvent();
         var scheduleTimeInSeconds = __startTime + (track.getSeekPosInMS() / 1000);
+        // console.log("seeking", rangeStartInMS, rangeEndInMS);
         var events = track.seekEvents(rangeStartInMS, rangeEndInMS);
         // the end time of an event is the start time of the next event
         // first start time is 0
@@ -9620,48 +9567,59 @@ lib.createSequencer = function() {
         }
         var synth = track.getAudioInstrument();
         if (events.length > 0) {
-          events.forEach(function(event) {
+          events.forEach(eventInfo => {
+            var event = eventInfo[0];
+            var positionInQN = eventInfo[1];
+            var chordIndex = eventInfo[2];
+            if (debug) {
+              debug.addFound(currentTime, scheduleTimeInSeconds);
+            }
             if (synth && !track.isMuted()) {
               if (previousEvent && !previousEvent.isRest()) {
-                synth.allNotesOff(scheduleTimeInSeconds);
+                previousEvent.getPitches().forEach(function (note) {
+                  synth.noteOff(note.getPosition(), scheduleTimeInSeconds);
+                });
               }
               if (!event.isRest()) {
-                event.getPitches().forEach(function(note) {
+                event.getPitches().forEach(note => {
                   synth.noteOn(note.getPosition(), velocity, scheduleTimeInSeconds);
                 });
               }
             }
-            _trackGUIUpdateTimes[trackIndex].push(scheduleTimeInSeconds);
+            _trackGUIUpdateTimes[trackIndex].push([scheduleTimeInSeconds, event, positionInQN, chordIndex]);
             scheduleTimeInSeconds += event.getLengthInQN() * _secondsPerQuarterNote;
             previousEvent = event;
           });
-          if (isSeekingOfTrackDone) {
-            var lastFoundEvent = events[events.length - 1];
-            var endInSeconds = scheduleTimeInSeconds;
-            // XXX already schedule note off for the last event here (because it is simpler to do this way, but it could lead to problems?)
-            if (synth && !lastFoundEvent.isRest()) {
-              synth.allNotesOff(endInSeconds);
-            }
-            if (endInSeconds > _lastEndInSeconds) {
-              _lastEndInSeconds = endInSeconds;
-            }
+        }
+        if (isSeekingOfTrackDone) {
+          var lastFoundEvent = track.getLastFoundEvent();
+          var endInSeconds = scheduleTimeInSeconds;
+          // XXX already schedule note off for the last event here (because it is simpler to do this way, but it could lead to problems?)
+          if (synth && !lastFoundEvent.isRest()) {
+            lastFoundEvent.getPitches().forEach(note => {
+              synth.noteOff(note.getPosition(), endInSeconds);
+            });
+          }
+          if (endInSeconds > _lastEndInSeconds) {
+            _lastEndInSeconds = endInSeconds;
           }
         }
-      });
+      };
 
       if (isSeekingDone) {
         if (!_loop) {
           // schedule stop
           // XXX there certainly is a better way for doing this
-          setTimeout(function() { seq.stop(); }, (_lastEndInSeconds - currentTime) * 1000);
+          setTimeout(function () { seq.stop(); }, (_lastEndInSeconds - currentTime) * 1000);
           return;
         }
 
         // setup next repeat
-        _tracks.forEach(function(track) {
+        _tracks.forEach(track => {
           track.resetSeeker();
         });
         __startTime = _lastEndInSeconds;
+        // console.log("start time", __startTime, "currentTime", currentTime, "loop number", ++loopCount);
       }
     }
     _intervalID = window.setInterval(tick, _pollDelayInMS);
@@ -9677,7 +9635,7 @@ lib.createSequencer = function() {
     _guiTick = false;
   }
 
-  seq.pause = function() {
+  seq.pause = function () {
     if (_isPlaying) {
       _isPlaying = false;
       stopTimers();
@@ -9685,17 +9643,16 @@ lib.createSequencer = function() {
     }
   };
 
-  seq.stop = function() {
+  seq.stop = function () {
     _isPlaying = false;
     _isPaused = false;
-    _playIndex = 0;
     stopTimers();
     _lastEndInSeconds = 0;
-    _tracks.forEach(function(track) {
+    _tracks.forEach(track => {
       track.stop();
       track.updateGUI();
     });
-    _onStopCallbacks.forEach(function(callback) {
+    _onStopCallbacks.forEach(callback => {
       callback();
     });
   };
@@ -9703,7 +9660,77 @@ lib.createSequencer = function() {
   return seq;
 }
 
-},{"../audio/instrument.js":13,"./track.js":36}],36:[function(require,module,exports){
+function VisualDebug(sizeInSeconds) {
+  var parent = document.getElementById("interactive");
+  var pixelsPerSecond = parent.offsetWidth / sizeInSeconds;
+  console.log("Visual Debug", "pixelsPerSecond", pixelsPerSecond);
+  var offsetYPerSeconds = 1;
+  var width = pixelsPerSecond * sizeInSeconds;
+  var height = offsetYPerSeconds * pixelsPerSecond;
+  var canvas = createCanvas(width, height);
+  parent.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  ctx.width = width;
+  ctx.height = height;
+
+  var foundMarkerHeight = 10;
+  var xPixelOffset = 0;
+  var tickFoundCount = 0;
+  var lastXEnd = lastXEnd;
+
+  this.addTick = function(posInSeconds) {
+    if (tickFoundCount > 0) {
+      // visualize number of queued events
+      ctx.fillText("" + tickFoundCount, lastXEnd, lastY)
+    }
+    tickFoundCount = 0;
+
+    var x = posInSeconds * pixelsPerSecond - xPixelOffset;
+    if (x > width) {
+      xPixelOffset += width;
+      x = posInSeconds * pixelsPerSecond - xPixelOffset;
+      ctx.clearRect(0, 0, ctx.width, ctx.height);
+    }
+    line(x, 0, x, height).stroke();
+  }
+
+  this.addFound = function(posInSeconds, foundPosInSeconds) {
+    ++tickFoundCount;
+    if (tickFoundCount > 1) {
+      // not returning would just draw redudandent lines 
+      return;
+    }
+    var xStart = posInSeconds * pixelsPerSecond - xPixelOffset;
+    var y = xStart % height;
+    var xEnd = foundPosInSeconds * pixelsPerSecond - xPixelOffset;
+
+    line(xStart, y, xEnd, y).stroke()
+    line(xEnd, y - foundMarkerHeight, xEnd, y + foundMarkerHeight).stroke();
+
+    lastY = y;
+    lastXEnd = xEnd;
+  }
+
+  this.reset = function() {
+    xPixelOffset = 0;
+  }
+
+  function createCanvas(width, height) {
+    var canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    return canvas;
+  }
+
+  function line(startX, startY, endX, endY) {
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    return ctx;
+  }
+}
+
+},{"../audio/audio_context_wrapper.js":9,"./track.js":35}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9713,7 +9740,7 @@ var audioInstrumentLib = require('../audio/instrument.js');
  *
  */
 lib.createTrack = function() {
-  var _audioInstrument = audioInstrumentLib.createInstrument();
+  var _audioInstrument;
   var _instrumentGUI;
   var _events = [];
 
@@ -9736,7 +9763,11 @@ lib.createTrack = function() {
     },
     setEvents: function(events) {
       _events = events;
+      _lastHighlighted = false;
       this.resetSeeker();
+    },
+    getEvents: function() {
+      return _events;
     },
     resetSeeker: function() {
       _audioEventIndex.reset();
@@ -9787,6 +9818,9 @@ lib.createTrack = function() {
     getAudioInstrument: function() {
       return _audioInstrument;
     },
+    setAudioInstrument: function(audioInstrument) {
+      _audioInstrument = audioInstrument;
+    },
     setInstrumentGUI: function(instrumentGUI) {
       _instrumentGUI = instrumentGUI;
     },
@@ -9794,36 +9828,18 @@ lib.createTrack = function() {
      * If updateUsingQueue = true -> update GUI to the state of the first queued entry of the _eventUpdateQueue
      * If updateUsingQueue = false|undefined -> just repaint the current event (the content changed, but not the position of the event within the )
      */
-    updateGUI: function(updateUsingQueue) {
+    updateGUI: function(event, positionInQN, chordIndex) {
       // dehighlight previously highlighted pitches
       if (_lastHighlighted && _lastHighlighted[0]) {
         _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1], _lastHighlighted[2]);
         _lastHighlighted = false;
       }
 
-      var event;
-      if (updateUsingQueue) {
-        event = _guiEventIndex.nextEvent();
-        if (!event) {
-          _guiEventIndex.reset();
-          event = _guiEventIndex.nextEvent();
-          if (!event) {
-            console.error('updateGUI(true) with no event on GUI index position');
-          }
-        }
-      } else {
-        return;
+      if (event) {
+        // highlight current event and remember event indexes, so it can be dehighlighted later
+        _instrumentGUI.highlightEvent(event, chordIndex, positionInQN);
+        _lastHighlighted = [event, chordIndex, positionInQN];
       }
-
-      if (!event) {
-        return;
-      }
-
-      var chordIndex = _guiEventIndex.getChordIndex();
-
-      // highlight current event and remember event indexes, so it can be dehighlighted later
-      _instrumentGUI.highlightEvent(event, chordIndex, _guiEventIndex.getQuarterNotes());
-      _lastHighlighted = [event, chordIndex, _guiEventIndex.getQuarterNotes()];
     },
     isMuted: function() {
       return _muted;
@@ -9847,32 +9863,29 @@ lib.createTrack = function() {
   };
 
   /**
-   * always seeks forward.
+   * always seeks forward and only starting from its current internal seek position. start
    * returned empty array means: no data
    * getLastFoundEvent() will return false, if there are no more events to be found seeking forward
+   * 
+   * return [
+   *  [event, positionInQN, chordIndex],
+   *  ...
+   * ]
    */
   track.seekEvents = function(positionInMSRangeStart, positionInMSRangeEnd) {
     if (_events.length === 0) {
       return false;
     }
 
-    // seek start point
-    while (_seekPosMs < positionInMSRangeStart) {
-      _seekPosEvent = _audioEventIndex.nextEvent();
-      if (!_seekPosEvent) {
-        break;
-      }
-      _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
-    }
-
     var found = [];
     while (_seekPosEvent && _seekPosMs <= positionInMSRangeEnd) {
-      found.push(_seekPosEvent);
+      found.push([_seekPosEvent, _seekPosMs / _msPerQuarterNote, _audioEventIndex.getChordIndex()]);
+      // log("found at ", _seekPosMs, "ms");
       _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
       _seekPosEvent = _audioEventIndex.nextEvent();
     }
     if (found.length > 0) {
-      _lastFoundEvent = found[found.length - 1];
+      _lastFoundEvent = found[found.length - 1][0];
     }
     return found;
   };
@@ -9941,7 +9954,7 @@ lib.createTrack = function() {
   return track;
 };
 
-},{"../audio/instrument.js":13}],37:[function(require,module,exports){
+},{"../audio/instrument.js":10}],36:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9952,23 +9965,26 @@ const host = require("./host.js");
  * many lines each containing of:
  * <iPosOut> <endTime> <pitch>
  */
-function serializeProgressionForDAW(chordEvents, chords, scales, generatorUrl) {
+function serializeProgressionForDAW(tracks, generatorUrl) {
   var result = generatorUrl + "\n";
-  var chordIPosOut = 0;
-  // for each chord definition...
-  chordEvents.forEach(function(events) {
-    // for each event...
-    events.forEach(function(event) {
-      var eventLengthInQN = event.getLengthInQN();
-      if (!event.isRest()) {
-        var pitchEndTime = chordIPosOut + eventLengthInQN;
-        event.getPitches().forEach(function(note) {
-          var pitch = note.getPosition();
-          result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
-        });
-      }
+  // for each track
+  tracks.forEach(track => {
+    var chordIPosOut = 0;
+    // for each chord definition...
+    track.getEvents().forEach(function(events) {
+      // for each event...
+      events.forEach(function(event) {
+        var eventLengthInQN = event.getLengthInQN();
+        if (!event.isRest()) {
+          var pitchEndTime = chordIPosOut + eventLengthInQN;
+          event.getPitches().forEach(function(note) {
+            var pitch = note.getPosition();
+            result += (chordIPosOut + " " + pitchEndTime + " " + pitch + "\n");
+          });
+        }
 
-      chordIPosOut += eventLengthInQN;
+        chordIPosOut += eventLengthInQN;
+      });
     });
   });
 
@@ -9991,8 +10007,8 @@ function upload(path, text) {
   request.send(text);
 }
 
-lib.uploadToDAW = function(events, chords, scales, generatorUrl) {
-  var text = serializeProgressionForDAW(events, chords, scales, generatorUrl);
+lib.uploadToDAW = function(sequencer, generatorUrl) {
+  var text = serializeProgressionForDAW(sequencer.getTracks(), generatorUrl);
   if (!text) {
     console.error("Skipping DAW upload, because the serialization into the DAW format did not work.");
     return;
@@ -10010,13 +10026,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":38}],38:[function(require,module,exports){
+},{"./host.js":37}],37:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],39:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10125,6 +10141,8 @@ lib.parseArpeggioPatterns = function(multilineString) {
   return patterns;
 };
 
+lib.parseArpeggioPattern = parseArpeggioPattern;
+
 function createArpeggioPattern(internalPitchIterators) {
   var _internalPitchIterators = internalPitchIterators;
   var pattern = {
@@ -10186,8 +10204,8 @@ function createState(notes) {
       this.voicingIndex = (this.voicingIndex + 1) % _notes.length;
       var foundNoteIndex;
       // find the oressponding values for this.pitchIndex and this.noteIndex
-      this.pitchIndex = this.voicingIndexesByPitchIndex.findIndex(function(voicingIndexes) {
-          var noteIndex = voicingIndexes.findIndex(function(voicingIndex) {
+      this.pitchIndex = this.voicingIndexesByPitchIndex.findIndex(voicingIndexes => {
+          var noteIndex = voicingIndexes.findIndex(voicingIndex => {
             return voicingIndex === this.voicingIndex;
           });
           if (noteIndex !== -1) {
@@ -10216,7 +10234,7 @@ function createState(notes) {
       } else {
         // find the first note of the needed pitch which comes first after the last used note
         var smallestDiff = -1, bestNoteIndex;
-        voicingIndexes.forEach(function(voicingIndex, noteIndex) {
+        voicingIndexes.forEach((voicingIndex, noteIndex) => {
           var diff;
           if (this.voicingIndex > voicingIndex) {
             diff = (voicingIndex + _notes.length) - this.voicingIndex;
@@ -10438,7 +10456,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":34}],40:[function(require,module,exports){
+},{"../recursive_parser.js":33}],39:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10453,7 +10471,7 @@ lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
 
-},{"./chord_definition.js":42,"./notes.js":43,"./scale.js":46,"./voicing.js":47}],41:[function(require,module,exports){
+},{"./chord_definition.js":41,"./notes.js":42,"./scale.js":45,"./voicing.js":46}],40:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10564,7 +10582,7 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],42:[function(require,module,exports){
+},{}],41:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10572,8 +10590,9 @@ var voicingLib = require("./voicing.js");
 var chordLib = require("./chord.js");
 var compositeLib = require("../parser/composite.js");
 var compositeParser = require("../parser/composite_parser.js");
-
-var REGEX_COUNT_SCALE = /\*/g;
+const { parseVoicing } = require("./voicing.js");
+const { parseRhythmPattern } = require("./rhythm.js");
+const { parseArpeggioPattern } = require("./arpeggio.js");
 
 /**
  * TODO make this a clean method again (which needs some f)
@@ -10686,12 +10705,39 @@ lib.parseChordDefinitions = function(multilineString, voicings, scales, rhythmPa
   };
 }
 
-function resolveVariable(variableName, map, type, messages) {
-  if (typeof(map[variableName]) === 'undefined') {
-    messages.addWarning("Ignoring unknown " + type + " reference: " + variableName);
-    return false;
+function resolveVariableOrParseSubject(variableNameOrSubject, map, type, messages) {
+  if (variableNameOrSubject.length > 1 && variableNameOrSubject[0] === '(' 
+    && variableNameOrSubject[variableNameOrSubject.length - 1] == ')'
+  ) {
+    // parse subject
+    let value = variableNameOrSubject.substring(1, variableNameOrSubject.length - 1);
+    let subject;
+    switch (type) {
+      case 'voicing':
+        subject = parseVoicing(value);
+        break;
+      case 'rhythm pattern':
+        subject = parseRhythmPattern(value);
+        break;
+      case 'arpeggio pattern':
+        subject = parseArpeggioPattern(value);
+        break;
+      default:
+        break;
+    }
+    if (!subject) {
+      messages.addWarning("Ignoring unknown " + type + " expression: " + variableNameOrSubject);
+      return false;
+    }
+    return subject;
+  } else {
+    // resolve variable
+    if (typeof(map[variableNameOrSubject]) === 'undefined') {
+      messages.addWarning("Ignoring unknown " + type + " reference: " + variableNameOrSubject);
+      return false;
+    }
+    return map[variableNameOrSubject];
   }
-  return map[variableName];
 }
 
 function resolveScale(scaleIndex, scales, messages) {
@@ -10766,15 +10812,15 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
             _scale = alterSubject(_scale, subject, operator, "scale", _messages);
             break;
           case 'V':
-            var subject = resolveVariable(value, _voicings, "voicing", _messages);
+            var subject = resolveVariableOrParseSubject(value, _voicings, "voicing", _messages);
             _voicing = alterSubject(_voicing, subject, operator, "voicing", _messages);
             break;
           case 'R':
-            var subject = resolveVariable(value, rhythmPatterns, "rhythm pattern", _messages);
+            var subject = resolveVariableOrParseSubject(value, rhythmPatterns, "rhythm pattern", _messages);
             _rhythmPattern = alterSubject(_rhythmPattern, subject, operator, "rhythm pattern", _messages);
             break;
           case 'A':
-            var subject = resolveVariable(value, _arpeggioPatterns, "arpeggio pattern", _messages);
+            var subject = resolveVariableOrParseSubject(value, _arpeggioPatterns, "arpeggio pattern", _messages);
             _arpeggioPattern = alterSubject(_arpeggioPattern, subject, operator, "arpeggio pattern", _messages);
             break;
           default:
@@ -10849,7 +10895,7 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":31,"../parser/composite_parser.js":32,"./chord.js":41,"./voicing.js":47}],43:[function(require,module,exports){
+},{"../parser/composite.js":29,"../parser/composite_parser.js":30,"./arpeggio.js":38,"./chord.js":40,"./rhythm.js":44,"./voicing.js":46}],42:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -10873,6 +10919,9 @@ var defaultRegister = 4;
  * Returns the chromatic position of the tonic of the key.
  */
 function parseKeyPosition(keyName) {
+  if (keyName === '') {
+    return 60;
+  }
   var register = defaultRegister;
   var pos = 0;
   var letter = keyName[pos].toLowerCase();
@@ -11068,9 +11117,6 @@ function parseNote(noteDefinition, rootPosition, parsedInterval) {
     };
   }
 
-  if (typeof majorNotes[interval - 1] === "undefined") {
-    console.error("parseNote() - I have no mapping for major note: " + interval);
-  }
   var _chromaticInterval;
 
   if (interval <= 7) {
@@ -11261,7 +11307,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],44:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -11434,7 +11480,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":14,"./base.js":40}],45:[function(require,module,exports){
+},{"../fingering.js":12,"./base.js":39}],44:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11665,7 +11711,8 @@ lib.parseRhythmPatterns = function(multilineString) {
   return map;
 };
 
-},{"../recursive_parser.js":34}],46:[function(require,module,exports){
+lib.parseRhythmPattern = parseRhythmPattern;
+},{"../recursive_parser.js":33}],45:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11736,14 +11783,13 @@ lib.createScale = function(definition) {
       }
 
       // set the new chromatic roots after transposing, so they are not affected by it
-      rootNote = this.getRootNote();
+      var rootNote = this.getRootNote();
       rootNote.setRoot(true);
 
       // rewrite the chromatic intervals, so they make sense again
       var rootPosition = _notes[0].getPosition();
       _notes.forEach(function (note) {
         note.setChromaticInterval(note.getPosition() - rootPosition);
-        previousPosition = note.getPosition();
       });
 
       // rewrite the positions, so the root has the same position like before
@@ -11781,7 +11827,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":43}],47:[function(require,module,exports){
+},{"./notes.js":42}],46:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -12013,7 +12059,8 @@ lib.isVoicing = function(object) {
   return typeof object.getVoices1 === "function";
 }
 
-},{"../recursive_parser.js":34}]},{},[28]);
+lib.parseVoicing = parseVoicing;
+},{"../recursive_parser.js":33}]},{},[26]);
 </script>
   </body>
 </html>
