@@ -1,12 +1,14 @@
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../../theory/base.js");
-var p = require("../../theory/progression.js");
-var arpeggioLib = require("../../theory/arpeggio.js");
-var presetLib = require("../presets.js");
-var chordPresets = require("../../../resources/presets.js").chords;
-var instrumentLib = require("../instrument/proxy.js");
+const tLib = require("../../theory/base.js");
+const p = require("../../theory/progression.js");
+const arpeggioLib = require("../../theory/arpeggio.js");
+const instrumentLib = require("../instrument/proxy.js");
+const audioInstrumentLib = require("../../audio/instrument.js");
+
+const isAudioContextInitialized  = require("../../audio/audio_context_wrapper.js").isAudioContextInitialized;
+const getAudioContext = require("../../audio/audio_context_wrapper.js").getAudioContext;
 
 lib.createTrack = function(options) {
   var _index = options.index || 0;
@@ -26,47 +28,38 @@ lib.createTrack = function(options) {
   var _stringedOptionsGroup = _optionsElement.getElementsByClassName("stringed-options")[0];
   var _stringedOptionElements = _stringedOptionsGroup.getElementsByTagName("input");
 
+  var _audioInstrumentSelect = _optionsElement.getElementsByClassName('audio')[0];
   var _audioPresetSelect = _optionsElement.getElementsByClassName('audio-preset')[0];
+  var _muteElement = _optionsElement.querySelector('input[name="mute"]');
+  var _volumeElement = _optionsElement.querySelector('input[name="vol"]');
 
   var _progression;
   var _events;
   var _chordDefParserResult;
 
+  var _currentAudioInstrumentName;
+
+  // append the track index to the name of the track's form elements, for serialising etc.
   // do not change the parameter names of the first track, for backward compatibility!
   if (_index > 0) {
     [
       _optionsElement.getElementsByTagName("input"),
       _optionsElement.getElementsByTagName("select"),
-      _optionsElement.getElementsByTagName("textarea")
+      _optionsElement.getElementsByTagName("textarea"),
+      _optionsElement.getElementsByTagName("label"),
     ].forEach(function(els) {
       for (var i=0; i < els.length; ++i) {
-        els[i].name = ((els[i]).name) + _index;
+        if (els[i].tagName == 'LABEL') {
+          els[i].setAttribute('for', ((els[i]).getAttribute('for')) + _index);
+        } else {
+          els[i].name = ((els[i]).name) + _index;
+        }
       }
     });
   }
 
-  initAudioControls();
-
   // used for event delegation:
   _rootElement.dataset.index = _index;
-
-  function initAudioControls() {
-    // remove previously added preset names
-    var options = _audioPresetSelect.getElementsByTagName('option');
-    while (options.length > 0) {
-      _audioPresetSelect.removeChild(options[0]);
-    }
-    if (!_content || !_content.getAudioInstrument()) {
-      return;
-    }
-    // add all current preset names
-    _content.getAudioInstrument().getPresetNames().forEach(function(name, index) {
-      option = document.createElement('option');
-      option.appendChild(document.createTextNode(name));
-      option.value = index;
-      _audioPresetSelect.appendChild(option);
-    });
-  }
 
   function collectInstrumentOptions() {
     var options = {type: _instrumentSelect.value, compact: _instrumentCompact.checked};
@@ -90,7 +83,6 @@ lib.createTrack = function(options) {
     return chordDefParserResult;
   }
 
-
   var track = {
     getElement: function() {
       return _rootElement;
@@ -106,6 +98,29 @@ lib.createTrack = function(options) {
         _content.getAudioInstrument().setPreset(_audioPresetSelect.options[_audioPresetSelect.selectedIndex].value);
       }
     },
+    updateAudioInstrument: function() {
+      if (_audioInstrumentSelect.selectedIndex === -1) {
+        // make backward compatible: select first instrument when none is explicitly set
+        _audioInstrumentSelect.selectedIndex = 0;
+      }
+      var implementation = _audioInstrumentSelect.options[_audioInstrumentSelect.selectedIndex].innerHTML;
+      if (!_currentAudioInstrumentName || _currentAudioInstrumentName !== implementation) {
+        if (_content.getAudioInstrument()) {
+          audioInstrumentLib.releaseInstrument(_content.getAudioInstrument());
+        }
+        _content.setAudioInstrument(audioInstrumentLib.createInstrument(implementation));
+        _currentAudioInstrumentName = implementation;
+
+        // add preset names
+        _audioPresetSelect.innerHTML = '';
+        _content.getAudioInstrument().getPresetNames().forEach(function(name, index) {
+          var option = document.createElement('option');
+          option.appendChild(document.createTextNode(name));
+          option.value = index;
+          _audioPresetSelect.appendChild(option);
+        });
+      }
+    },
     updateVisualization: function(progression, chordComposite) {
       var options = collectInstrumentOptions();
       _visualizationElement.innerHTML = '';
@@ -113,32 +128,100 @@ lib.createTrack = function(options) {
       instrument.addChordProgressionUsingChordDefinitionComposite(_progression, _chordDefParserResult.getComposite(), _events);
       _content.setInstrumentGUI(instrument);
 
-      // show/hide the string instrument options before validation
-      if (_instrumentSelect.selectedIndex > -1 && _instrumentSelect.options[_instrumentSelect.selectedIndex].classList.contains("stringed")) {
-        _stringedOptionsGroup.classList.remove("hidden");
-      } else {
-        _stringedOptionsGroup.classList.add("hidden");
+      updateOptionsVisibility();
+    },
+    mute: function(on) {
+      _content.mute(on);
+    },
+    setVolume: function(volume) {
+      if (!_content || !_content.getAudioInstrument()) {
+        return;
       }
+      _content.getAudioInstrument().setVolume(volume);
+    },
+    initControlElements: function(controls) {
+    },
+    updateContent: function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {
+      _chordDefParserResult = parseChordDefinitions(_chordDefElement.value, voicings, scales, rhythmPatterns, arpeggioPatterns);
+      _progression = p.createChordProgression(_chordDefParserResult.getList());
+      _events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
+      _content.setEvents(_events);
+      if (_content && _content.getAudioInstrument()) {
+        _content.getAudioInstrument().allNotesOff();
+      }
+      this.updateVisualization();
+    },
+    handleEvent: function(event) {
+      // call getAudioContext() in order to prevent errors, when the audio context was not initialized yet
+      getAudioContext();
+      var target = event.target;
+      if (target.name.indexOf('audio_preset') === 0) {
+        this.updateAudioPreset();
+        return true;
+      }
+      if (target.name.indexOf('audio') === 0) {
+        this.updateAudioInstrument();
+        this.updateAudioPreset();
+        return true;
+      }
+      if (target.name.indexOf('instrument') === 0) {
+        this.updateVisualization();
+        return true;
+      }
+      if (target.type === 'checkbox') {
+        target.value = (target.checked) ? '1' : '0';
+        if (target.classList.contains("mute")) {
+          this.mute(target.checked);
+        }
+        this.updateVisualization();
+        return true;
+      }
+      if (target.name.indexOf('vol') === 0) {
+        this.setVolume(target.value);
+        return true;
+      }
+      return false;
+    },
+    applyAudioSettings: function() {
+      this.updateAudioInstrument();
+      this.updateAudioPreset();
+      this.mute(_muteElement.checked);
+      this.setVolume(_volumeElement.value);
     }
   };
 
-  track.mute = function(on) {
-    _content.mute(on);
-  };
+  function updateOptionsVisibility() {
+    if (_instrumentSelect.selectedIndex == -1) {
+      return;
+    }
+    var selectedInstrument = _instrumentSelect.options[_instrumentSelect.selectedIndex];
+    if (selectedInstrument.classList.contains("stringed")) {
+      _stringedOptionsGroup.classList.remove("hidden");
+    } else {
+      _stringedOptionsGroup.classList.add("hidden");
+    }
 
-  track.initControlElements = function(controls) {
-    track.updateAudioPreset();
-  };
+    if (selectedInstrument.classList.contains("world")) {
+      _instrumentCompact.parentElement.classList.add("hidden");
+    } else {
+      _instrumentCompact.parentElement.classList.remove("hidden");
+    }
+  }
 
-  track.updateContent = function(scales, voicings, rhythmPatterns, arpeggioPatterns, parentChordDefs) {
-    _chordDefParserResult = parseChordDefinitions(_chordDefElement.value, voicings, scales, rhythmPatterns, arpeggioPatterns);
-    _progression = p.createChordProgression(_chordDefParserResult.getList());
-    _events = arpeggioLib.arpeggiate(_progression, rhythmPatterns.defaultRhythmPattern, arpeggioPatterns.defaultArpeggioPattern);
-    _content.setEvents(_events);
-    track.updateVisualization();
-  };
+  // add audio instrument options
+  audioInstrumentLib.getInstrumentNames().forEach((instrumentName, index) => {
+    var option = document.createElement('option');
+    option.appendChild(document.createTextNode(instrumentName));
+    option.value = index;
+    _audioInstrumentSelect.appendChild(option);
+  });
 
-  track.initAudioControls = initAudioControls;
+  track.updateAudioInstrument();  
+
+  if (isAudioContextInitialized()) {
+    track.applyAudioSettings();
+  }
+
   return track;
 };
 

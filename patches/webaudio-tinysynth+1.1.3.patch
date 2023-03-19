@@ -1,0 +1,13 @@
+diff --git a/node_modules/webaudio-tinysynth/webaudio-tinysynth.js b/node_modules/webaudio-tinysynth/webaudio-tinysynth.js
+index 4f8a187..f7d52e5 100644
+--- a/node_modules/webaudio-tinysynth/webaudio-tinysynth.js
++++ b/node_modules/webaudio-tinysynth/webaudio-tinysynth.js
+@@ -1464,6 +1464,8 @@ class WebAudioTinySynth {
+         this.setQuality(opt.quality);
+       if(opt.voices!=undefined)
+         this.setVoices(opt.voices);
++      if(opt.internalContext!=undefined)
++        this.internalcontext = opt.internalContext;
+     }
+     this.init();
+   }

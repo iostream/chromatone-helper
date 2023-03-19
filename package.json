@@ -21,19 +21,19 @@
     "teach"
   ],
   "dependencies": {
-    "browserify": "^16.5.2",
-    "form-serialize": "^0.7.2",
+    "browserify": "^17.0.0",
     "midi-writer-js": "^2.1.4",
     "webaudio-tinysynth": "1.1.3"
   },
   "devDependencies": {
-    "watchify": "^3.11.1"
+    "patch-package": "^6.5.1",
+    "watchify": "^4.0.0"
   },
   "scripts": {
     "build": "browserify src/main.js > dist/bundle.js && ./build/build-combined.sh",
     "watch": "watchify src/main.js -o dist/bundle.js -v",
     "build_watch": "watchify src/main.js -o \"browserify src/main.js > dist/bundle.js && ./build/build-combined.sh\" -v",
     "deploy": "browserify src/main.js > dist/bundle.js && ./build/build-combined.sh && ./build/deploy-branch-on-github-pages.sh",
-    "build_": "npm explore browserify -- npm run 'bin/cmd.js src/main.js > dist/bundle.js"
+    "postinstall": "patch-package"
   }
 }

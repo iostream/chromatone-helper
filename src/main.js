@@ -5,7 +5,7 @@ var formLib = require("./gui/form.js"),
 
  midi = require("./midi.js"),
  serverClient = require("./server/client.js"),
- presets = require("../resources/presets.js"),
+ presets = require("./presets.js"),
  sequencerLib = require("./sequencer/sequencer.js"),
  sequencerGuiLib = require("./gui/sequencer/service.js"),
  sequencerTransport = require("./gui/sequencer/transport.js");

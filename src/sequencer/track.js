@@ -7,7 +7,7 @@ var audioInstrumentLib = require('../audio/instrument.js');
  *
  */
 lib.createTrack = function() {
-  var _audioInstrument = audioInstrumentLib.createInstrument();
+  var _audioInstrument;
   var _instrumentGUI;
   var _events = [];
 
@@ -85,6 +85,9 @@ lib.createTrack = function() {
     getAudioInstrument: function() {
       return _audioInstrument;
     },
+    setAudioInstrument: function(audioInstrument) {
+      _audioInstrument = audioInstrument;
+    },
     setInstrumentGUI: function(instrumentGUI) {
       _instrumentGUI = instrumentGUI;
     },
@@ -92,36 +95,18 @@ lib.createTrack = function() {
      * If updateUsingQueue = true -> update GUI to the state of the first queued entry of the _eventUpdateQueue
      * If updateUsingQueue = false|undefined -> just repaint the current event (the content changed, but not the position of the event within the )
      */
-    updateGUI: function(updateUsingQueue) {
+    updateGUI: function(event, positionInQN, chordIndex) {
       // dehighlight previously highlighted pitches
       if (_lastHighlighted && _lastHighlighted[0]) {
         _instrumentGUI.dehighlightEvent(_lastHighlighted[0], _lastHighlighted[1], _lastHighlighted[2]);
         _lastHighlighted = false;
       }
 
-      var event;
-      if (updateUsingQueue) {
-        event = _guiEventIndex.nextEvent();
-        if (!event) {
-          _guiEventIndex.reset();
-          event = _guiEventIndex.nextEvent();
-          if (!event) {
-            console.error('updateGUI(true) with no event on GUI index position');
-          }
-        }
-      } else {
-        return;
+      if (event) {
+        // highlight current event and remember event indexes, so it can be dehighlighted later
+        _instrumentGUI.highlightEvent(event, chordIndex, positionInQN);
+        _lastHighlighted = [event, chordIndex, positionInQN];
       }
-
-      if (!event) {
-        return;
-      }
-
-      var chordIndex = _guiEventIndex.getChordIndex();
-
-      // highlight current event and remember event indexes, so it can be dehighlighted later
-      _instrumentGUI.highlightEvent(event, chordIndex, _guiEventIndex.getQuarterNotes());
-      _lastHighlighted = [event, chordIndex, _guiEventIndex.getQuarterNotes()];
     },
     isMuted: function() {
       return _muted;
@@ -145,32 +130,29 @@ lib.createTrack = function() {
   };
 
   /**
-   * always seeks forward.
+   * always seeks forward and only starting from its current internal seek position. start
    * returned empty array means: no data
    * getLastFoundEvent() will return false, if there are no more events to be found seeking forward
+   * 
+   * return [
+   *  [event, positionInQN, chordIndex],
+   *  ...
+   * ]
    */
   track.seekEvents = function(positionInMSRangeStart, positionInMSRangeEnd) {
     if (_events.length === 0) {
       return false;
     }
 
-    // seek start point
-    while (_seekPosMs < positionInMSRangeStart) {
-      _seekPosEvent = _audioEventIndex.nextEvent();
-      if (!_seekPosEvent) {
-        break;
-      }
-      _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
-    }
-
     var found = [];
     while (_seekPosEvent && _seekPosMs <= positionInMSRangeEnd) {
-      found.push(_seekPosEvent);
+      found.push([_seekPosEvent, _seekPosMs / _msPerQuarterNote, _audioEventIndex.getChordIndex()]);
+      // log("found at ", _seekPosMs, "ms");
       _seekPosMs += _seekPosEvent.getLengthInQN() * _msPerQuarterNote;
       _seekPosEvent = _audioEventIndex.nextEvent();
     }
     if (found.length > 0) {
-      _lastFoundEvent = found[found.length - 1];
+      _lastFoundEvent = found[found.length - 1][0];
     }
     return found;
   };

@@ -1,16 +1,18 @@
 var lib = {};
 module.exports = lib;
 
-var trackLib = require('./track.js');
-var transportLib = require('./transport.js');
+const trackLib = require('./track.js');
+const transportLib = require('./transport.js');
 
-var templates = document.getElementById('templates');
-var trackTemplate = templates.getElementsByClassName('track')[0];
+const templates = document.getElementById('templates');
+const trackTemplate = templates.getElementsByClassName('track')[0];
+
+const isAudioContextInitialized  = require("../../audio/audio_context_wrapper.js").isAudioContextInitialized;
+const getAudioContext = require("../../audio/audio_context_wrapper.js").getAudioContext;
 
 lib.createService = function(sequencer, parentElement) {
   var _sequencer = sequencer;
   var _tracks = [];
-  var _transport = transportLib.createTransport(sequencer);
   var _rootElement = parentElement.getElementsByClassName("sequencer")[0];
   var _tracksElement = _rootElement.getElementsByClassName('tracks')[0];
   var _adminElement = _rootElement.getElementsByClassName('administration')[0];
@@ -31,6 +33,19 @@ lib.createService = function(sequencer, parentElement) {
   }
 
   var service = {
+    start: function() {
+      if (_sequencer.isEmpty()) {
+        return;
+      }
+      // create audio context, when the user starts the sequencer the first time
+      if (!isAudioContextInitialized()) {
+        getAudioContext();
+        for (var track of _tracks) {
+          track.applyAudioSettings();
+        }
+      }
+      _sequencer.start();
+    },
     addNewTrack: function(options) {
       var trackEl = _tracksElement.appendChild(trackTemplate.cloneNode(true));
       var sequencerTrack = _sequencer.createTrack();
@@ -52,6 +67,7 @@ lib.createService = function(sequencer, parentElement) {
       var track = _tracks.pop();
       _sequencer.popTrack();
       _tracksElement.removeChild(track.getElement());
+      _controls.updateURL();
       return track;
     },
     updateTracks: function(scales, voicings, rhythmPatterns, arpeggioPatterns) {
@@ -64,13 +80,21 @@ lib.createService = function(sequencer, parentElement) {
       var chordDefs;
       _tracks.forEach(function(track) {
         chordDefs = track.updateContent(_scales, _voicings, _rhythmPatterns, _arpeggioPatterns, chordDefs);
+        if (isAudioContextInitialized()) {
+          track.applyAudioSettings();
+        }
       });
+      _sequencer.resetGUIUpdates();
+      _transport.applyAudioSettings();
     },
     /* the UI root element of the sequencer */
     getElement: function() {
       return _rootElement;
     }
   };
+
+  var _transport = transportLib.createTransport(sequencer, service) ;
+
   service.initControlElements = function(controls) {
     _controls = controls;
     _transport.initControlElements(controls);
@@ -84,29 +108,19 @@ lib.createService = function(sequencer, parentElement) {
     });
 
     _tracksElement.addEventListener("change", function(event) {
-      if (event.target.name.indexOf('audio_preset') === 0) {
-        getTrack(event).updateAudioPreset();
-      }
+      var target = event.target;
 
-      if (event.target.name.indexOf('chords') === 0) {
+      if (target.name.indexOf('chords') === 0) {
         service.updateTracks();
+        controls.updateURL();
+      } else if (getTrack(event).handleEvent(event)) {
+        controls.updateURL();
       }
-
-      if (event.target.name.indexOf('instrument') === 0) {
-        getTrack(event).updateVisualization();
-      }
-        
-      if (event.target.type === 'checkbox') {
-        event.target.value = (event.target.checked) ? '1' : '0';
-        if (event.target.classList.contains("mute")) {
-          getTrack(event).mute(event.target.checked);
-        }
-        getTrack(event).updateVisualization();
-      }
-
-      controls.updateURL();
     });
 
+    _tracksElement.addEventListener("input", function(event) {
+      getTrack(event).handleEvent(event);
+    });
     // assure we have at least on track at all times
     // if (sequencer.getTracks().length == 0) {
     //   sequencer.createTrack();
@@ -115,17 +129,13 @@ lib.createService = function(sequencer, parentElement) {
   };
 
   service.updateByParameters = function(parameters) {
-    // there is no chord[0] and the is always at least one track
+    // there is no chord[0] and there is always at least one track
     // add as many scale GUIs as needed
     while (parameters.has("chords" + _tracks.length)) {
       service.addNewTrack();
     }
 
     // TODO also delete tracks if needed
-
-    _tracks.forEach(function(track) {
-      track.initAudioControls();
-    });
   }
 
   return service;

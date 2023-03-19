@@ -1,4 +1,4 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <title>Chromatone Helper 🧙 by iostream 2018-2023</title>
@@ -27,7 +27,7 @@
       </div>
 
       <div class="piano-roll">
-        <canvas name="canvas" />
+        <canvas></canvas>
       </div>
 
       <div class="chord-group">
@@ -47,9 +47,17 @@
             <div class="messages"></div>
           </span>
           <span class="form-element">
-            <span class="form-element">
+            <span class="form-element hidden">
               <label for="instrument">audio</label>
-              <select name="audio_preset" class="audio-preset" value="" title="select the (fm) instrument to be used when using the play button"></select>
+              <select name="audio" class="audio" value="" title="select the audio instrument implementation to be used when using the play button"></select>
+            </span>
+            <span class="form-element">
+              <label for="instrument">audio preset</label>
+              <select name="audio_preset" class="audio-preset" value="" title="Select an audio preset. Available presets depend on the selected audio instrument implementation."></select>
+            </span>
+            <span class="form-element">
+              <label for="vol">Volume</label>
+              <input type="range" min="0" max="100" value="100" name="vol" title="set the audio volume of the track">
             </span>
             <span class="form-element">
               <label for="mute">mute</label>
@@ -62,7 +70,7 @@
               <select name="instrument" class="instrument" title="the instrument type to be used to display the progression chords">
                 <option value="chromatic">Chromatone</option>
                 <option value="zebra">Zebra keyboard</option>
-                <option value="piano_roll">Piano Roll</option>
+                <option class="world" value="piano_roll">Piano Roll</option>
                 <option class="stringed" value="guitar">Guitar</option>
                 <option class="stringed" value="bass_guitar">Bass guitar</option>
                 <option class="stringed" value="concert_ukulele">Concert ukulele</option>
@@ -75,11 +83,11 @@
             <span class="stringed-options hidden">
               <span class="form-element">
                 <label for="all_registers">all registers</label>
-                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord"></input>
+                <input type="checkbox" name="all_registers" title="also highlight pitches in different registers, also if they are not part of the chord">
                 <label for="all_intervals">all intervals</label>
-                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch"></input>
+                <input type="checkbox" name="all_intervals" title="not only show the first possible interval, but all possible intervals of each pitch">
                 <label for="chord_mode">chord mode</label>
-                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown."></input>
+                <input type="checkbox" name="chord_mode" title="Shows each pitch only once, in a way that all can be played at once. If chord mode is off, then all existing pitches are shown.">
               </span>
             </span>
           </span>
@@ -136,8 +144,8 @@
               </span>
             </span>
             <span class="form-element">
-            <input type="range" min="1" max="350" value="" name="bpm" title="sets the speed of the playback in beat per minutes">
-            <input type="text" disabled="disabled" name="bpm_output" title="the current speed in beat per minutes">
+            <input type="range" min="1" max="350" value="120" name="bpm" title="sets the speed of the playback in beat per minutes">
+            <input type="text" disabled name="bpm_output" title="the current speed in beat per minutes">
           </span>
           </div>
           <div class="secondary-form-elements">

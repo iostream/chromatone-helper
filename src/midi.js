@@ -21,6 +21,7 @@ lib.createMidi = function(sequencer, scales, generatorUrl) {
     midiTracks.push(midiTrack);
     if (midiTracks.length == 1) {
       midiTrack.addTrackName(buildScalesDescription(scales) + " Generated via: " + generatorUrl);
+      midiTrack.addText(generatorUrl);
       midiTrack.setTempo(sequencer.getBpm());
       midiTrack.setTimeSignature(4, 4);
     }

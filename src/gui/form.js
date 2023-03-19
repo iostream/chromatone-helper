@@ -1,8 +1,6 @@
 var lib = {};
 module.exports = lib;
 
-var formSerialize = require('form-serialize');
-
 var session = require("./session.js");
 var presetLib = require("./presets.js");
 var pocketKnife = require("./pocket_knife.js");
@@ -218,9 +216,6 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
     form.bpm.addEventListener("input", function() {
       form.bpm_output.value = form.bpm.value;
     });
-    form.bpm.addEventListener("change", function() {
-      form.bpm_output.value = form.bpm.value;
-    });
     return {
       play: form.play,
       stop: form.stop,
@@ -229,6 +224,7 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
       step_backward: form.step_backward,
       loop: form.loop,
       bpm: form.bpm,
+      bpm_out: form.bpm_output,
       form: form,
       updateURL: function() {
         serializedForm = serializeForm(form);
@@ -290,7 +286,7 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
     // initialize the form and submit it
     // reset all form elements but the checkbox which activates the DAW update
     var inputs = form.elements;
-    for (i = 0; i < inputs.length; i++) {
+    for (var i = 0; i < inputs.length; i++) {
       if (inputs[i].type === "checkbox") {
         inputs[i].checked = false;
       }
@@ -327,7 +323,7 @@ lib.addForm = function(initFunction, onParameters, submitFunction, presets, chor
 function serializeForm(form) {
   // disable the preset elements while serializing, so they are ignored for serializing
   presetLib.enablePresets(form, false);
-  var newSerializedForm = formSerialize(form);
+  var newSerializedForm = new URLSearchParams(new FormData(form)).toString();
   presetLib.enablePresets(form, true);
   return newSerializedForm;
 }

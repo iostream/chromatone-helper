@@ -1,8 +1,9 @@
 var lib = {};
 module.exports = lib;
 
-lib.createTransport = function(sequencer) {
+lib.createTransport = function(sequencer, sequencerGUI) {
   var _sequencer = sequencer;
+  var _sequencerGUI = sequencerGUI;
   var _controls;
 
   function updatePlayState() {
@@ -36,14 +37,14 @@ lib.createTransport = function(sequencer) {
               _sequencer.stop();
             }
           } else {
-            _sequencer.start();
+            _sequencerGUI.start();
           }
           updatePlayState();
           event.preventDefault();
         }
       });
       controls.play.addEventListener("click", function() {
-        _sequencer.start();
+        _sequencerGUI.start();
         updatePlayState();
       });
       controls.pause.addEventListener("click", function() {
@@ -62,14 +63,20 @@ lib.createTransport = function(sequencer) {
       });
       controls.loop.addEventListener("click", function() {
         _sequencer.setLoop(controls.loop.checked);
+        _controls.updateURL();
       });
       controls.bpm.addEventListener("input", function() {
         _sequencer.setBpm(controls.bpm.value);
+        _controls.updateURL();
       });
-      controls.bpm.dispatchEvent(new Event('input'));
       _sequencer.addStopCallback(function() {
         updatePlayState();
       });
+    },
+    applyAudioSettings: function() {
+      _sequencer.setLoop(_controls.loop.checked);
+      _sequencer.setBpm(_controls.bpm.value);
+      _controls.bpm_out.value = _controls.bpm.value;
     }
   };
 };
