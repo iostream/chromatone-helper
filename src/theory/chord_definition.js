@@ -8,6 +8,7 @@ var compositeParser = require("../parser/composite_parser.js");
 const { parseVoicing } = require("./voicing.js");
 const { parseRhythmPattern } = require("./rhythm.js");
 const { parseArpeggioPattern } = require("./arpeggio.js");
+const { createScale } = require("./scale.js");
 
 /**
  * TODO make this a clean method again (which needs some f)
@@ -137,6 +138,8 @@ function resolveVariableOrParseSubject(variableNameOrSubject, map, type, message
       case 'arpeggio pattern':
         subject = parseArpeggioPattern(value);
         break;
+      case 'scale':
+        subject = createScale(value);
       default:
         break;
     }
@@ -170,14 +173,6 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
   var _rhythmPatterns = rhythmPatterns;
   var _arpeggioPatterns = arpeggioPatterns;
 
-  /**
-   * subjectBuilderFactory is a f
-   * - createSubjectBuilder()
-   * which is expected to return a new object with the methods:
-   * - withMatch(match)
-   * - withOption(key, value, operator) // called for all options, from least specific to most specific
-   * - getResult() // returns the resulting subject
-   */
   return function() {
 
     // chord definiton parameters
@@ -223,7 +218,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
             _direction = value;
             break;
           case 's':
-            var subject = resolveScale(value, _scales, _messages);
+            var subject = resolveVariableOrParseSubject(value, _scales, "scale", _messages);
             _scale = alterSubject(_scale, subject, operator, "scale", _messages);
             break;
           case 'V':
