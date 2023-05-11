@@ -1,12 +1,6 @@
 var lib = {};
 module.exports = lib;
 
-/*
-  TODO Add feature:
-  - when delcaring a variable using $, e.g. "$var: 1 2 3", then the value is only assigned to the variable,
-    but gets not inserted back into its parent
-*/
-
 // Reused parts of regular expressions:
 var NUMBER_REGEX_STR = '-?[\\d]+(?:\\.\\d+)?';
 var SMALL_CHARACTER_REGEX_STR = '[a-z]';
@@ -16,6 +10,7 @@ var VARIABLE_DECLARATION_SUFFIX = ':';
 var PURE_VARIABLE_DECLARATION_PREFIX = '\\$';
 var EXPRESSION_REGEX_STR = '\\([^\)]+\\)';
 var LINE_COMMENT_STR = "#";
+var MULTILINE_COMMENT_REGEX_STR = "/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/";
 
 // Next possible token states:
 var INITIAL = 0;
@@ -28,7 +23,7 @@ var SHORT_CHARACTER_OPTION = 6;
 var LONG_OPTION = 7;
 var OPENED_BRACKET = 8;
 var CLOSED_BRACKET = 9;
-var LINE_COMMENT = 10;
+var COMMENT = 10;
 
 function createState(thingRegex) {
   // getNextStates() of each state returns the next possible token states
@@ -40,11 +35,11 @@ function createState(thingRegex) {
 
   // Initialize all state objects...
   allStates[INITIAL] = {
-    nextStates: [LINE_COMMENT, OPENED_BRACKET, WHITESPACE, SUBJECT, VARIABLE_DECLARATION, VARIABLE]
+    nextStates: [COMMENT, OPENED_BRACKET, WHITESPACE, SUBJECT, VARIABLE_DECLARATION, VARIABLE]
   };
   allStates[WHITESPACE] = {
     regexp: /^[\r\n\s]+/,
-    notNestedStates: [SUBJECT, VARIABLE_DECLARATION, VARIABLE, OPENED_BRACKET, LINE_COMMENT],
+    notNestedStates: [SUBJECT, VARIABLE_DECLARATION, VARIABLE, OPENED_BRACKET, COMMENT],
     getNextStates: function () {
       var my = allStates[WHITESPACE];
       var states = (nesting > 0) ? my.nestedStates : my.notNestedStates;
@@ -133,16 +128,16 @@ function createState(thingRegex) {
       return (nesting > 0) ? my.nestedStates : my.notNestedStates;
     }
   };
-  allStates[LINE_COMMENT] = {
-    regexp: new RegExp('^' + LINE_COMMENT_STR + '.*'),
-    notNestedStates: [WHITESPACE, OPENED_BRACKET, VARIABLE_DECLARATION, VARIABLE, LINE_COMMENT],
+  allStates[COMMENT] = {
+    regexp: new RegExp(MULTILINE_COMMENT_REGEX_STR + '|^' + LINE_COMMENT_STR + '.*'),
+    notNestedStates: [WHITESPACE, OPENED_BRACKET, VARIABLE_DECLARATION, VARIABLE, COMMENT],
     getNextStates: function () {
-      var my = allStates[LINE_COMMENT];
+      var my = allStates[COMMENT];
       isAfterSubjectOrVariableOrEndOfGroup = false;
       return (nesting > 0) ? my.nestedStates : my.notNestedStates;
     }
   };
-  allStates[LINE_COMMENT].nestedStates = allStates[LINE_COMMENT].notNestedStates.concat([CLOSED_BRACKET]);
+  allStates[COMMENT].nestedStates = allStates[COMMENT].notNestedStates.concat([CLOSED_BRACKET]);
 
   var state;
   for (var stateIndex in allStates) {
@@ -260,37 +255,28 @@ function handleNewState(state, parserDelegate, match, pos) {
   switch (state.index) {
     case WHITESPACE:
       // fallthrough
-    case LINE_COMMENT:
+    case COMMENT:
       return;
-      break;
     case SUBJECT:
       return parserDelegate.onSubject(match, pos);
-      break;
     case VARIABLE_DECLARATION:
       return parserDelegate.onVariableDeclaration(match[2], match[1].length > 0, pos);
-      break;
     case VARIABLE:
       return parserDelegate.onVariable(match[0], pos);
-      break;
     case SHORT_NUMBER_OPTION:
       // fallthrough
     case SHORT_CHARACTER_OPTION:
       return parserDelegate.onOption(match[1], match[2], "=", true, false, pos);
-      break;
     case LONG_OPTION:
       return parserDelegate.onOption(match[1], match[3], match[2], false, match[4].length > 0, pos);
-      break;
     case OPENED_BRACKET:
       return parserDelegate.onGroupStart(pos);
-      break;
     case CLOSED_BRACKET:
       return parserDelegate.onGroupEnd(pos);
-      break;
     default:
       // This cannot happen
       parserDelegate.onError("Error of dev - unexpected token state index: " + state.index, pos);
       return false;
-      break;
   }
 }
 
