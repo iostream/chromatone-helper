@@ -134,7 +134,7 @@ function createState(thingRegex) {
     }
   };
   allStates[LINE_COMMENT] = {
-    regexp: new RegExp('^' + LINE_COMMENT_STR + '.*$', 'm'),
+    regexp: new RegExp('^' + LINE_COMMENT_STR + '.*'),
     notNestedStates: [WHITESPACE, OPENED_BRACKET, VARIABLE_DECLARATION, VARIABLE, LINE_COMMENT],
     getNextStates: function () {
       var my = allStates[LINE_COMMENT];
