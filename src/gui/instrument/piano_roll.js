@@ -174,22 +174,32 @@ function getKeyStyle(chromatic) {
 
 function createStyles(context) {
   var _ctx = context;
+  var radii = 5;
+
   return {
     event: {
       normal: function(x, y, width, height) {
         _ctx.strokeStyle = 'black';
         _ctx.fillStyle = 'blue';
-        _ctx.fillRect(x, y, width, height);
-        _ctx.strokeRect(x, y, width, height);
+        _ctx.beginPath(); 
+        _ctx.roundRect(x, y, width, height, radii);
+        _ctx.fill();
+        _ctx.stroke();
       },
       highlighted: function(x, y, width, height) {
         var grad1 = context.createLinearGradient(x, y, x + width, y);
         grad1.addColorStop(0, 'orange');
         grad1.addColorStop(1, 'red');
-        _ctx.strokeStyle = 'green';
+        _ctx.strokeStyle = 'black';
         _ctx.fillStyle = grad1;
-        _ctx.fillRect(x, y, width, height);
-        _ctx.strokeRect(x, y, width, height);
+        _ctx.beginPath();
+        _ctx.roundRect(x, y, width, height, radii);
+        _ctx.fill();
+        _ctx.stroke();
+      },
+      text: function(x, y, text) {
+        _ctx.fillStyle = 'black';
+        _ctx.fillText(text, x, y);
       }
     }
   }
