@@ -102,8 +102,16 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
           _styles.event.normal(x, y, width, semitoneHeight);
         }
         // TODO add naming
-        // _ctx.fillText(pitch, x, y);
+        // _styles.event.text(x, y + semitoneHeight, pitch.);
       });
+      // auto scroll/paging:
+      if ((x + width) * scale > _element.scrollLeft + _element.clientWidth) {
+        var newScrollLeft = x * scale;
+        var maxScrollLeft = element.scrollWidth - element.clientWidth;
+        _element.scrollLeft = (newScrollLeft > maxScrollLeft) ? maxScrollLeft : newScrollLeft;
+      } else if (x * scale < _element.scrollLeft) {
+        _element.scrollLeft = 0;
+      }
     }
   }
 
