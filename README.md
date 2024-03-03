@@ -10,7 +10,7 @@ Features
 --------
 - Create chord progressions and arpeggios with ease using a declarative DSL.
 - Use scales, voicings, rhythms, arpeggio patterns, and chord definitions to build your music.
-- Visualize your music directly on a stylized representation of the instrument of your choice, including Chromatone (like Jankó), zebra keyboard, guitar, bass, piano roll, and more. The tool displays visual cues such as markers and blinking bars to indicate which notes to play, making it easy to follow along and play your music on real instruments without needing knowledge of staff notation.
+- Visualize your music directly on a stylized representation of the instrument of your choice, including Chromatone (like Jankó keyboard), zebra keyboard, guitar, bass, piano roll, and more. The tool displays visual cues such as markers and blinking bars to indicate which notes to play, making it easy to follow along and play your music on real instruments without needing knowledge of staff notation.
 - Combine multiple progressions on parallel tracks to create complex musical arrangements.
 - Experience your music in a variety of ways by playing it through different audio presets within the browser.
 - Seamlessly integrate with Reaper-DAW. Your MIDI editor contents are automatically replaced by the tool in real-time when you modify the input.
