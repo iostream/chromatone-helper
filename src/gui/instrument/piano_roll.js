@@ -12,86 +12,126 @@ lib.createPianoRoll = function(lowestPosition, highestPosition, lengthInQN) {
 
 function construct(element, lowestPosition, highestPosition, lengthInQN) {
   var _element = element;
+  var _scrollElement = _element.getElementsByClassName("scroll")[0];
   var _positionInQN = 0;
   var _highestPosition = highestPosition;
-  var canvas = _element.getElementsByTagName("canvas")[0];
-  var _ctx = canvas.getContext("2d");
-  var _styles = createStyles(_ctx);
+  var contentCanvas = _element.getElementsByClassName("content")[0];
+  var _contentCtx = contentCanvas.getContext("2d");
+  var pianoCanvas = _element.getElementsByClassName("piano")[0];
+  var _pianoCtx = pianoCanvas.getContext("2d");
+  var _styles = createStyles(_contentCtx);
 
   var lengthOfMeasureInQN = 4;
 
   // sizes
-  var zebraWidth = 35.5;
+  var zebraWidth = 35;
   var zebraBlackKeyWidth = 27.5;
-  var eightNoteWidth = 20;
+  var eightNoteWidth = 20.5;
   var semitoneHeight = 20 * 0.4;
-  var thinLine = 0.5;
+  var thinLine = 0.5 ;
   var thickLine = 1;
   var headerHeight = 1.5 * semitoneHeight;
 
-  var width = zebraWidth + lengthInQN * 2 * eightNoteWidth;
-  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
+  var contentWidth = lengthInQN * 2 * eightNoteWidth;
+  var contentHeight = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
 
   var scale = 1.5;
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  _ctx.scale(scale, scale);
+  contentCanvas.width = contentWidth * scale;
+  contentCanvas.height = contentHeight * scale;
+  _contentCtx.scale(scale, scale);
+  pianoCanvas.width = zebraWidth * scale;
+  pianoCanvas.height = contentCanvas.height;
+  _pianoCtx.scale(scale, scale);
 
-  var x = 0;
-  var y = 0;
+  drawPiano();
+  drawContentPanel();
 
-  // background
-  _ctx.fillStyle = "white";
-  _ctx.fillRect(0, headerHeight, width, height);
+  function drawContentPanel() {
+    var x = 0;
+    var y = 0;
 
-  // horizontal lines and zebra keyboard
-  drawLine(x, headerHeight, x, height);
-  drawLine(x, headerHeight, zebraWidth, headerHeight);
-  drawLine(x, height, zebraWidth, height)
-  y = headerHeight;
-  _ctx.fillStyle = "lightgrey";
-  for (var pos = highestPosition; pos >= lowestPosition; --pos) {
-    // zebra keyboard
-    var keyStyle = getKeyStyle(pos);
-    if (keyStyle == 0) {
-      drawLine(x, y, zebraWidth, y);
-    } else if (keyStyle == 1) {
-      drawLine(zebraBlackKeyWidth, y + (semitoneHeight / 2), zebraWidth, y + (semitoneHeight / 2));
-      _ctx.fillRect(zebraWidth, y, width, semitoneHeight);
-      _ctx.fillStyle = "black";
-      _ctx.fillRect(x, y, zebraBlackKeyWidth, semitoneHeight);
-      _ctx.fillStyle = "lightgrey";
-    }
+    // background
+    _contentCtx.fillStyle = "white";
+    _contentCtx.fillRect(0, headerHeight, contentWidth, contentHeight);
+
+    y = headerHeight;
+    _contentCtx.fillStyle = "lightgrey";
+    _contentCtx.beginPath();
+    for (var pos = highestPosition; pos >= lowestPosition; --pos) {
+      // zebra keyboard
+      var keyStyle = getKeyStyle(pos);
+      if (keyStyle == 1) {
+        _contentCtx.fillRect(x, y, contentWidth, semitoneHeight);
+      }
+      // horizontal line
+      _contentCtx.moveTo(x, y);
+      _contentCtx.lineTo(contentWidth, y);
+      y += semitoneHeight;
+    } 
     // horizontal line
-    drawLine(zebraWidth, y, width, y);
-    y += semitoneHeight;
+    _contentCtx.moveTo(x, y);
+    _contentCtx.lineTo(contentWidth, y);
+    _contentCtx.stroke();
+
+    _contentCtx.fillStyle = "black";
+
+    // vertical lines
+    var eighthCount = lengthInQN * 8;
+    for (var eighth = 0; eighth < eighthCount; ++eighth) {
+      x = eighth * eightNoteWidth;
+      var startY = headerHeight;
+      if (eighth % (lengthOfMeasureInQN * 2) === 0) {
+        // longer vertical line at the beginning of a bar
+        startY = 0;
+      }
+
+      if (eighth % 2 === 0) {
+        _contentCtx.lineWidth = thickLine;
+      } else {
+        _contentCtx.lineWidth = thinLine;
+      }
+      _contentCtx.moveTo(x, startY);
+      _contentCtx.lineTo(x, contentHeight);
+    }
+    _contentCtx.stroke();
   }
-  // horizontal line
-  drawLine(x, y, width, y);
 
-  _ctx.fillStyle = "black";
+  function drawPiano() {
+    // background
+    _pianoCtx.fillStyle = "white";
+    _pianoCtx.fillRect(0, headerHeight, zebraWidth, contentHeight);
 
-  // vertical lines
-  var eighthCount = lengthInQN * 8;
-  for (var eighth = 0; eighth < eighthCount; ++eighth) {
-    x = zebraWidth + eighth * eightNoteWidth;
-    var startY = headerHeight;
-    if (eighth % (lengthOfMeasureInQN * 2) === 0) {
-      // longer vertical line at the beginning of a bar
-      startY = 0;
+    var x = 0;
+    var y = 0;
+
+    // border
+    _pianoCtx.strokeRect(0.5, headerHeight, zebraWidth - 1, contentHeight - headerHeight - 1);
+
+    // zebra keyboard
+    y = headerHeight;
+    for (var pos = highestPosition; pos >= lowestPosition; --pos) {
+      // zebra keyboard
+      var keyStyle = getKeyStyle(pos);
+      if (keyStyle == 0) {
+        _pianoCtx.beginPath();
+        _pianoCtx.moveTo(x, y)
+        _pianoCtx.lineTo(zebraWidth, y);
+        _pianoCtx.stroke();
+      } else if (keyStyle == 1) {
+        _pianoCtx.beginPath();
+        _pianoCtx.moveTo(zebraBlackKeyWidth, y + (semitoneHeight / 2));
+        _pianoCtx.lineTo(zebraWidth, y + (semitoneHeight / 2));
+        _pianoCtx.stroke();
+        _pianoCtx.fillStyle = "black";
+        _pianoCtx.fillRect(x, y, zebraBlackKeyWidth, semitoneHeight);
+      }
+      y += semitoneHeight;
     }
-
-    if (eighth % 2 === 0) {
-      _ctx.lineWidth = thickLine;
-    } else {
-      _ctx.lineWidth = thinLine;
-    }
-    drawLine(x, startY, x, height);
   }
 
   function drawEvent(arpEvent, quarterNotePosition, highlight) {
     if (!arpEvent.isRest()) {
-      var x = zebraWidth + quarterNotePosition * 2 * eightNoteWidth;
+      var x = quarterNotePosition * 2 * eightNoteWidth;
       var width = arpEvent.getLengthInQN() * 2 * eightNoteWidth;
 
       arpEvent.getPitches().forEach(function(pitch) {
@@ -105,21 +145,14 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
         // _styles.event.text(x, y + semitoneHeight, pitch.);
       });
       // auto scroll/paging:
-      if ((x + width) * scale > _element.scrollLeft + _element.clientWidth) {
+      if ((x + width) * scale > _scrollElement.scrollLeft + _scrollElement.clientWidth) {
         var newScrollLeft = x * scale;
-        var maxScrollLeft = element.scrollWidth - element.clientWidth;
-        _element.scrollLeft = (newScrollLeft > maxScrollLeft) ? maxScrollLeft : newScrollLeft;
-      } else if (x * scale < _element.scrollLeft) {
-        _element.scrollLeft = 0;
+        var maxScrollLeft = _scrollElement.scrollWidth - _scrollElement.clientWidth;
+        _scrollElement.scrollLeft = (newScrollLeft > maxScrollLeft) ? maxScrollLeft : newScrollLeft;
+      } else if (x * scale < _scrollElement.scrollLeft) {
+        _scrollElement.scrollLeft = 0;
       }
     }
-  }
-
-  function drawLine(startX, startY, endX, endY) {
-    _ctx.beginPath();
-    _ctx.moveTo(startX, startY);
-    _ctx.lineTo(endX, endY);
-    _ctx.stroke();
   }
 
   return {
