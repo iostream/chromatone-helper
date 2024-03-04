@@ -44,44 +44,6 @@ lib.createTrack = function() {
     setChordIndex: function(chordIndex) {
       _chordIndex = chordIndex;
     },
-    // XXX DELETE ME:
-    previousEvent: function() {
-      // does the chord index need to be decreased?
-      if (_eventIndex === 0) {
-        // yes
-        --_chordIndex;
-        _eventIndex = -1;
-        if (_chordIndex < 0) {
-          // there are no more chords
-          return false;
-        }
-        _eventIndex = _events[_chordIndex].length - 1;
-      } else {
-        --_eventIndex;
-      }
-      var event = _events[_chordIndex][_eventIndex];
-      return event;
-    },
-
-    nextEvent: function() {
-      // check whether the current chord/event indexes are still in their array bounds:
-      if (_chordIndex >= _events.length) {
-        return false;
-      }
-      // does the chord need to be advanced?
-      if ((_eventIndex + 1) >= _events[_chordIndex].length) {
-        // yes
-        ++_chordIndex;
-        _eventIndex = 0;
-        if (_chordIndex >= _events.length) {
-          // there are no more chords
-          return false;
-        }
-      } else {
-        ++_eventIndex;
-      }
-      return _events[_chordIndex][_eventIndex];
-    },
     getAudioInstrument: function() {
       return _audioInstrument;
     },
