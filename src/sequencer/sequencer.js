@@ -241,7 +241,7 @@ lib.createSequencer = function () {
           var lastFoundEvent = track.getLastFoundEvent();
           var endInSeconds = scheduleTimeInSeconds;
           // XXX already schedule note off for the last event here (because it is simpler to do this way, but it could lead to problems?)
-          if (synth && !lastFoundEvent.isRest()) {
+          if (synth && lastFoundEvent && !lastFoundEvent.isRest()) {
             lastFoundEvent.getPitches().forEach(note => {
               synth.noteOff(note.getPosition(), endInSeconds);
             });
