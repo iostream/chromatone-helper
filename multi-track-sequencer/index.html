@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <title>Chromatone Helper 🧙 by iostream 2018-2023</title>
+    <title>Chromatone Helper 🧙 by iostream 2018-2024</title>
     <meta charset="UTF-8">
 <style>
 :root {
@@ -79,14 +79,14 @@ section#templates {
   line-height: 19pt;
 }
 .chromatic.keyboard span.selected {
-  background-color: #ffa17a;
+  outline: 2px solid #354b45;
+  position: relative;
 }
 .chromatic.keyboard span.played {
   background-color: red !important;
 }
 .chromatic.keyboard span.root {
   border-color: #354b45;
-  background-color: yellow;
   color: #354b45;
 }
 .chromatic.keyboard .description {
@@ -120,9 +120,6 @@ section#templates {
 .interactive-form .scale_container input[type="button"] {
   width: calc(25% - 4px);
   padding: 0;
-}
-.interactive-form .scale_container input[value=">"] {
-  float: right;
 }
 .interactive-form .scale_container input[type="text"] {
   width: calc(100% - 10pt);
@@ -221,6 +218,20 @@ section#templates {
 }
 .track .visualization {
   margin: 5px 0 10px 0;
+}
+
+.piano-roll {
+  display: flex;
+  align-items: flex-start;
+}
+
+.piano-roll .piano {
+  flex: 0 0 auto;
+}
+
+.piano-roll .scroll {
+  overflow: auto;
+  display: grid;
 }
 </style>
 <style>
@@ -400,7 +411,10 @@ section#templates {
       </div>
 
       <div class="piano-roll">
-        <canvas></canvas>
+        <canvas class="piano"></canvas>
+        <div class="scroll">
+          <canvas class="content"></canvas>
+        </div>
       </div>
 
       <div class="chord-group">
@@ -481,8 +495,8 @@ section#templates {
               <select name="scale_preset" class="preset"></select>
               <input type="text" name="scale" placeholder="scale" class="scale">
               <input type="button" value="<" name="shift_scale_left" title="shift the scale one time to the left">
-              <input type="button" value="-" name="transpose_scale_down" title="transpose the scale one semitone up">
-              <input type="button" value="+" name="transpose_scale_up" title="transpose the scale one semitone down">
+              <input type="button" value="-" name="transpose_scale_down" title="transpose the scale one semitone down">
+              <input type="button" value="+" name="transpose_scale_up" title="transpose the scale one semitone up">
               <input type="button" value=">" name="shift_scale_right" title="shift the scale one time to the right">
               <div class="messages"></div>
             </div>
@@ -6143,11 +6157,13 @@ module.exports = lib;
 const audioContextWrapper = require("./audio_context_wrapper.js");
 
 var WebAudioTinySynth = require('webaudio-tinysynth');
-const { MyToneSynth } = require('./my_tone_synth.js');
+// const { MyToneSynth } = require('./my_tone_synth.js');
+// const { MyVowelSynth } = require('./my_vowel_synth.js');
 
 var INSTRUMENT_FACTORIES = {
   'webaudio-tinysynth': createTinySynthInstrument,
-  'my-tone-synth': () => new MyToneSynth()
+//  'my-tone-synth': () => new MyToneSynth(),
+//  'my-vowel-synth': () => new MyVowelSynth()
 };
 
 lib.getInstrumentNames = function() {
@@ -6217,58 +6233,7 @@ function createTinySynthInstrument() {
   return instrument;
 }
 
-},{"./audio_context_wrapper.js":9,"./my_tone_synth.js":11,"webaudio-tinysynth":8}],11:[function(require,module,exports){
-const audioContextWrapper = require("./audio_context_wrapper.js");
-var Tone;
-var isToneInitialized = false;
-
-function MyToneSynth(options) {
-    var options = options || {};
-    var voices = options.voices || 100;
-    if (!isToneInitialized) {
-        isToneInitialized = true;
-        audioContextWrapper.addAudioContextConsumer(context => {
-            /*Tone = require("tone");
-            Tone.setContext(context);
-            return Tone.start();*/
-        });
-    }
-
-    var synth;
-    audioContextWrapper.addAudioContextConsumer(context => {
-        synth = new Tone.PolySynth({context: context});
-    });
-
-    this.noteOn = function(position, velocity, time) {
-        synth.triggerAttack(Tone.Frequency(position, "midi"), time, velocity / 127);
-    };
-
-    this.noteOff = function(position, time) {
-        synth.triggerRelease(Tone.Frequency(position, "midi"), time);
-    };
-
-    this.allNotesOff = function() {
-        synth.releaseAll();
-    };
-       
-    this.getPresetNames = function() {
-        return ["one"];
-    };
-        
-    this.setPreset = function(index) {
-
-    };
-
-    this.setVolume = function(volume) {
-        vol.volume.rampTo(newDecibelVolume, 0.3)
-        var min = -100;
-        var max = 0;    
-        synth.volume.value = -100 + (volume / 100) * max;
-    };
-}
-
-module.exports = {MyToneSynth};
-},{"./audio_context_wrapper.js":9}],12:[function(require,module,exports){
+},{"./audio_context_wrapper.js":9,"webaudio-tinysynth":8}],11:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6318,7 +6283,7 @@ function updateFingering(notes) {
 }
 lib.updateFingering = updateFingering;
 
-},{"./theory/base.js":39,"./theory/notes.js":42}],13:[function(require,module,exports){
+},{"./theory/base.js":38,"./theory/notes.js":41}],12:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6649,7 +6614,7 @@ function serializeForm(form) {
   return newSerializedForm;
 }
 
-},{"../theory/arpeggio.js":38,"../theory/base.js":39,"../theory/rhythm.js":44,"./pocket_knife.js":20,"./presets.js":21,"./session.js":25}],14:[function(require,module,exports){
+},{"../theory/arpeggio.js":37,"../theory/base.js":38,"../theory/rhythm.js":43,"./pocket_knife.js":19,"./presets.js":20,"./session.js":24}],13:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6698,11 +6663,26 @@ lib.createInstrumentFactory = function(options) {
   }
 }
 
-},{"./keyboard.js":15,"./piano_roll.js":16,"./string_instrument.js":18,"./zebra.js":19}],15:[function(require,module,exports){
+},{"./keyboard.js":14,"./piano_roll.js":15,"./string_instrument.js":17,"./zebra.js":18}],14:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../../theory/base.js");
+var tLib = require("../../theory/base");
+
+var buttonColors = {};
+(() => {
+  // mapping between note name (e.g. 'c') to css colors: [background color, font color]
+  var buttonColorTheme = {
+    c: ['yellow', 'black'],
+    e: ['blue', 'white'],
+    'g#': ['red', 'white']
+  };
+
+  for (let key of Object.keys(buttonColorTheme)) {
+    let relativeChromatic = tLib.parseKeyPosition(key) % 12;
+    buttonColors[relativeChromatic] = buttonColorTheme[key];
+  }
+})();
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
@@ -6735,6 +6715,10 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
       // r<row>
       button.className = "c" + chromatic;
       rowEl.appendChild(button);
+      let colors = buttonColors[chromatic % 12];
+      if (colors) {
+        button.style = 'background-color:' + colors[0] + '; color: ' + colors[1];
+      }
       chromatic += 2;
     }
 
@@ -6872,7 +6856,7 @@ function checkCrossRow(chromatic) {
   return chromatic % 2 === (cIsCrossRow ? 0 : 1);
 }
 
-},{"../../theory/base.js":39}],16:[function(require,module,exports){
+},{"../../theory/base":38}],15:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -6887,86 +6871,126 @@ lib.createPianoRoll = function(lowestPosition, highestPosition, lengthInQN) {
 
 function construct(element, lowestPosition, highestPosition, lengthInQN) {
   var _element = element;
+  var _scrollElement = _element.getElementsByClassName("scroll")[0];
   var _positionInQN = 0;
   var _highestPosition = highestPosition;
-  var canvas = _element.getElementsByTagName("canvas")[0];
-  var _ctx = canvas.getContext("2d");
-  var _styles = createStyles(_ctx);
+  var contentCanvas = _element.getElementsByClassName("content")[0];
+  var _contentCtx = contentCanvas.getContext("2d");
+  var pianoCanvas = _element.getElementsByClassName("piano")[0];
+  var _pianoCtx = pianoCanvas.getContext("2d");
+  var _styles = createStyles(_contentCtx);
 
   var lengthOfMeasureInQN = 4;
 
   // sizes
-  var zebraWidth = 35.5;
+  var zebraWidth = 35;
   var zebraBlackKeyWidth = 27.5;
-  var eightNoteWidth = 20;
+  var eightNoteWidth = 20.5;
   var semitoneHeight = 20 * 0.4;
-  var thinLine = 0.5;
+  var thinLine = 0.5 ;
   var thickLine = 1;
   var headerHeight = 1.5 * semitoneHeight;
 
-  var width = zebraWidth + lengthInQN * 2 * eightNoteWidth;
-  var height = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
+  var contentWidth = lengthInQN * 2 * eightNoteWidth;
+  var contentHeight = headerHeight + (highestPosition - lowestPosition + 1) * semitoneHeight + 1;
 
   var scale = 1.5;
-  canvas.width = width * scale;
-  canvas.height = height * scale;
-  _ctx.scale(scale, scale);
+  contentCanvas.width = contentWidth * scale;
+  contentCanvas.height = contentHeight * scale;
+  _contentCtx.scale(scale, scale);
+  pianoCanvas.width = zebraWidth * scale;
+  pianoCanvas.height = contentCanvas.height;
+  _pianoCtx.scale(scale, scale);
 
-  var x = 0;
-  var y = 0;
+  drawPiano();
+  drawContentPanel();
 
-  // background
-  _ctx.fillStyle = "white";
-  _ctx.fillRect(0, headerHeight, width, height);
+  function drawContentPanel() {
+    var x = 0;
+    var y = 0;
 
-  // horizontal lines and zebra keyboard
-  drawLine(x, headerHeight, x, height);
-  drawLine(x, headerHeight, zebraWidth, headerHeight);
-  drawLine(x, height, zebraWidth, height)
-  y = headerHeight;
-  _ctx.fillStyle = "lightgrey";
-  for (var pos = highestPosition; pos >= lowestPosition; --pos) {
-    // zebra keyboard
-    var keyStyle = getKeyStyle(pos);
-    if (keyStyle == 0) {
-      drawLine(x, y, zebraWidth, y);
-    } else if (keyStyle == 1) {
-      drawLine(zebraBlackKeyWidth, y + (semitoneHeight / 2), zebraWidth, y + (semitoneHeight / 2));
-      _ctx.fillRect(zebraWidth, y, width, semitoneHeight);
-      _ctx.fillStyle = "black";
-      _ctx.fillRect(x, y, zebraBlackKeyWidth, semitoneHeight);
-      _ctx.fillStyle = "lightgrey";
-    }
+    // background
+    _contentCtx.fillStyle = "white";
+    _contentCtx.fillRect(0, headerHeight, contentWidth, contentHeight);
+
+    y = headerHeight;
+    _contentCtx.fillStyle = "lightgrey";
+    _contentCtx.beginPath();
+    for (var pos = highestPosition; pos >= lowestPosition; --pos) {
+      // zebra keyboard
+      var keyStyle = getKeyStyle(pos);
+      if (keyStyle == 1) {
+        _contentCtx.fillRect(x, y, contentWidth, semitoneHeight);
+      }
+      // horizontal line
+      _contentCtx.moveTo(x, y);
+      _contentCtx.lineTo(contentWidth, y);
+      y += semitoneHeight;
+    } 
     // horizontal line
-    drawLine(zebraWidth, y, width, y);
-    y += semitoneHeight;
+    _contentCtx.moveTo(x, y);
+    _contentCtx.lineTo(contentWidth, y);
+    _contentCtx.stroke();
+
+    _contentCtx.fillStyle = "black";
+
+    // vertical lines
+    var eighthCount = lengthInQN * 8;
+    for (var eighth = 0; eighth < eighthCount; ++eighth) {
+      x = eighth * eightNoteWidth;
+      var startY = headerHeight;
+      if (eighth % (lengthOfMeasureInQN * 2) === 0) {
+        // longer vertical line at the beginning of a bar
+        startY = 0;
+      }
+
+      if (eighth % 2 === 0) {
+        _contentCtx.lineWidth = thickLine;
+      } else {
+        _contentCtx.lineWidth = thinLine;
+      }
+      _contentCtx.moveTo(x, startY);
+      _contentCtx.lineTo(x, contentHeight);
+    }
+    _contentCtx.stroke();
   }
-  // horizontal line
-  drawLine(x, y, width, y);
 
-  _ctx.fillStyle = "black";
+  function drawPiano() {
+    // background
+    _pianoCtx.fillStyle = "white";
+    _pianoCtx.fillRect(0, headerHeight, zebraWidth, contentHeight);
 
-  // vertical lines
-  var eighthCount = lengthInQN * 8;
-  for (var eighth = 0; eighth < eighthCount; ++eighth) {
-    x = zebraWidth + eighth * eightNoteWidth;
-    var startY = headerHeight;
-    if (eighth % (lengthOfMeasureInQN * 2) === 0) {
-      // longer vertical line at the beginning of a bar
-      startY = 0;
+    var x = 0;
+    var y = 0;
+
+    // border
+    _pianoCtx.strokeRect(0.5, headerHeight, zebraWidth - 1, contentHeight - headerHeight - 1);
+
+    // zebra keyboard
+    y = headerHeight;
+    for (var pos = highestPosition; pos >= lowestPosition; --pos) {
+      // zebra keyboard
+      var keyStyle = getKeyStyle(pos);
+      if (keyStyle == 0) {
+        _pianoCtx.beginPath();
+        _pianoCtx.moveTo(x, y)
+        _pianoCtx.lineTo(zebraWidth, y);
+        _pianoCtx.stroke();
+      } else if (keyStyle == 1) {
+        _pianoCtx.beginPath();
+        _pianoCtx.moveTo(zebraBlackKeyWidth, y + (semitoneHeight / 2));
+        _pianoCtx.lineTo(zebraWidth, y + (semitoneHeight / 2));
+        _pianoCtx.stroke();
+        _pianoCtx.fillStyle = "black";
+        _pianoCtx.fillRect(x, y, zebraBlackKeyWidth, semitoneHeight);
+      }
+      y += semitoneHeight;
     }
-
-    if (eighth % 2 === 0) {
-      _ctx.lineWidth = thickLine;
-    } else {
-      _ctx.lineWidth = thinLine;
-    }
-    drawLine(x, startY, x, height);
   }
 
   function drawEvent(arpEvent, quarterNotePosition, highlight) {
     if (!arpEvent.isRest()) {
-      var x = zebraWidth + quarterNotePosition * 2 * eightNoteWidth;
+      var x = quarterNotePosition * 2 * eightNoteWidth;
       var width = arpEvent.getLengthInQN() * 2 * eightNoteWidth;
 
       arpEvent.getPitches().forEach(function(pitch) {
@@ -6977,16 +7001,17 @@ function construct(element, lowestPosition, highestPosition, lengthInQN) {
           _styles.event.normal(x, y, width, semitoneHeight);
         }
         // TODO add naming
-        // _ctx.fillText(pitch, x, y);
+        // _styles.event.text(x, y + semitoneHeight, pitch.);
       });
+      // auto scroll/paging:
+      if ((x + width) * scale > _scrollElement.scrollLeft + _scrollElement.clientWidth) {
+        var newScrollLeft = x * scale;
+        var maxScrollLeft = _scrollElement.scrollWidth - _scrollElement.clientWidth;
+        _scrollElement.scrollLeft = (newScrollLeft > maxScrollLeft) ? maxScrollLeft : newScrollLeft;
+      } else if (x * scale < _scrollElement.scrollLeft) {
+        _scrollElement.scrollLeft = 0;
+      }
     }
-  }
-
-  function drawLine(startX, startY, endX, endY) {
-    _ctx.beginPath();
-    _ctx.moveTo(startX, startY);
-    _ctx.lineTo(endX, endY);
-    _ctx.stroke();
   }
 
   return {
@@ -7041,28 +7066,38 @@ function getKeyStyle(chromatic) {
 
 function createStyles(context) {
   var _ctx = context;
+  var radii = 5;
+
   return {
     event: {
       normal: function(x, y, width, height) {
         _ctx.strokeStyle = 'black';
         _ctx.fillStyle = 'blue';
-        _ctx.fillRect(x, y, width, height);
-        _ctx.strokeRect(x, y, width, height);
+        _ctx.beginPath(); 
+        _ctx.roundRect(x, y, width, height, radii);
+        _ctx.fill();
+        _ctx.stroke();
       },
       highlighted: function(x, y, width, height) {
         var grad1 = context.createLinearGradient(x, y, x + width, y);
         grad1.addColorStop(0, 'orange');
         grad1.addColorStop(1, 'red');
-        _ctx.strokeStyle = 'green';
+        _ctx.strokeStyle = 'black';
         _ctx.fillStyle = grad1;
-        _ctx.fillRect(x, y, width, height);
-        _ctx.strokeRect(x, y, width, height);
+        _ctx.beginPath();
+        _ctx.roundRect(x, y, width, height, radii);
+        _ctx.fill();
+        _ctx.stroke();
+      },
+      text: function(x, y, text) {
+        _ctx.fillStyle = 'black';
+        _ctx.fillText(text, x, y);
       }
     }
   }
 }
 
-},{"../../theory/base.js":39}],17:[function(require,module,exports){
+},{"../../theory/base.js":38}],16:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7283,7 +7318,7 @@ function createChordReferenceGroup(title, section) {
   return groupEl;
 }
 
-},{"./factory.js":14}],18:[function(require,module,exports){
+},{"./factory.js":13}],17:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7456,10 +7491,6 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
     },
     addDiff: function(notes) {
       // noop
-    },
-    clone: function() {
-      console.error("StringInstrument.clone() is not implemented");
-      // TODO return construct(keyboard.cloneNode(true));
     }
   };
 
@@ -7507,7 +7538,7 @@ function createFret(index) {
   return el;
 }
 
-},{"../../theory/notes.js":42}],19:[function(require,module,exports){
+},{"../../theory/notes.js":41}],18:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7657,7 +7688,7 @@ lib.createZebraKeyboard = function(lowestPosition, highestPosition) {
   return construct(keyboard);
 }
 
-},{"../../theory/base.js":39}],20:[function(require,module,exports){
+},{"../../theory/base.js":38}],19:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7695,7 +7726,7 @@ function handleUrlAction(value) {
   document.location.href = newUrl;
 }
 
-},{}],21:[function(require,module,exports){
+},{}],20:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7769,7 +7800,7 @@ function applyPresetValue(element, presetValue) {
   element.value = presetValue;
 }
 
-},{}],22:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7913,7 +7944,7 @@ lib.createService = function(sequencer, parentElement) {
   return service;
 }
 
-},{"../../audio/audio_context_wrapper.js":9,"./track.js":23,"./transport.js":24}],23:[function(require,module,exports){
+},{"../../audio/audio_context_wrapper.js":9,"./track.js":22,"./transport.js":23}],22:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -7968,7 +7999,11 @@ lib.createTrack = function(options) {
         if (els[i].tagName == 'LABEL') {
           els[i].setAttribute('for', ((els[i]).getAttribute('for')) + _index);
         } else {
-          els[i].name = ((els[i]).name) + _index;
+          let name = els[i].name;
+          els[i].name = name + _index;
+          if (els[i].type === 'checkbox') {
+            els[i].setAttribute("data-name", name);
+          }
         }
       }
     });
@@ -7981,7 +8016,7 @@ lib.createTrack = function(options) {
     var options = {type: _instrumentSelect.value, compact: _instrumentCompact.checked};
     for (var i = 0; i < _stringedOptionElements.length; ++i) {
       var el = _stringedOptionElements[i];
-      options[el.name] = el.checked;
+      options[el.getAttribute("data-name") || el.name] = el.checked;
     }
     return options;
   }
@@ -8088,6 +8123,7 @@ lib.createTrack = function(options) {
         target.value = (target.checked) ? '1' : '0';
         if (target.classList.contains("mute")) {
           this.mute(target.checked);
+          return true;
         }
         this.updateVisualization();
         return true;
@@ -8153,7 +8189,7 @@ function addMessage(parentElement, type, message) {
   parentElement.appendChild(el);
 }
 
-},{"../../audio/audio_context_wrapper.js":9,"../../audio/instrument.js":10,"../../theory/arpeggio.js":38,"../../theory/base.js":39,"../../theory/progression.js":43,"../instrument/proxy.js":17}],24:[function(require,module,exports){
+},{"../../audio/audio_context_wrapper.js":9,"../../audio/instrument.js":10,"../../theory/arpeggio.js":37,"../../theory/base.js":38,"../../theory/progression.js":42,"../instrument/proxy.js":16}],23:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8237,7 +8273,7 @@ lib.createTransport = function(sequencer, sequencerGUI) {
   };
 };
 
-},{}],25:[function(require,module,exports){
+},{}],24:[function(require,module,exports){
 var session = {};
 module.exports = session;
 
@@ -8302,7 +8338,7 @@ session.restoreTextAreaSizes = function(form) {
   });
 }
 
-},{}],26:[function(require,module,exports){
+},{}],25:[function(require,module,exports){
 var formLib = require("./gui/form.js"),
  t = require("./theory/base.js"),
  compositeParser = require("./parser/composite_parser.js"),
@@ -8382,7 +8418,7 @@ var downloadDataUri = (function () {
   };
 }());
 
-},{"./gui/form.js":13,"./gui/sequencer/service.js":22,"./gui/sequencer/transport.js":24,"./midi.js":27,"./parser/composite.js":29,"./parser/composite_parser.js":30,"./presets.js":32,"./sequencer/sequencer.js":34,"./server/client.js":36,"./theory/base.js":39}],27:[function(require,module,exports){
+},{"./gui/form.js":12,"./gui/sequencer/service.js":21,"./gui/sequencer/transport.js":23,"./midi.js":26,"./parser/composite.js":28,"./parser/composite_parser.js":29,"./presets.js":31,"./sequencer/sequencer.js":33,"./server/client.js":35,"./theory/base.js":38}],26:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8435,15 +8471,9 @@ lib.createMidi = function(sequencer, scales, generatorUrl) {
   return writer;
 }
 
-},{"midi-writer-js":4}],28:[function(require,module,exports){
+},{"midi-writer-js":4}],27:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
-
-/*
-  TODO Add feature:
-  - when delcaring a variable using $, e.g. "$var: 1 2 3", then the value is only assigned to the variable,
-    but gets not inserted back into its parent
-*/
 
 // Reused parts of regular expressions:
 var NUMBER_REGEX_STR = '-?[\\d]+(?:\\.\\d+)?';
@@ -8454,6 +8484,7 @@ var VARIABLE_DECLARATION_SUFFIX = ':';
 var PURE_VARIABLE_DECLARATION_PREFIX = '\\$';
 var EXPRESSION_REGEX_STR = '\\([^\)]+\\)';
 var LINE_COMMENT_STR = "#";
+var MULTILINE_COMMENT_REGEX_STR = "/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/";
 
 // Next possible token states:
 var INITIAL = 0;
@@ -8466,7 +8497,7 @@ var SHORT_CHARACTER_OPTION = 6;
 var LONG_OPTION = 7;
 var OPENED_BRACKET = 8;
 var CLOSED_BRACKET = 9;
-var LINE_COMMENT = 10;
+var COMMENT = 10;
 
 function createState(thingRegex) {
   // getNextStates() of each state returns the next possible token states
@@ -8478,11 +8509,11 @@ function createState(thingRegex) {
 
   // Initialize all state objects...
   allStates[INITIAL] = {
-    nextStates: [LINE_COMMENT, OPENED_BRACKET, WHITESPACE, SUBJECT, VARIABLE_DECLARATION, VARIABLE]
+    nextStates: [COMMENT, OPENED_BRACKET, WHITESPACE, SUBJECT, VARIABLE_DECLARATION, VARIABLE]
   };
   allStates[WHITESPACE] = {
     regexp: /^[\r\n\s]+/,
-    notNestedStates: [SUBJECT, VARIABLE_DECLARATION, VARIABLE, OPENED_BRACKET, LINE_COMMENT],
+    notNestedStates: [SUBJECT, VARIABLE_DECLARATION, VARIABLE, OPENED_BRACKET, COMMENT],
     getNextStates: function () {
       var my = allStates[WHITESPACE];
       var states = (nesting > 0) ? my.nestedStates : my.notNestedStates;
@@ -8571,16 +8602,16 @@ function createState(thingRegex) {
       return (nesting > 0) ? my.nestedStates : my.notNestedStates;
     }
   };
-  allStates[LINE_COMMENT] = {
-    regexp: new RegExp('^' + LINE_COMMENT_STR + '.*$', 'm'),
-    notNestedStates: [WHITESPACE, OPENED_BRACKET, VARIABLE_DECLARATION, VARIABLE, LINE_COMMENT],
+  allStates[COMMENT] = {
+    regexp: new RegExp(MULTILINE_COMMENT_REGEX_STR + '|^' + LINE_COMMENT_STR + '.*'),
+    notNestedStates: [WHITESPACE, OPENED_BRACKET, VARIABLE_DECLARATION, VARIABLE, COMMENT],
     getNextStates: function () {
-      var my = allStates[LINE_COMMENT];
+      var my = allStates[COMMENT];
       isAfterSubjectOrVariableOrEndOfGroup = false;
       return (nesting > 0) ? my.nestedStates : my.notNestedStates;
     }
   };
-  allStates[LINE_COMMENT].nestedStates = allStates[LINE_COMMENT].notNestedStates.concat([CLOSED_BRACKET]);
+  allStates[COMMENT].nestedStates = allStates[COMMENT].notNestedStates.concat([CLOSED_BRACKET]);
 
   var state;
   for (var stateIndex in allStates) {
@@ -8698,37 +8729,28 @@ function handleNewState(state, parserDelegate, match, pos) {
   switch (state.index) {
     case WHITESPACE:
       // fallthrough
-    case LINE_COMMENT:
+    case COMMENT:
       return;
-      break;
     case SUBJECT:
       return parserDelegate.onSubject(match, pos);
-      break;
     case VARIABLE_DECLARATION:
       return parserDelegate.onVariableDeclaration(match[2], match[1].length > 0, pos);
-      break;
     case VARIABLE:
       return parserDelegate.onVariable(match[0], pos);
-      break;
     case SHORT_NUMBER_OPTION:
       // fallthrough
     case SHORT_CHARACTER_OPTION:
       return parserDelegate.onOption(match[1], match[2], "=", true, false, pos);
-      break;
     case LONG_OPTION:
       return parserDelegate.onOption(match[1], match[3], match[2], false, match[4].length > 0, pos);
-      break;
     case OPENED_BRACKET:
       return parserDelegate.onGroupStart(pos);
-      break;
     case CLOSED_BRACKET:
       return parserDelegate.onGroupEnd(pos);
-      break;
     default:
       // This cannot happen
       parserDelegate.onError("Error of dev - unexpected token state index: " + state.index, pos);
       return false;
-      break;
   }
 }
 
@@ -8765,7 +8787,7 @@ function handleNewState(state, parserDelegate, match, pos) {
 // };
 // require("./src/parser/async_lexer.js").lexMultilineString(chordDefs, parserDelegate);
 
-},{}],29:[function(require,module,exports){
+},{}],28:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -8879,8 +8901,11 @@ function createSubjectComposite(name, variables) {
       return this.createFlatSubjectListRecursive(subjectBuilderFactory, []);
     },
     /**
-     * In this version the outer parts are the more specific options. I think
-     * this could make more sense.
+     * When options are set (using "=" or using shortcut notation) the inner options are the more specific options.
+     * They override what was set by the sourrounding options. Outer options can be forced though using "!".
+     * 
+     * Relative option changes (using "+=" or "-=") are always applied.
+     * 
      */
     createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
       var subjects = [];
@@ -8900,9 +8925,9 @@ function createSubjectComposite(name, variables) {
         });
         optionsList.forEach(function(options, index) {
           options.forEachOption(function(key, value, operator, isShort, isForced) {
-            // if the (direct) parent sets a value, then it only gets assigned to a child of it
+            // if a parent sets a value, then it only gets assigned to a child of it
             // if the child does not assign a value itself to the same option
-            if (index === 0 && operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
+            if (operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
               return;
             }
             subjectBuilder.withOption(key, value, operator, isShort, isForced);
@@ -8916,23 +8941,22 @@ function createSubjectComposite(name, variables) {
 }
 
 function createOptions() {
-  var _shortOptions = {};
   var _options = {};
 
-  function addOption(key, valueAsString, operator, isForced, options) {
-    if (!options[key]) {
-      options[key] = {};
+  function addOption(key, valueAsString, operator, isForced) {
+    if (!_options[key]) {
+      _options[key] = {};
     }
-    if (!options[key][operator]) {
-      options[key][operator] = [];
+    if (!_options[key][operator]) {
+      _options[key][operator] = [];
     }
     if (operator === '=') {
       // only one value is allowed to be added via "="
-      if (Array.isArray(options[key][operator]) || isForced) {
-        options[key][operator] = {value: valueAsString, isForced: isForced};
+      if (Array.isArray(_options[key][operator]) || isForced) {
+        _options[key][operator] = {value: valueAsString, isForced: isForced};
       }
     } else {
-      options[key][operator].push(valueAsString);
+      _options[key][operator].push(valueAsString);
     }
   }
 
@@ -8968,8 +8992,7 @@ function createOptions() {
 
   return {
     addOption: function(key, valueAsString, operator, isShort, isForced) {
-      var options = isShort ? _shortOptions : _options;
-      addOption(key, valueAsString, operator, isForced, options);
+      addOption(key, valueAsString, operator, isForced);
     },
     /**
      * Returns the value of an option by key which was set using '=' or false.
@@ -8984,27 +9007,19 @@ function createOptions() {
       delete _options[key]['='];
     },
     asString: function() {
-      var shortOptions = createString(_shortOptions);
       var options = createString(_options);
-      return (shortOptions !== '' ? 'short:' + shortOptions : '')
-        + (options !== '' ? 'options:' + options : '')
+      return options !== '' ? 'options:' + options : '';
     },
     isEmpty: function() {
-      return _shortOptions.length === 0 && _options.length === 0;
+      return _options.length === 0;
     },
     forEachOption: function(callback) {
       forEachOption(_options, function(key, value, operator, isForced) {
         callback(key, value, operator, false, isForced);
       });
-      forEachOption(_shortOptions, function(key, value, operator, isForced) {
-        callback(key, value, operator, true, isForced);
-      });
     },
     clone: function() {
       var clone = createOptions();
-      forEachOption(_shortOptions, function(key, value, operator, isForced) {
-        clone.addOption(key, value, operator, true, isForced);
-      });
       forEachOption(_options, function(key, value, operator, isForced) {
         clone.addOption(key, value, operator, false, isForced);
       });
@@ -9013,7 +9028,7 @@ function createOptions() {
   };
 }
 
-},{}],30:[function(require,module,exports){
+},{}],29:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9175,7 +9190,7 @@ function createLexerDelegate(compositeParserDelegate, subjectVariables) {
   return resultDelegate;
 }
 
-},{"./async_lexer.js":28,"./message.js":31}],31:[function(require,module,exports){
+},{"./async_lexer.js":27,"./message.js":30}],30:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9207,7 +9222,7 @@ lib.createMessageContainer = function() {
   };
 }
 
-},{}],32:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 var std4Voicing = "1 3 5 7";
 var std6Voicing = "1 3 5 6";
 module.exports.progressions = [
@@ -9267,7 +9282,7 @@ module.exports.rhythmPatterns = [
   ["4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4"] // 16 events
 ];
 
-},{}],33:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9351,7 +9366,7 @@ lib.parseThingsRecursive = function(multineText, parserDelegate) {
   return resultMapping;
 };
 
-},{}],34:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9595,7 +9610,7 @@ lib.createSequencer = function () {
           var lastFoundEvent = track.getLastFoundEvent();
           var endInSeconds = scheduleTimeInSeconds;
           // XXX already schedule note off for the last event here (because it is simpler to do this way, but it could lead to problems?)
-          if (synth && !lastFoundEvent.isRest()) {
+          if (synth && lastFoundEvent && !lastFoundEvent.isRest()) {
             lastFoundEvent.getPitches().forEach(note => {
               synth.noteOff(note.getPosition(), endInSeconds);
             });
@@ -9730,7 +9745,7 @@ function VisualDebug(sizeInSeconds) {
   }
 }
 
-},{"../audio/audio_context_wrapper.js":9,"./track.js":35}],35:[function(require,module,exports){
+},{"../audio/audio_context_wrapper.js":9,"./track.js":34}],34:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -9776,44 +9791,6 @@ lib.createTrack = function() {
     },
     setChordIndex: function(chordIndex) {
       _chordIndex = chordIndex;
-    },
-    // XXX DELETE ME:
-    previousEvent: function() {
-      // does the chord index need to be decreased?
-      if (_eventIndex === 0) {
-        // yes
-        --_chordIndex;
-        _eventIndex = -1;
-        if (_chordIndex < 0) {
-          // there are no more chords
-          return false;
-        }
-        _eventIndex = _events[_chordIndex].length - 1;
-      } else {
-        --_eventIndex;
-      }
-      var event = _events[_chordIndex][_eventIndex];
-      return event;
-    },
-
-    nextEvent: function() {
-      // check whether the current chord/event indexes are still in their array bounds:
-      if (_chordIndex >= _events.length) {
-        return false;
-      }
-      // does the chord need to be advanced?
-      if ((_eventIndex + 1) >= _events[_chordIndex].length) {
-        // yes
-        ++_chordIndex;
-        _eventIndex = 0;
-        if (_chordIndex >= _events.length) {
-          // there are no more chords
-          return false;
-        }
-      } else {
-        ++_eventIndex;
-      }
-      return _events[_chordIndex][_eventIndex];
     },
     getAudioInstrument: function() {
       return _audioInstrument;
@@ -9954,7 +9931,7 @@ lib.createTrack = function() {
   return track;
 };
 
-},{"../audio/instrument.js":10}],36:[function(require,module,exports){
+},{"../audio/instrument.js":10}],35:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10026,13 +10003,13 @@ lib.uploadMidi = function(midiAsBase64String) {
   upload("midi", data);
 };
 
-},{"./host.js":37}],37:[function(require,module,exports){
+},{"./host.js":36}],36:[function(require,module,exports){
 module.exports = {
   hostName: '127.0.0.1',
   hostPort: '3042'
 };
 
-},{}],38:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10456,7 +10433,7 @@ function createPitchEvent(event, pitches) {
   return pitchEvent;
 }
 
-},{"../recursive_parser.js":33}],39:[function(require,module,exports){
+},{"../recursive_parser.js":32}],38:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10470,8 +10447,9 @@ lib.isVoicing = voicingLib.isVoicing;
 lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
+lib.parseKeyPosition = notesLib.parseKeyPosition;
 
-},{"./chord_definition.js":41,"./notes.js":42,"./scale.js":45,"./voicing.js":46}],40:[function(require,module,exports){
+},{"./chord_definition.js":40,"./notes.js":41,"./scale.js":44,"./voicing.js":45}],39:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -10582,20 +10560,20 @@ lib.createChord = function(chordDef) {
   return chord;
 };
 
-},{}],41:[function(require,module,exports){
+},{}],40:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
-var voicingLib = require("./voicing.js");
 var chordLib = require("./chord.js");
 var compositeLib = require("../parser/composite.js");
 var compositeParser = require("../parser/composite_parser.js");
 const { parseVoicing } = require("./voicing.js");
 const { parseRhythmPattern } = require("./rhythm.js");
 const { parseArpeggioPattern } = require("./arpeggio.js");
+const { createScale } = require("./scale.js");
 
 /**
- * TODO make this a clean method again (which needs some f)
+ * TODO make this a clean method again
 *
  * Returns false if there is no valid chord definition to be parsed.
  */
@@ -10611,18 +10589,6 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
   var _inversion = inversion;
   var _transposition = transposition;
   var _scale = scale;
-
-  function mergeVoices(combinedVoicing, voicing) {
-    var voice;
-    for (var i in voicing) {
-      if (!voicing.hasOwnProperty(i)) {
-        continue;
-      }
-      voice = voicing[i];
-      combinedVoicing[voice] = voice;
-    }
-  }
-
   var _rhythmPattern = rhythmPattern;
   var _arpeggioPattern = arpeggioPattern;
   var _voicing = voicing;
@@ -10641,7 +10607,7 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
       return _direction;
     },
     getInversion: function() {
-      return _inversion;
+      return _inversion;  
     },
     setInversion: function(inversion) {
       _inversion = inversion;
@@ -10705,6 +10671,9 @@ lib.parseChordDefinitions = function(multilineString, voicings, scales, rhythmPa
   };
 }
 
+// TODO actually resolve rhythm references
+var referenceResolver = { resolveReference: function(referenceName) {} };
+
 function resolveVariableOrParseSubject(variableNameOrSubject, map, type, messages) {
   if (variableNameOrSubject.length > 1 && variableNameOrSubject[0] === '(' 
     && variableNameOrSubject[variableNameOrSubject.length - 1] == ')'
@@ -10717,11 +10686,13 @@ function resolveVariableOrParseSubject(variableNameOrSubject, map, type, message
         subject = parseVoicing(value);
         break;
       case 'rhythm pattern':
-        subject = parseRhythmPattern(value);
+        subject = parseRhythmPattern(value, referenceResolver);
         break;
       case 'arpeggio pattern':
         subject = parseArpeggioPattern(value);
         break;
+      case 'scale':
+        subject = createScale(value);
       default:
         break;
     }
@@ -10755,14 +10726,6 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
   var _rhythmPatterns = rhythmPatterns;
   var _arpeggioPatterns = arpeggioPatterns;
 
-  /**
-   * subjectBuilderFactory is a f
-   * - createSubjectBuilder()
-   * which is expected to return a new object with the methods:
-   * - withMatch(match)
-   * - withOption(key, value, operator) // called for all options, from least specific to most specific
-   * - getResult() // returns the resulting subject
-   */
   return function() {
 
     // chord definiton parameters
@@ -10808,7 +10771,7 @@ function createChordDefinitionBuilderFactory(scales, voicings, rhythmPatterns, a
             _direction = value;
             break;
           case 's':
-            var subject = resolveScale(value, _scales, _messages);
+            var subject = resolveVariableOrParseSubject(value, _scales, "scale", _messages);
             _scale = alterSubject(_scale, subject, operator, "scale", _messages);
             break;
           case 'V':
@@ -10895,7 +10858,7 @@ function alterSubject(existingSubject, newSubject, operator, description, messag
   return existingSubject;
 }
 
-},{"../parser/composite.js":29,"../parser/composite_parser.js":30,"./arpeggio.js":38,"./chord.js":40,"./rhythm.js":44,"./voicing.js":46}],42:[function(require,module,exports){
+},{"../parser/composite.js":28,"../parser/composite_parser.js":29,"./arpeggio.js":37,"./chord.js":39,"./rhythm.js":43,"./scale.js":44,"./voicing.js":45}],41:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 /**
@@ -10955,6 +10918,8 @@ function parseKeyPosition(keyName) {
   // c0 = 12
   return 12 + (register * 12) + relativeRoot;
 }
+
+lib.parseKeyPosition = parseKeyPosition;
 
 // mapping (in form of a sparce array) between relative chromatic positions of the first octave and letters
 var chromaticKeyMap = {};
@@ -11307,7 +11272,7 @@ function isNotesObject(object) {
   return typeof(object.getKeyPosition) === 'function';
 }
 
-},{}],43:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var lib = {}; // gets exported
 module.exports = lib;
 var t = require("./base.js"),
@@ -11480,7 +11445,7 @@ var nearestChordTypeStrategies = {
   },
 };
 
-},{"../fingering.js":12,"./base.js":39}],44:[function(require,module,exports){
+},{"../fingering.js":11,"./base.js":38}],43:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11712,7 +11677,7 @@ lib.parseRhythmPatterns = function(multilineString) {
 };
 
 lib.parseRhythmPattern = parseRhythmPattern;
-},{"../recursive_parser.js":33}],45:[function(require,module,exports){
+},{"../recursive_parser.js":32}],44:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -11827,7 +11792,7 @@ lib.createScale = function(definition) {
   };
 }
 
-},{"./notes.js":42}],46:[function(require,module,exports){
+},{"./notes.js":41}],45:[function(require,module,exports){
 var lib = {};
 module.exports = lib;
 
@@ -12060,7 +12025,7 @@ lib.isVoicing = function(object) {
 }
 
 lib.parseVoicing = parseVoicing;
-},{"../recursive_parser.js":33}]},{},[26]);
+},{"../recursive_parser.js":32}]},{},[25]);
 </script>
   </body>
 </html>
