@@ -69,7 +69,7 @@ lib.createTrack = function(options) {
     var options = {type: _instrumentSelect.value, compact: _instrumentCompact.checked};
     for (var i = 0; i < _stringedOptionElements.length; ++i) {
       var el = _stringedOptionElements[i];
-      options[el.getAttribute("data-name")] = el.checked;
+      options[el.getAttribute("data-name") || el.name] = el.checked;
     }
     return options;
   }
