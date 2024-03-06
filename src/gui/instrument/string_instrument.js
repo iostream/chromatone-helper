@@ -7,7 +7,7 @@ var stringInstrumentTemplate = document.getElementById("templates").getElementsB
 
 var types = {
   // name: [stringBaseNotes, stringGauges, fretCount]
-  guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 17], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
+  guitar: [notesLib.parseNotes('15 12 b10 b7 4 1 E2'), [.01, .0135, .017, .026, .036, .048], 22], // guitar bar chord voicing: 1 5 8 10 12 (but better use drop voicing -> using octaves in arp pattern)
   bass_guitar: [notesLib.parseNotes('b10 b7 4 1 E1'), [.045, .06, .08 , .1], 17],
   concert_ukulele: [notesLib.parseNotes('10 6 4 8 G4'), [.022, .026, .029, .024], 11],
 };
@@ -131,6 +131,7 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
       _stringPitches.forEach(function(stringPitch, stringIndex) {
         var relativeStringPosition = stringPitch.getPosition() % 12;
         notes.forEach(function(pitchToAdd) {
+          var positionOnString;
           var position = pitchToAdd.getPosition();
           // check for all registers
           var stringRegister = -1;
@@ -169,10 +170,6 @@ lib.createStringInstrument = function(stringBaseNotes, gauges, fretCount) {
     },
     addDiff: function(notes) {
       // noop
-    },
-    clone: function() {
-      console.error("StringInstrument.clone() is not implemented");
-      // TODO return construct(keyboard.cloneNode(true));
     }
   };
 
