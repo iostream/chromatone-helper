@@ -111,8 +111,11 @@ function createSubjectComposite(name, variables) {
       return this.createFlatSubjectListRecursive(subjectBuilderFactory, []);
     },
     /**
-     * In this version the outer parts are the more specific options. I think
-     * this could make more sense.
+     * When options are set (using "=" or using shortcut notation) the inner options are the more specific options.
+     * They override what was set by the sourrounding options. Outer options can be forced though using "!".
+     * 
+     * Relative option changes (using "+=" or "-=") are always applied.
+     * 
      */
     createFlatSubjectListRecursive: function(subjectBuilderFactory, parentOptionsList) {
       var subjects = [];
@@ -132,9 +135,9 @@ function createSubjectComposite(name, variables) {
         });
         optionsList.forEach(function(options, index) {
           options.forEachOption(function(key, value, operator, isShort, isForced) {
-            // if the (direct) parent sets a value, then it only gets assigned to a child of it
+            // if a parent sets a value, then it only gets assigned to a child of it
             // if the child does not assign a value itself to the same option
-            if (index === 0 && operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
+            if (operator === '=' && !isForced && childOptions.hasAssignedValue(key)) {
               return;
             }
             subjectBuilder.withOption(key, value, operator, isShort, isForced);
@@ -148,23 +151,22 @@ function createSubjectComposite(name, variables) {
 }
 
 function createOptions() {
-  var _shortOptions = {};
   var _options = {};
 
-  function addOption(key, valueAsString, operator, isForced, options) {
-    if (!options[key]) {
-      options[key] = {};
+  function addOption(key, valueAsString, operator, isForced) {
+    if (!_options[key]) {
+      _options[key] = {};
     }
-    if (!options[key][operator]) {
-      options[key][operator] = [];
+    if (!_options[key][operator]) {
+      _options[key][operator] = [];
     }
     if (operator === '=') {
       // only one value is allowed to be added via "="
-      if (Array.isArray(options[key][operator]) || isForced) {
-        options[key][operator] = {value: valueAsString, isForced: isForced};
+      if (Array.isArray(_options[key][operator]) || isForced) {
+        _options[key][operator] = {value: valueAsString, isForced: isForced};
       }
     } else {
-      options[key][operator].push(valueAsString);
+      _options[key][operator].push(valueAsString);
     }
   }
 
@@ -200,8 +202,7 @@ function createOptions() {
 
   return {
     addOption: function(key, valueAsString, operator, isShort, isForced) {
-      var options = isShort ? _shortOptions : _options;
-      addOption(key, valueAsString, operator, isForced, options);
+      addOption(key, valueAsString, operator, isForced);
     },
     /**
      * Returns the value of an option by key which was set using '=' or false.
@@ -216,27 +217,19 @@ function createOptions() {
       delete _options[key]['='];
     },
     asString: function() {
-      var shortOptions = createString(_shortOptions);
       var options = createString(_options);
-      return (shortOptions !== '' ? 'short:' + shortOptions : '')
-        + (options !== '' ? 'options:' + options : '')
+      return options !== '' ? 'options:' + options : '';
     },
     isEmpty: function() {
-      return _shortOptions.length === 0 && _options.length === 0;
+      return _options.length === 0;
     },
     forEachOption: function(callback) {
       forEachOption(_options, function(key, value, operator, isForced) {
         callback(key, value, operator, false, isForced);
       });
-      forEachOption(_shortOptions, function(key, value, operator, isForced) {
-        callback(key, value, operator, true, isForced);
-      });
     },
     clone: function() {
       var clone = createOptions();
-      forEachOption(_shortOptions, function(key, value, operator, isForced) {
-        clone.addOption(key, value, operator, true, isForced);
-      });
       forEachOption(_options, function(key, value, operator, isForced) {
         clone.addOption(key, value, operator, false, isForced);
       });
