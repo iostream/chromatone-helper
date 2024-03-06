@@ -1,7 +1,6 @@
 var lib = {};
 module.exports = lib;
 
-var voicingLib = require("./voicing.js");
 var chordLib = require("./chord.js");
 var compositeLib = require("../parser/composite.js");
 var compositeParser = require("../parser/composite_parser.js");
@@ -11,7 +10,7 @@ const { parseArpeggioPattern } = require("./arpeggio.js");
 const { createScale } = require("./scale.js");
 
 /**
- * TODO make this a clean method again (which needs some f)
+ * TODO make this a clean method again
 *
  * Returns false if there is no valid chord definition to be parsed.
  */
@@ -27,18 +26,6 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
   var _inversion = inversion;
   var _transposition = transposition;
   var _scale = scale;
-
-  function mergeVoices(combinedVoicing, voicing) {
-    var voice;
-    for (var i in voicing) {
-      if (!voicing.hasOwnProperty(i)) {
-        continue;
-      }
-      voice = voicing[i];
-      combinedVoicing[voice] = voice;
-    }
-  }
-
   var _rhythmPattern = rhythmPattern;
   var _arpeggioPattern = arpeggioPattern;
   var _voicing = voicing;
@@ -57,7 +44,7 @@ function createChordDefinition(asString, step, inversion, transposition, inversi
       return _direction;
     },
     getInversion: function() {
-      return _inversion;
+      return _inversion;  
     },
     setInversion: function(inversion) {
       _inversion = inversion;
@@ -121,6 +108,9 @@ lib.parseChordDefinitions = function(multilineString, voicings, scales, rhythmPa
   };
 }
 
+// TODO actually resolve rhythm references
+var referenceResolver = { resolveReference: function(referenceName) {} };
+
 function resolveVariableOrParseSubject(variableNameOrSubject, map, type, messages) {
   if (variableNameOrSubject.length > 1 && variableNameOrSubject[0] === '(' 
     && variableNameOrSubject[variableNameOrSubject.length - 1] == ')'
@@ -133,7 +123,7 @@ function resolveVariableOrParseSubject(variableNameOrSubject, map, type, message
         subject = parseVoicing(value);
         break;
       case 'rhythm pattern':
-        subject = parseRhythmPattern(value);
+        subject = parseRhythmPattern(value, referenceResolver);
         break;
       case 'arpeggio pattern':
         subject = parseArpeggioPattern(value);
