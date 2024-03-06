@@ -52,7 +52,11 @@ lib.createTrack = function(options) {
         if (els[i].tagName == 'LABEL') {
           els[i].setAttribute('for', ((els[i]).getAttribute('for')) + _index);
         } else {
-          els[i].name = ((els[i]).name) + _index;
+          let name = els[i].name;
+          els[i].name = name + _index;
+          if (els[i].type === 'checkbox') {
+            els[i].setAttribute("data-name", name);
+          }
         }
       }
     });
@@ -65,7 +69,7 @@ lib.createTrack = function(options) {
     var options = {type: _instrumentSelect.value, compact: _instrumentCompact.checked};
     for (var i = 0; i < _stringedOptionElements.length; ++i) {
       var el = _stringedOptionElements[i];
-      options[el.name] = el.checked;
+      options[el.getAttribute("data-name")] = el.checked;
     }
     return options;
   }
