@@ -11,3 +11,4 @@ lib.isVoicing = voicingLib.isVoicing;
 lib.parseChordDefinitions = chordDefinitionLib.parseChordDefinitions;
 lib.parseNote = notesLib.parseNote;
 lib.parseNotes = notesLib.parseNotes;
+lib.parseKeyPosition = notesLib.parseKeyPosition;

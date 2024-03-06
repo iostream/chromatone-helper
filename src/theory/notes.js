@@ -58,6 +58,8 @@ function parseKeyPosition(keyName) {
   return 12 + (register * 12) + relativeRoot;
 }
 
+lib.parseKeyPosition = parseKeyPosition;
+
 // mapping (in form of a sparce array) between relative chromatic positions of the first octave and letters
 var chromaticKeyMap = {};
 for (var i = 0; i < 7; ++i) {
