@@ -172,6 +172,7 @@ lib.createTrack = function(options) {
         target.value = (target.checked) ? '1' : '0';
         if (target.classList.contains("mute")) {
           this.mute(target.checked);
+          return true;
         }
         this.updateVisualization();
         return true;
