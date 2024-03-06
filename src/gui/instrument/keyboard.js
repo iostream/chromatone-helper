@@ -1,7 +1,22 @@
 var lib = {};
 module.exports = lib;
 
-var tLib = require("../../theory/base.js");
+var tLib = require("../../theory/base");
+
+var buttonColors = {};
+(() => {
+  // mapping between note name (e.g. 'c') to css colors: [background color, font color]
+  var buttonColorTheme = {
+    c: ['yellow', 'black'],
+    e: ['blue', 'white'],
+    'g#': ['red', 'white']
+  };
+
+  for (let key of Object.keys(buttonColorTheme)) {
+    let relativeChromatic = tLib.parseKeyPosition(key) % 12;
+    buttonColors[relativeChromatic] = buttonColorTheme[key];
+  }
+})();
 
 var chromaticKeyboardTemplate = document.getElementById("templates").getElementsByClassName("chromatic")[0];
 
@@ -34,6 +49,10 @@ function createChromaticKeyboard(lowestPosition, highestPosition, rowCount) {
       // r<row>
       button.className = "c" + chromatic;
       rowEl.appendChild(button);
+      let colors = buttonColors[chromatic % 12];
+      if (colors) {
+        button.style = 'background-color:' + colors[0] + '; color: ' + colors[1];
+      }
       chromatic += 2;
     }
 

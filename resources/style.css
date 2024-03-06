@@ -73,14 +73,14 @@ section#templates {
   line-height: 19pt;
 }
 .chromatic.keyboard span.selected {
-  background-color: #ffa17a;
+  outline: 2px solid #354b45;
+  position: relative;
 }
 .chromatic.keyboard span.played {
   background-color: red !important;
 }
 .chromatic.keyboard span.root {
   border-color: #354b45;
-  background-color: yellow;
   color: #354b45;
 }
 .chromatic.keyboard .description {
@@ -114,9 +114,6 @@ section#templates {
 .interactive-form .scale_container input[type="button"] {
   width: calc(25% - 4px);
   padding: 0;
-}
-.interactive-form .scale_container input[value=">"] {
-  float: right;
 }
 .interactive-form .scale_container input[type="text"] {
   width: calc(100% - 10pt);
@@ -215,4 +212,18 @@ section#templates {
 }
 .track .visualization {
   margin: 5px 0 10px 0;
+}
+
+.piano-roll {
+  display: flex;
+  align-items: flex-start;
+}
+
+.piano-roll .piano {
+  flex: 0 0 auto;
+}
+
+.piano-roll .scroll {
+  overflow: auto;
+  display: grid;
 }
