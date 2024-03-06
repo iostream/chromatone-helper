@@ -4,11 +4,13 @@ module.exports = lib;
 const audioContextWrapper = require("./audio_context_wrapper.js");
 
 var WebAudioTinySynth = require('webaudio-tinysynth');
-const { MyToneSynth } = require('./my_tone_synth.js');
+// const { MyToneSynth } = require('./my_tone_synth.js');
+// const { MyVowelSynth } = require('./my_vowel_synth.js');
 
 var INSTRUMENT_FACTORIES = {
   'webaudio-tinysynth': createTinySynthInstrument,
-  'my-tone-synth': () => new MyToneSynth()
+//  'my-tone-synth': () => new MyToneSynth(),
+//  'my-vowel-synth': () => new MyVowelSynth()
 };
 
 lib.getInstrumentNames = function() {
