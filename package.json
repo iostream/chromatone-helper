@@ -30,10 +30,10 @@
     "watchify": "^4.0.0"
   },
   "scripts": {
-    "build": "browserify src/main.js > dist/bundle.js && ./build/build-combined.sh",
-    "watch": "watchify src/main.js -o dist/bundle.js -v",
-    "build_watch": "watchify src/main.js -o \"browserify src/main.js > dist/bundle.js && ./build/build-combined.sh\" -v",
-    "deploy": "browserify src/main.js > dist/bundle.js && ./build/build-combined.sh && ./build/deploy-branch-on-github-pages.sh",
+    "build": "mkdir -p dist && browserify src/main.js > dist/bundle.js && ./build/build-combined.sh",
+    "watch": "mkdir -p dist && watchify src/main.js -o dist/bundle.js -v",
+    "build_watch": "mkdir -p dist && watchify src/main.js -o \"browserify src/main.js > dist/bundle.js && ./build/build-combined.sh\" -v",
+    "deploy": "mkdir -p dist && browserify src/main.js > dist/bundle.js && ./build/build-combined.sh && ./build/deploy-branch-on-github-pages.sh",
     "postinstall": "patch-package"
   }
 }
