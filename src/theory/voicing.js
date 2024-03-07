@@ -173,8 +173,10 @@ function normalizeVoices(voices) {
  * Inversions can be negative and there are more inversions than note count - 1.
  */
 function invertNotes(notes, inversion) {
-  if (notes.length <= 1)  {
-    // not returning here would result in an endless loop
+  if (notes.length < 1)  {
+    return;
+  } else if (notes.length == 1) {
+    notes[0].transpose(inversion * 12);
     return;
   }
   // simple and effective....
